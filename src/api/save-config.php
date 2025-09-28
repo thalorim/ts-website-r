@@ -1,0 +1,42 @@
+<?php
+
+use Wruczek\TSWebsite\Auth;
+use Wruczek\TSWebsite\Config;
+use Wruczek\TSWebsite\Utils\ApiUtils;
+
+require_once __DIR__ . "/../private/php/load.php";
+
+header('Content-Type: application/json');
+
+if (!Auth::isLoggedIn() || Auth::getCldbid() !== 3) {
+    http_response_code(403);
+    echo json_encode(["ok" => false, "error" => "forbidden"]);
+    exit;
+}
+
+try {
+    $assigner = @$_POST["assignerconfig"] ?? '';
+    $adminGroups = @$_POST["adminstatus_groups"] ?? '';
+
+    if ($assigner !== '') {
+        $assignerJson = json_decode($assigner, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \InvalidArgumentException("assignerconfig must be valid JSON");
+        }
+        Config::i()->setValue("assignerconfig", $assignerJson);
+    }
+
+    if ($adminGroups !== '') {
+        $groupsJson = json_decode($adminGroups, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \InvalidArgumentException("adminstatus_groups must be valid JSON");
+        }
+        Config::i()->setValue("adminstatus_groups", $groupsJson);
+    }
+
+    echo json_encode(["ok" => true]);
+} catch (\Throwable $e) {
+    http_response_code(400);
+    echo json_encode(["ok" => false, "error" => $e->getMessage()]);
+}
+
