@@ -111,6 +111,25 @@ if ($onlineClient) {
             if (isset($live["connection_connected_time"])) {
                 $profileData["online_since_ms"] = (int) $live["connection_connected_time"]; // milliseconds
             }
+            // Bandwidth last minute totals (bytes) -> compute per-second and human readable
+            if (isset($live["connection_bandwidth_sent_last_minute_total"])) {
+                $profileData["bw_up_last_minute"] = (int) $live["connection_bandwidth_sent_last_minute_total"];
+                $upBps = $profileData["bw_up_last_minute"] / 60.0;
+                $profileData["bw_up_h"] = ($upBps >= 1024*1024)
+                    ? number_format($upBps / (1024*1024), 2) . " MB/s"
+                    : (($upBps >= 1024)
+                        ? number_format($upBps / 1024, 2) . " KB/s"
+                        : number_format($upBps, 0) . " B/s");
+            }
+            if (isset($live["connection_bandwidth_received_last_minute_total"])) {
+                $profileData["bw_down_last_minute"] = (int) $live["connection_bandwidth_received_last_minute_total"];
+                $downBps = $profileData["bw_down_last_minute"] / 60.0;
+                $profileData["bw_down_h"] = ($downBps >= 1024*1024)
+                    ? number_format($downBps / (1024*1024), 2) . " MB/s"
+                    : (($downBps >= 1024)
+                        ? number_format($downBps / 1024, 2) . " KB/s"
+                        : number_format($downBps, 0) . " B/s");
+            }
         }
     } catch (\Exception $e) {
         // ignore

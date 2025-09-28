@@ -74,9 +74,9 @@
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>First seen:</strong> {ifset $profile["created_ts"]}{($profile["created_ts"])|fullDate}{else}-{/ifset}</p>
-                    <p><strong>Last connected:</strong> {ifset $profile["lastconnected_ts"]}{($profile["lastconnected_ts"])|fuzzyDateAbbr}{else}-{/ifset}</p>
                     <p><strong>Total connections:</strong> {$profile["totalconnections"] ?? '-'}</p>
+                    <p><strong>Upload (avg last min):</strong> {$profile["bw_up_h"] ?? '-'}</p>
+                    <p><strong>Download (avg last min):</strong> {$profile["bw_down_h"] ?? '-'}</p>
                 </div>
             </div>
             <hr>
