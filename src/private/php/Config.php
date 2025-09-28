@@ -55,6 +55,13 @@ class Config {
                 $db = DatabaseUtils::i()->getDb();
                 $data = $db->select("config", ["identifier", "type", "value"]);
             } catch (\Exception $e) {
+                // If DB is unavailable, fall back to local overrides if present
+                $overrides = $this->getLocalOverrides();
+                if (!empty($overrides)) {
+                    $this->config = $overrides;
+                    return $this->config;
+                }
+
                 TemplateUtils::i()->renderErrorTemplate("DB error", "Cannot get config data from database", $e->getMessage());
                 exit;
             }
@@ -93,6 +100,12 @@ class Config {
                 }
 
                 $cfg[$key] = $val;
+            }
+
+            // Merge local overrides (if any) so they take precedence over DB values
+            $overrides = $this->getLocalOverrides();
+            if (!empty($overrides)) {
+                $cfg = array_replace($cfg, $overrides);
             }
 
             $this->config = $cfg;
@@ -165,5 +178,23 @@ class Config {
         }
 
         $this->clearConfigCache();
+    }
+
+    /**
+     * Loads local configuration overrides from private/config.local.php if present.
+     * This file should return a simple associative array of key => value pairs,
+     * where values are already typed PHP values (string|int|float|bool|array|object).
+     */
+    private function getLocalOverrides(): array {
+        $localConfigPath = __PRIVATE_DIR . "/config.local.php";
+
+        if (file_exists($localConfigPath)) {
+            $overrides = require $localConfigPath;
+            if (is_array($overrides)) {
+                return $overrides;
+            }
+        }
+
+        return [];
     }
 }
