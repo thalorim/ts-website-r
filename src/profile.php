@@ -86,6 +86,7 @@ if ($tsInfo) {
     // TeamSpeak3_Helper_String may be returned, cast to string where applicable
     $profileData["cluid"] = isset($tsInfo["client_unique_identifier"]) ? (string) $tsInfo["client_unique_identifier"] : null;
     $profileData["nickname"] = isset($tsInfo["client_nickname"]) ? (string) $tsInfo["client_nickname"] : null;
+    // Some frameworks expose only created/lastconnected/total via dbinfo; guard carefully
     $profileData["description"] = isset($tsInfo["client_description"]) ? (string) $tsInfo["client_description"] : null;
     $profileData["created_ts"] = isset($tsInfo["client_created"]) ? (int) $tsInfo["client_created"] : null;
     $profileData["lastconnected_ts"] = isset($tsInfo["client_lastconnected"]) ? (int) $tsInfo["client_lastconnected"] : null;
@@ -99,6 +100,21 @@ if ($onlineClient) {
     $profileData["platform"] = isset($onlineClient["client_platform"]) ? (string) $onlineClient["client_platform"] : null;
     $profileData["badges"] = isset($onlineClient["client_badges"]) ? (string) $onlineClient["client_badges"] : null;
     $profileData["servergroups"] = isset($onlineClient["client_servergroups"]) ? (string) $onlineClient["client_servergroups"] : null;
+    // Enhance with current channel and online since
+    $profileData["cid"] = isset($onlineClient["cid"]) ? (int) $onlineClient["cid"] : null;
+    $profileData["clid"] = isset($onlineClient["clid"]) ? (int) $onlineClient["clid"] : null;
+
+    // Try to get more live info to compute "online since" timestamp
+    try {
+        if (TeamSpeakUtils::i()->checkTSConnection() && isset($profileData["clid"])) {
+            $live = TeamSpeakUtils::i()->getTSNodeServer()->clientGetById($profileData["clid"])->getInfo(true);
+            if (isset($live["connection_connected_time"])) {
+                $profileData["online_since_ms"] = (int) $live["connection_connected_time"]; // milliseconds
+            }
+        }
+    } catch (\Exception $e) {
+        // ignore
+    }
 }
 
 // Persist to DB (upsert)
@@ -144,6 +160,24 @@ try {
 }
 
 $avatarUrl = ($dbProfile && !empty($dbProfile["avatar_url"])) ? $dbProfile["avatar_url"] : "img/icons/defaulticon-128.png";
+$bannerUrl = ($dbProfile && !empty($dbProfile["banner_url"])) ? $dbProfile["banner_url"] : null;
+// Prefer user-saved description if present
+if ($dbProfile && !empty($dbProfile["description"])) {
+    $profileData["description"] = (string) $dbProfile["description"];
+}
+
+// Resolve current channel name if available
+$currentChannelName = null;
+if ($isOnline && isset($profileData["cid"])) {
+    try {
+        $channels = CacheManager::i()->getChannelList();
+        if (isset($channels[$profileData["cid"]]) && isset($channels[$profileData["cid"]]["channel_name"])) {
+            $currentChannelName = (string) $channels[$profileData["cid"]]["channel_name"];
+        }
+    } catch (\Exception $e) {
+        // ignore
+    }
+}
 // Parse socials
 $socials = [];
 if ($dbProfile && !empty($dbProfile["socials_json"])) {
@@ -183,8 +217,10 @@ $renderData = [
     "isOnline" => $isOnline,
     "profile" => $profileData,
     "avatarUrl" => $avatarUrl,
+    "bannerUrl" => $bannerUrl,
     "groups" => $groupsDetailed,
     "socials" => $socialItems,
+    "currentChannelName" => $currentChannelName,
 ];
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);

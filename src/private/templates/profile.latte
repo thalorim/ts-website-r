@@ -3,7 +3,7 @@
 
 {block content}
     <div class="profile-header steamlike-header card-accent">
-        <div class="cover"></div>
+        <div class="cover" n:attr="style => isset($bannerUrl) && $bannerUrl ? 'background-image:url(' . $bannerUrl . '); background-size:cover; background-position:center;' : null"></div>
         <div class="avatar-and-meta d-flex align-items-center">
             <div class="d-flex align-items-center">
                 <div class="avatar">
@@ -31,6 +31,25 @@
                                     </a>
                                 {/foreach}
                             </span>
+                        {/if}
+                    </div>
+                    <div class="online-subtext mt-2">
+                        {if $isOnline}
+                            <span class="status-dot green"></span>
+                            <small>
+                                Online since
+                                {ifset $profile["online_since_ms"]}
+                                    {round(($profile["online_since_ms"] / 1000) / 60)} minutes
+                                {else}
+                                    a moment
+                                {/ifset}
+                                {ifset $currentChannelName}
+                                    • talking on {$currentChannelName}
+                                {/ifset}
+                            </small>
+                        {else}
+                            <span class="status-dot gray"></span>
+                            <small>Offline</small>
                         {/if}
                     </div>
                 </div>

@@ -23,7 +23,7 @@ $dbConfig = Config::i()->getDatabaseConfig();
 $prefix = isset($dbConfig["prefix"]) ? $dbConfig["prefix"] : "";
 $rawTableName = $prefix . "profiles";
 
-// Ensure avatar_url and socials_json columns exist
+// Ensure avatar_url, banner_url and socials_json, description columns exist
 try {
     $colStmt = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'avatar_url'");
     $colExists = $colStmt && $colStmt->fetchColumn();
@@ -35,6 +35,18 @@ try {
     $colExists2 = $colStmt2 && $colStmt2->fetchColumn();
     if (!$colExists2) {
         $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `socials_json` TEXT NULL AFTER `avatar_url`");
+    }
+
+    $colStmt3 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'banner_url'");
+    $colExists3 = $colStmt3 && $colStmt3->fetchColumn();
+    if (!$colExists3) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `banner_url` VARCHAR(255) NULL AFTER `socials_json`");
+    }
+
+    $colStmt4 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'description'");
+    $colExists4 = $colStmt4 && $colStmt4->fetchColumn();
+    if (!$colExists4) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `description` TEXT NULL AFTER `banner_url`");
     }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring avatar column", $e->getMessage());
@@ -105,6 +117,55 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $updateData["avatar_url"] = $publicPath;
         }
 
+        // Handle banner (optional)
+        if (isset($_FILES["banner"]) && $_FILES["banner"]["error"] !== UPLOAD_ERR_NO_FILE) {
+            $file = $_FILES["banner"];
+            if ($file["error"] !== UPLOAD_ERR_OK) {
+                throw new \Exception("Banner upload error: " . $file["error"]);
+            }
+
+            if ($file["size"] > 5 * 1024 * 1024) {
+                throw new \Exception("Banner too large. Max 5MB.");
+            }
+
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($file["tmp_name"]);
+            $allowed = [
+                'image/png' => 'png',
+                'image/jpeg' => 'jpg',
+                'image/webp' => 'webp',
+                'image/gif' => 'gif'
+            ];
+            if (!isset($allowed[$mime])) {
+                throw new \Exception("Invalid banner image type. Allowed: PNG, JPG, WEBP, GIF");
+            }
+
+            $bannersDir = __BASE_DIR . "/img/banners";
+            if (!is_dir($bannersDir)) {
+                @mkdir($bannersDir, 0775, true);
+            }
+            if (!is_dir($bannersDir) || !is_writable($bannersDir)) {
+                throw new \Exception("Banner directory is not writable: " . $bannersDir);
+            }
+
+            $ext = $allowed[$mime];
+            $filename = sprintf('%d_%d.%s', $requestedCldbid, time(), $ext);
+            $targetFsPath = $bannersDir . "/" . $filename;
+            $publicPath = "img/banners/" . $filename;
+
+            if (!move_uploaded_file($file["tmp_name"], $targetFsPath)) {
+                throw new \Exception("Failed to save uploaded banner");
+            }
+
+            $updateData["banner_url"] = $publicPath;
+        }
+
+        // Handle description (optional)
+        if (isset($_POST["description"])) {
+            $desc = trim((string) $_POST["description"]);
+            $updateData["description"] = $desc !== "" ? $desc : null;
+        }
+
         // Persist changes
         if ($db->has("profiles", ["cldbid" => $requestedCldbid])) {
             $db->update("profiles", $updateData, ["cldbid" => $requestedCldbid]);
@@ -119,8 +180,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 // Fetch current avatar to display in form
-$current = $db->get("profiles", ["avatar_url","socials_json"], ["cldbid" => $requestedCldbid]);
+$current = $db->get("profiles", ["avatar_url","socials_json","banner_url","description"], ["cldbid" => $requestedCldbid]);
 $currentAvatar = $current && isset($current["avatar_url"]) && $current["avatar_url"] ? $current["avatar_url"] : "img/icons/defaulticon-128.png";
+$currentDescription = $current && isset($current["description"]) ? $current["description"] : null;
 $currentSocials = [];
 if ($current && !empty($current["socials_json"])) {
     $decoded = json_decode((string) $current["socials_json"], true);
@@ -134,6 +196,7 @@ TemplateUtils::i()->renderTemplate("edit-profile", [
     "navActiveIndex" => 0,
     "cldbid" => $requestedCldbid,
     "currentAvatar" => $currentAvatar,
+    "currentDescription" => $currentDescription,
     "currentSocials" => $currentSocials,
     "message" => $message,
     "error" => $error,
