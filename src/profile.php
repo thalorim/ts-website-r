@@ -111,6 +111,9 @@ if ($onlineClient) {
             if (isset($live["connection_connected_time"])) {
                 $profileData["online_since_ms"] = (int) $live["connection_connected_time"]; // milliseconds
             }
+            if (isset($live["client_totalconnections"])) {
+                $profileData["totalconnections"] = (int) $live["client_totalconnections"]; // live value preferred when online
+            }
             // Bandwidth last minute totals (bytes) -> compute per-second and human readable
             if (isset($live["connection_bandwidth_sent_last_minute_total"])) {
                 $profileData["bw_up_last_minute"] = (int) $live["connection_bandwidth_sent_last_minute_total"];
