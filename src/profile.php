@@ -125,6 +125,26 @@ if (!$isOnline) {
             if (is_array($sgByDb) && !empty($sgByDb)) {
                 $profileData["servergroups"] = implode(",", array_keys($sgByDb));
             }
+            // Try to resolve last known nickname from DB by cldbid
+            if (empty($profileData["nickname"])) {
+                try {
+                    $nameInfo = TeamSpeakUtils::i()->getTSNodeServer()->clientGetNameByDbid($cldbid);
+                    if (is_array($nameInfo) && isset($nameInfo["name"])) {
+                        $profileData["nickname"] = (string) $nameInfo["name"];
+                    }
+                } catch (\Exception $e) {
+                    // fallback to raw request if wrapper not available
+                    try {
+                        $reply = TeamSpeakUtils::i()->getTSNodeServer()->request("clientgetnamefromdbid cldbid=" . (int) $cldbid);
+                        $list = $reply && method_exists($reply, 'toList') ? $reply->toList() : null;
+                        if (is_array($list) && isset($list[0]["name"])) {
+                            $profileData["nickname"] = (string) $list[0]["name"];
+                        }
+                    } catch (\Exception $e2) {
+                        // ignore
+                    }
+                }
+            }
         }
     } catch (\Exception $e) {
         // ignore
