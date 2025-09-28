@@ -4,26 +4,29 @@
 {block content}
     <div class="profile-header steamlike-header card-accent">
         <div class="cover"></div>
-        <div class="avatar-and-meta d-flex align-items-center">
-            <div class="avatar">
-                <img src="img/icons/defaulticon-128.png" alt="avatar">
-            </div>
-            <div class="meta ml-3">
-                <h3 class="nickname mb-1">
-                    {$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }
-                    {if $isOnline}
-                        <span class="badge badge-success ml-2"><i class="fas fa-circle"></i> online</span>
-                    {else}
-                        <span class="badge badge-secondary ml-2"><i class="far fa-circle"></i> offline</span>
-                    {/if}
-                </h3>
-                <div class="subtext">
-                    <span><i class="fas fa-id-badge"></i> CLDBID: {$profile["cldbid"]}</span>
-                    {ifset $profile["cluid"]}
-                        <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
-                    {/ifset}
+        <div class="avatar-and-meta d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <div class="avatar">
+                    <img src="{$avatarUrl}" alt="avatar">
+                </div>
+                <div class="meta ml-3">
+                    <h3 class="nickname mb-1">
+                        {$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }
+                        {if $isOnline}
+                            <span class="badge badge-success ml-2"><i class="fas fa-circle"></i> online</span>
+                        {else}
+                            <span class="badge badge-secondary ml-2"><i class="far fa-circle"></i> offline</span>
+                        {/if}
+                    </h3>
+                    <div class="subtext">
+                        <span><i class="fas fa-id-badge"></i> CLDBID: {$profile["cldbid"]}</span>
+                        {ifset $profile["cluid"]}
+                            <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
+                        {/ifset}
+                    </div>
                 </div>
             </div>
+            <a class="btn btn-primary btn-xs" href="edit-profile.php?cldbid={$profile['cldbid']}"><i class="fas fa-user-cog"></i> Edit</a>
         </div>
     </div>
 
@@ -34,7 +37,9 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <p><strong>Country:</strong> {ifset $profile["country"]}<span class="famfamfam-flag {strtolower($profile['country'])}"></span> {$profile["country"]}{else}-{/ifset}</p>
+                    <p><strong>Country:</strong> {ifset $profile["country"]}
+                        <img src="https://reape.rs/flags/{strtolower($profile['country'])}.png" alt="flag" style="height:16px;width:auto;border-radius:2px;vertical-align:middle;"> {$profile["country"]}
+                    {else}-{/ifset}</p>
                     <p><strong>Platform:</strong> {$profile["platform"] ?? '-'}</p>
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
                 </div>
@@ -55,11 +60,14 @@
             <i class="fas fa-users"></i> Server groups
         </div>
         <div class="card-body">
-            {var $sgraw = $profile["servergroups"] ?? ''}
-            {if $sgraw}
-                {var $sgids = explode(',', $sgraw)}
-                {foreach $sgids as $sgid}
-                    <span class="badge badge-primary mr-1 mb-1">#{$sgid}</span>
+            {if $groups}
+                {foreach $groups as $g}
+                    <span class="badge badge-primary mr-1 mb-1" data-toggle="tooltip" title="ID: {$g['sgid']}">
+                        {if $g['iconid']}
+                            <img src="api/geticon.php?iconid={$g['iconid']}" alt="{$g['name']}" style="height:16px;width:16px;vertical-align:middle;margin-right:.25rem;">
+                        {/if}
+                        {$g['name']}
+                    </span>
                 {/foreach}
             {else}
                 <em>No groups</em>

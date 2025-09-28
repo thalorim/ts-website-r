@@ -112,11 +112,45 @@ try {
 }
 
 // Prepare data for template
+// Fetch DB-stored fields (e.g., avatar)
+$dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
+
+// Resolve server group details
+$groupsDetailed = [];
+try {
+    $serverGroups = CacheManager::i()->getServerGroupList();
+    $sgids = [];
+    if (!empty($profileData["servergroups"])) {
+        foreach (explode(',', (string) $profileData["servergroups"]) as $id) {
+            $id = (int) trim($id);
+            if ($id > 0) $sgids[] = $id;
+        }
+    }
+    foreach ($sgids as $sgid) {
+        if (isset($serverGroups[$sgid])) {
+            $g = $serverGroups[$sgid];
+            $groupsDetailed[] = [
+                "sgid" => (int) $g["sgid"],
+                "name" => (string) $g["name"],
+                "iconid" => isset($g["iconid"]) ? (int) $g["iconid"] : null,
+            ];
+        } else {
+            $groupsDetailed[] = ["sgid" => $sgid, "name" => "Group #$sgid", "iconid" => null];
+        }
+    }
+} catch (\Exception $e) {
+    // ignore
+}
+
+$avatarUrl = ($dbProfile && !empty($dbProfile["avatar_url"])) ? $dbProfile["avatar_url"] : "img/icons/defaulticon-128.png";
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
     "isOnline" => $isOnline,
     "profile" => $profileData,
+    "avatarUrl" => $avatarUrl,
+    "groups" => $groupsDetailed,
 ];
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);
