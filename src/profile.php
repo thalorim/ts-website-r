@@ -143,6 +143,14 @@ try {
 }
 
 $avatarUrl = ($dbProfile && !empty($dbProfile["avatar_url"])) ? $dbProfile["avatar_url"] : "img/icons/defaulticon-128.png";
+// Parse socials
+$socials = [];
+if ($dbProfile && !empty($dbProfile["socials_json"])) {
+    $decoded = json_decode((string) $dbProfile["socials_json"], true);
+    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        $socials = $decoded;
+    }
+}
 
 $renderData = [
     "title" => "Profile",
@@ -151,6 +159,7 @@ $renderData = [
     "profile" => $profileData,
     "avatarUrl" => $avatarUrl,
     "groups" => $groupsDetailed,
+    "socials" => $socials,
 ];
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);

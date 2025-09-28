@@ -4,18 +4,18 @@
 {block content}
     <div class="profile-header steamlike-header card-accent">
         <div class="cover"></div>
-        <div class="avatar-and-meta d-flex align-items-center justify-content-between">
+        <div class="avatar-and-meta d-flex align-items-center">
             <div class="d-flex align-items-center">
                 <div class="avatar">
                     <img src="{$avatarUrl}" alt="avatar">
                 </div>
                 <div class="meta ml-3">
-                    <h3 class="nickname mb-1">
-                        {$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }
+                    <h3 class="nickname mb-1 d-flex align-items-center">
+                        <span>{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
                         {if $isOnline}
-                            <span class="badge badge-success ml-2"><i class="fas fa-circle"></i> online</span>
+                            <span class="badge badge-success ml-2" style="padding:.15rem .35rem;font-size:.75rem;"><i class="fas fa-circle mr-0"></i></span>
                         {else}
-                            <span class="badge badge-secondary ml-2"><i class="far fa-circle"></i> offline</span>
+                            <span class="badge badge-secondary ml-2" style="padding:.15rem .35rem;font-size:.75rem;"><i class="far fa-circle mr-0"></i></span>
                         {/if}
                     </h3>
                     <div class="subtext">
@@ -23,10 +23,30 @@
                         {ifset $profile["cluid"]}
                             <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
                         {/ifset}
+                        {if $socials}
+                            <span class="ml-3">
+                                {foreach $socials as $key => $url}
+                                    {var $icon = (string) (
+                                        $key === 'instagram' ? 'fab fa-instagram' : (
+                                        $key === 'facebook' ? 'fab fa-facebook' : (
+                                        $key === 'youtube' ? 'fab fa-youtube' : (
+                                        $key === 'twitter' ? 'fab fa-twitter' : (
+                                        $key === 'steam' ? 'fab fa-steam' : (
+                                        $key === 'soundcloud' ? 'fab fa-soundcloud' : (
+                                        $key === 'github' ? 'fab fa-github' : (
+                                        $key === 'telegram' ? 'fab fa-telegram' : (
+                                        $key === 'twitch' ? 'fab fa-twitch' : (
+                                        $key === 'discord' ? 'fab fa-discord' : 'fas fa-link'
+                                    ))))))))) }
+                                    <a href="{$url}" target="_blank" rel="noopener" class="ml-2" data-toggle="tooltip" title="{$key}">
+                                        <i class="{$icon}"></i>
+                                    </a>
+                                {/foreach}
+                            </span>
+                        {/if}
                     </div>
                 </div>
             </div>
-            <a class="btn btn-primary btn-xs" href="edit-profile.php?cldbid={$profile['cldbid']}"><i class="fas fa-user-cog"></i> Edit</a>
         </div>
     </div>
 
@@ -38,7 +58,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <p><strong>Country:</strong> {ifset $profile["country"]}
-                        <img src="https://reape.rs/flags/{strtolower($profile['country'])}.png" alt="flag" style="height:16px;width:auto;border-radius:2px;vertical-align:middle;"> {$profile["country"]}
+                        <img src="https://reape.rs/flags/{strtolower($profile['country'])}.png" alt="flag" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;"> {$profile["country"]}
                     {else}-{/ifset}</p>
                     <p><strong>Platform:</strong> {$profile["platform"] ?? '-'}</p>
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
