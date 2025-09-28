@@ -276,6 +276,15 @@ foreach (["created_ts", "lastconnected_ts", "totalconnections"] as $k) {
     }
 }
 
+// Preserve additional Overview fields from DB when offline or missing
+foreach (["country", "version", "platform", "badges"] as $k) {
+    if (!isset($profileData[$k]) || $profileData[$k] === null || $profileData[$k] === '') {
+        if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null && $dbProfile[$k] !== '') {
+            $profileData[$k] = $dbProfile[$k];
+        }
+    }
+}
+
 // Resolve current channel name if available
 $currentChannelName = null;
 if ($isOnline && isset($profileData["cid"])) {
