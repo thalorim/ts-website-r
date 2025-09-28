@@ -59,7 +59,8 @@ $isOnline = $onlineClient !== null;
 $tsInfo = null;
 try {
     if (TeamSpeakUtils::i()->checkTSConnection()) {
-        $tsInfo = TeamSpeakUtils::i()->getTSNodeServer()->clientGetDbInfo($cldbid);
+        // TS3 server query command is "clientdbinfo" -> method name clientDbInfo
+        $tsInfo = TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
     }
 } catch (\Exception $e) {
     // Non-fatal: proceed with what we have
@@ -152,6 +153,30 @@ if ($dbProfile && !empty($dbProfile["socials_json"])) {
     }
 }
 
+// Prepare social items with icon classes for template
+$socialIconMap = [
+    'instagram' => 'fab fa-instagram',
+    'facebook' => 'fab fa-facebook',
+    'youtube' => 'fab fa-youtube',
+    'twitter' => 'fab fa-twitter',
+    'steam' => 'fab fa-steam',
+    'soundcloud' => 'fab fa-soundcloud',
+    'github' => 'fab fa-github',
+    'telegram' => 'fab fa-telegram',
+    'twitch' => 'fab fa-twitch',
+    'discord' => 'fab fa-discord',
+];
+$socialItems = [];
+foreach ($socials as $key => $url) {
+    if (!is_string($url) || trim($url) === '') continue;
+    $icon = $socialIconMap[$key] ?? 'fas fa-link';
+    $socialItems[] = [
+        'key' => $key,
+        'url' => $url,
+        'icon' => $icon,
+    ];
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -159,7 +184,7 @@ $renderData = [
     "profile" => $profileData,
     "avatarUrl" => $avatarUrl,
     "groups" => $groupsDetailed,
-    "socials" => $socials,
+    "socials" => $socialItems,
 ];
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);

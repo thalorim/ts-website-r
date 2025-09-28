@@ -25,21 +25,9 @@
                         {/ifset}
                         {if $socials}
                             <span class="ml-3">
-                                {foreach $socials as $key => $url}
-                                    {var $icon = (string) (
-                                        $key === 'instagram' ? 'fab fa-instagram' : (
-                                        $key === 'facebook' ? 'fab fa-facebook' : (
-                                        $key === 'youtube' ? 'fab fa-youtube' : (
-                                        $key === 'twitter' ? 'fab fa-twitter' : (
-                                        $key === 'steam' ? 'fab fa-steam' : (
-                                        $key === 'soundcloud' ? 'fab fa-soundcloud' : (
-                                        $key === 'github' ? 'fab fa-github' : (
-                                        $key === 'telegram' ? 'fab fa-telegram' : (
-                                        $key === 'twitch' ? 'fab fa-twitch' : (
-                                        $key === 'discord' ? 'fab fa-discord' : 'fas fa-link'
-                                    ))))))))) }
-                                    <a href="{$url}" target="_blank" rel="noopener" class="ml-2" data-toggle="tooltip" title="{$key}">
-                                        <i class="{$icon}"></i>
+                                {foreach $socials as $s}
+                                    <a href="{$s['url']}" target="_blank" rel="noopener" class="ml-2" data-toggle="tooltip" title="{$s['key']}">
+                                        <i class="{$s['icon']}"></i>
                                     </a>
                                 {/foreach}
                             </span>
