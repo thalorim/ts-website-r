@@ -1,0 +1,70 @@
+{extends "body.latte"}
+{var $title = 'Profile'}
+
+{block content}
+    <div class="profile-header steamlike-header card-accent">
+        <div class="cover"></div>
+        <div class="avatar-and-meta d-flex align-items-center">
+            <div class="avatar">
+                <img src="img/icons/defaulticon-128.png" alt="avatar">
+            </div>
+            <div class="meta ml-3">
+                <h3 class="nickname mb-1">
+                    {$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }
+                    {if $isOnline}
+                        <span class="badge badge-success ml-2"><i class="fas fa-circle"></i> online</span>
+                    {else}
+                        <span class="badge badge-secondary ml-2"><i class="far fa-circle"></i> offline</span>
+                    {/if}
+                </h3>
+                <div class="subtext">
+                    <span><i class="fas fa-id-badge"></i> CLDBID: {$profile["cldbid"]}</span>
+                    {ifset $profile["cluid"]}
+                        <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
+                    {/ifset}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-user"></i> Overview
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Country:</strong> {ifset $profile["country"]}<span class="famfamfam-flag {strtolower($profile['country'])}"></span> {$profile["country"]}{else}-{/ifset}</p>
+                    <p><strong>Platform:</strong> {$profile["platform"] ?? '-'}</p>
+                    <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>First seen:</strong> {ifset $profile["created_ts"]}{($profile["created_ts"])|fullDate}{else}-{/ifset}</p>
+                    <p><strong>Last connected:</strong> {ifset $profile["lastconnected_ts"]}{($profile["lastconnected_ts"])|fuzzyDateAbbr}{else}-{/ifset}</p>
+                    <p><strong>Total connections:</strong> {$profile["totalconnections"] ?? '-'}</p>
+                </div>
+            </div>
+            <hr>
+            <p><strong>Description</strong></p>
+            <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-users"></i> Server groups
+        </div>
+        <div class="card-body">
+            {var $sgraw = $profile["servergroups"] ?? ''}
+            {if $sgraw}
+                {var $sgids = explode(',', $sgraw)}
+                {foreach $sgids as $sgid}
+                    <span class="badge badge-primary mr-1 mb-1">#{$sgid}</span>
+                {/foreach}
+            {else}
+                <em>No groups</em>
+            {/if}
+        </div>
+    </div>
+{/block}
+

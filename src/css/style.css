@@ -412,3 +412,28 @@ table.dataTable > tbody > tr.child td.child {
 .group-assigner .assigner-header .badge.badge-invalid {
     background-color: red !important
 }
+
+/* Profile page */
+.steamlike-header {
+    position: relative;
+    margin-bottom: 1rem;
+    background: #1b2838;
+    color: #c7d5e0;
+    border: none;
+}
+.steamlike-header .cover {
+    height: 140px;
+    background: linear-gradient(90deg, rgba(27,40,56,1) 0%, rgba(35,57,77,1) 50%, rgba(27,40,56,1) 100%);
+}
+.steamlike-header .avatar-and-meta {
+    padding: 1rem;
+}
+.steamlike-header .avatar img {
+    width: 96px;
+    height: 96px;
+    border-radius: 4px;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+.steamlike-header .nickname {
+    color: #e5f0f6;
+}
