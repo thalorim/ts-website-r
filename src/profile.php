@@ -218,6 +218,42 @@ try {
     // ignore
 }
 
+$rankImageUrl = null;
+$rankLevel = null;
+// FACEIT Rank images in order Rank 1..10
+$rankImageUrls = [
+    'https://support.faceit.com/hc/article_attachments/10525200575516', // Rank 1
+    'https://support.faceit.com/hc/article_attachments/10525189649308', // Rank 2
+    'https://support.faceit.com/hc/article_attachments/10525200576796', // Rank 3
+    'https://support.faceit.com/hc/article_attachments/10525185037724', // Rank 4
+    'https://support.faceit.com/hc/article_attachments/10525215800860', // Rank 5
+    'https://support.faceit.com/hc/article_attachments/10525245409692', // Rank 6
+    'https://support.faceit.com/hc/article_attachments/10525185034012', // Rank 7
+    'https://support.faceit.com/hc/article_attachments/10525189648796', // Rank 8
+    'https://support.faceit.com/hc/article_attachments/10525200576028', // Rank 9
+    'https://support.faceit.com/hc/article_attachments/10525189646876', // Rank 10
+];
+
+// Determine rank by presence of server group ids 9..18 (9->Rank1, 18->Rank10)
+if (!empty($groupsDetailed)) {
+    $matchedRankGroupIds = [];
+    foreach ($groupsDetailed as $g) {
+        $sgid = isset($g['sgid']) ? (int) $g['sgid'] : 0;
+        if ($sgid >= 9 && $sgid <= 18) {
+            $matchedRankGroupIds[] = $sgid;
+        }
+    }
+    if (!empty($matchedRankGroupIds)) {
+        // Prefer the highest group id -> highest rank
+        $chosenGroupId = max($matchedRankGroupIds);
+        $rankLevel = $chosenGroupId - 8; // 9->1, 18->10
+        $idx = $rankLevel - 1;
+        if ($idx >= 0 && $idx < count($rankImageUrls)) {
+            $rankImageUrl = $rankImageUrls[$idx];
+        }
+    }
+}
+
 $avatarUrl = ($dbProfile && !empty($dbProfile["avatar_url"])) ? $dbProfile["avatar_url"] : "img/icons/defaulticon-128.png";
 $bannerUrl = ($dbProfile && !empty($dbProfile["banner_url"])) ? $dbProfile["banner_url"] : null;
 // Prefer user-saved description if present
@@ -295,6 +331,9 @@ $renderData = [
     "groups" => $groupsDetailed,
     "socials" => $socialItems,
     "currentChannelName" => $currentChannelName,
+    "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,
+    "rankImageUrl" => $rankImageUrl,
+    "rankLevel" => $rankLevel,
 ];
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);

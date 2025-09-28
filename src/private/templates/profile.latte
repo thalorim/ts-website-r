@@ -47,7 +47,7 @@
                                     a moment
                                 {/ifset}
                                 {ifset $currentChannelName}
-                                    • talking on {$currentChannelName}
+                                    • talking on {ifset $currentChannelId}<a href="ts3server://web.reape.rs?cid={$currentChannelId}">{$currentChannelName}</a>{else}{$currentChannelName}{/ifset}
                                 {/ifset}
                             </small>
                         {else}
@@ -57,6 +57,11 @@
                     </div>
                 </div>
             </div>
+            {ifset $rankImageUrl}
+                <div class="ml-auto">
+                    <img src="{$rankImageUrl}" alt="Rank {$rankLevel}" style="height:48px;width:auto;">
+                </div>
+            {/ifset}
         </div>
     </div>
 
