@@ -187,6 +187,29 @@ try {
     // Non-fatal for rendering
 }
 
+// Format online since (ms) into human readable H/M/S
+if (isset($profileData["online_since_ms"]) && is_numeric($profileData["online_since_ms"])) {
+    $totalSeconds = (int) round(((int) $profileData["online_since_ms"]) / 1000);
+    if ($totalSeconds < 1) {
+        $profileData["online_since_hms"] = "a moment";
+    } else {
+        $hours = intdiv($totalSeconds, 3600);
+        $minutes = intdiv($totalSeconds % 3600, 60);
+        $seconds = $totalSeconds % 60;
+
+        $parts = [];
+        if ($hours > 0) {
+            $parts[] = $hours . " " . ($hours === 1 ? "hour" : "hours");
+        }
+        if ($minutes > 0 || $hours > 0) { // show minutes when hours present even if 0
+            $parts[] = $minutes . " " . ($minutes === 1 ? "minute" : "minutes");
+        }
+        $parts[] = $seconds . " " . ($seconds === 1 ? "second" : "seconds");
+
+        $profileData["online_since_hms"] = implode(" ", $parts);
+    }
+}
+
 // Prepare data for template
 // Fetch DB-stored fields (e.g., avatar)
 $dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
