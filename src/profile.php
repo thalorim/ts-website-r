@@ -117,10 +117,13 @@ if ($onlineClient) {
     }
 }
 
-// Persist to DB (upsert)
+// Persist to DB (upsert) - do not overwrite existing values with NULLs
 try {
     if ($db->has("profiles", ["cldbid" => $cldbid])) {
-        $db->update("profiles", $profileData, ["cldbid" => $cldbid]);
+        $updateData = array_filter($profileData, function ($v) { return $v !== null; });
+        if (!empty($updateData)) {
+            $db->update("profiles", $updateData, ["cldbid" => $cldbid]);
+        }
     } else {
         $db->insert("profiles", $profileData);
     }
@@ -164,6 +167,18 @@ $bannerUrl = ($dbProfile && !empty($dbProfile["banner_url"])) ? $dbProfile["bann
 // Prefer user-saved description if present
 if ($dbProfile && !empty($dbProfile["description"])) {
     $profileData["description"] = (string) $dbProfile["description"];
+}
+
+// Fallback nickname and history data from DB when offline/unknown
+if (empty($profileData["nickname"]) && $dbProfile && !empty($dbProfile["nickname"])) {
+    $profileData["nickname"] = (string) $dbProfile["nickname"];
+}
+foreach (["created_ts", "lastconnected_ts", "totalconnections"] as $k) {
+    if (!isset($profileData[$k]) || $profileData[$k] === null) {
+        if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null) {
+            $profileData[$k] = is_numeric($dbProfile[$k]) ? (int) $dbProfile[$k] : $dbProfile[$k];
+        }
+    }
 }
 
 // Resolve current channel name if available

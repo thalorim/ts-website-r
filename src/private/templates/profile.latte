@@ -13,9 +13,9 @@
                     <h3 class="nickname mb-1 d-flex align-items-center">
                         <span>{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
                         {if $isOnline}
-                            <span class="badge badge-success ml-2" style="padding:.15rem .35rem;font-size:.75rem;"><i class="fas fa-circle mr-0"></i></span>
+                            <span class="status-dot green"></span>
                         {else}
-                            <span class="badge badge-secondary ml-2" style="padding:.15rem .35rem;font-size:.75rem;"><i class="far fa-circle mr-0"></i></span>
+                            <span class="status-dot gray"></span>
                         {/if}
                     </h3>
                     <div class="subtext">
