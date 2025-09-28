@@ -117,6 +117,20 @@ if ($onlineClient) {
     }
 }
 
+// If offline, try to get server groups by dbid as fallback
+if (!$isOnline) {
+    try {
+        if (TeamSpeakUtils::i()->checkTSConnection()) {
+            $sgByDb = TeamSpeakUtils::i()->getTSNodeServer()->clientGetServerGroupsByDbid($cldbid);
+            if (is_array($sgByDb) && !empty($sgByDb)) {
+                $profileData["servergroups"] = implode(",", array_keys($sgByDb));
+            }
+        }
+    } catch (\Exception $e) {
+        // ignore
+    }
+}
+
 // Persist to DB (upsert) - do not overwrite existing values with NULLs
 try {
     if ($db->has("profiles", ["cldbid" => $cldbid])) {
@@ -170,8 +184,11 @@ if ($dbProfile && !empty($dbProfile["description"])) {
 }
 
 // Fallback nickname and history data from DB when offline/unknown
-if (empty($profileData["nickname"]) && $dbProfile && !empty($dbProfile["nickname"])) {
+if ((empty($profileData["nickname"]) || $profileData["nickname"] === null) && $dbProfile && !empty($dbProfile["nickname"])) {
     $profileData["nickname"] = (string) $dbProfile["nickname"];
+}
+if ((empty($profileData["servergroups"]) || $profileData["servergroups"] === null) && $dbProfile && !empty($dbProfile["servergroups"])) {
+    $profileData["servergroups"] = (string) $dbProfile["servergroups"];
 }
 foreach (["created_ts", "lastconnected_ts", "totalconnections"] as $k) {
     if (!isset($profileData[$k]) || $profileData[$k] === null) {

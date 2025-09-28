@@ -17,6 +17,14 @@
                         {else}
                             <span class="status-dot gray"></span>
                         {/if}
+                        {ifset $groups}
+                            {foreach $groups as $g}
+                                {if $g['sgid'] === 6}
+                                    <i class="fas fa-shield-alt ml-2" style="color:#DC143C" data-toggle="tooltip" title="Group 6"></i>
+                                    {breakIf true}
+                                {/if}
+                            {/foreach}
+                        {/ifset}
                     </h3>
                     <div class="subtext">
                         <span><i class="fas fa-id-badge"></i> CLDBID: {$profile["cldbid"]}</span>
