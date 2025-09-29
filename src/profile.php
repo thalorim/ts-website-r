@@ -390,5 +390,46 @@ $renderData = [
     "rankLevel" => $rankLevel,
 ];
 
+// Compute last seen text for offline users
+if (!$isOnline) {
+    $lastSeenTs = null;
+    if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
+        $lastSeenTs = (int) $profileData["lastconnected_ts"]; // unix seconds
+    }
+    if ($lastSeenTs === null) {
+        try {
+            $lastSeenCache = new \Wruczek\PhpFileCache\PhpFileCache(__CACHE_DIR, "profile_last_seen");
+            $cached = $lastSeenCache->retrieve("u_" . (int) $cldbid);
+            if (is_array($cached) && isset($cached["ts"]) && is_numeric($cached["ts"])) {
+                $lastSeenTs = (int) $cached["ts"];
+            }
+        } catch (\Exception $e) {
+            // ignore
+        }
+    }
+
+    $lastSeenText = null;
+    if ($lastSeenTs !== null && $lastSeenTs > 0) {
+        $now = time();
+        $diff = max(0, $now - $lastSeenTs);
+        if ($diff < 60) {
+            $lastSeenText = (int) $diff . " seconds ago";
+        } else if ($diff < 3600) { // < 60 minutes
+            $mins = (int) floor($diff / 60);
+            $lastSeenText = $mins . " minute" . ($mins !== 1 ? "s" : "") . " ago";
+        } else if ($diff < 86400) { // < 24 hours
+            $hrs = (int) floor($diff / 3600);
+            $lastSeenText = $hrs . " hour" . ($hrs !== 1 ? "s" : "") . " ago";
+        } else if ($diff < 2592000) { // < 30 days
+            $days = (int) floor($diff / 86400);
+            $lastSeenText = $days . " day" . ($days !== 1 ? "s" : "") . " ago";
+        } else {
+            $lastSeenText = date('d/m/Y', $lastSeenTs);
+        }
+    }
+
+    $renderData["lastSeenText"] = $lastSeenText;
+}
+
 TemplateUtils::i()->renderTemplate("profile", $renderData);
 

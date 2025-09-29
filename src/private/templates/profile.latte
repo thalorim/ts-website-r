@@ -52,7 +52,9 @@
                             </small>
                         {else}
                             <span class="status-dot gray"></span>
-                            <small>Offline</small>
+                            <small>
+                                Offline{ifset $lastSeenText} • last seen {$lastSeenText}{/ifset}
+                            </small>
                         {/if}
                     </div>
                 </div>
