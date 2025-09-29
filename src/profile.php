@@ -5,6 +5,7 @@ use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Config;
 use Wruczek\TSWebsite\Utils\TeamSpeakUtils;
+use Wruczek\PhpFileCache\PhpFileCache;
 
 require_once __DIR__ . "/private/php/load.php";
 
@@ -40,31 +41,12 @@ try {
             `created_ts` INT(11) DEFAULT NULL,
             `lastconnected_ts` INT(11) DEFAULT NULL,
             `totalconnections` INT(11) DEFAULT NULL,
-            `bw_up_last_minute` BIGINT UNSIGNED DEFAULT NULL,
-            `bw_down_last_minute` BIGINT UNSIGNED DEFAULT NULL,
             `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uniq_cldbid` (`cldbid`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
         $db->query($createSql);
-    } else {
-        // Ensure bandwidth columns exist for offline fallback display
-        try {
-            $colStmt = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'bw_up_last_minute'");
-            $hasUp = $colStmt && $colStmt->fetchColumn();
-        } catch (\Exception $e) { $hasUp = false; }
-        try {
-            $colStmt = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'bw_down_last_minute'");
-            $hasDown = $colStmt && $colStmt->fetchColumn();
-        } catch (\Exception $e) { $hasDown = false; }
-
-        if (!$hasUp) {
-            try { $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `bw_up_last_minute` BIGINT UNSIGNED DEFAULT NULL AFTER `totalconnections`"); } catch (\Exception $e) { /* ignore */ }
-        }
-        if (!$hasDown) {
-            try { $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `bw_down_last_minute` BIGINT UNSIGNED DEFAULT NULL AFTER `bw_up_last_minute`"); } catch (\Exception $e) { /* ignore */ }
-        }
     }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring profiles table", $e->getMessage());
@@ -99,8 +81,6 @@ $profileData = [
     "created_ts" => null,
     "lastconnected_ts" => null,
     "totalconnections" => null,
-    "bw_up_last_minute" => null,
-    "bw_down_last_minute" => null,
 ];
 
 if ($tsInfo) {
@@ -137,8 +117,8 @@ if ($onlineClient) {
             }
             // Bandwidth last minute totals (bytes) -> compute per-second and human readable
             if (isset($live["connection_bandwidth_sent_last_minute_total"])) {
-                $profileData["bw_up_last_minute"] = (int) $live["connection_bandwidth_sent_last_minute_total"];
-                $upBps = $profileData["bw_up_last_minute"] / 60.0;
+                $lastUpTotal = (int) $live["connection_bandwidth_sent_last_minute_total"];
+                $upBps = $lastUpTotal / 60.0;
                 $profileData["bw_up_h"] = ($upBps >= 1024*1024)
                     ? number_format($upBps / (1024*1024), 2) . " MB/s"
                     : (($upBps >= 1024)
@@ -146,8 +126,8 @@ if ($onlineClient) {
                         : number_format($upBps, 0) . " B/s");
             }
             if (isset($live["connection_bandwidth_received_last_minute_total"])) {
-                $profileData["bw_down_last_minute"] = (int) $live["connection_bandwidth_received_last_minute_total"];
-                $downBps = $profileData["bw_down_last_minute"] / 60.0;
+                $lastDownTotal = (int) $live["connection_bandwidth_received_last_minute_total"];
+                $downBps = $lastDownTotal / 60.0;
                 $profileData["bw_down_h"] = ($downBps >= 1024*1024)
                     ? number_format($downBps / (1024*1024), 2) . " MB/s"
                     : (($downBps >= 1024)
@@ -157,6 +137,26 @@ if ($onlineClient) {
         }
     } catch (\Exception $e) {
         // ignore
+    }
+}
+
+// Store last seen display data in cache when online for offline reuse (no DB changes)
+if ($isOnline) {
+    try {
+        $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
+        $lastSeenData = [
+            "country" => $profileData["country"] ?? null,
+            "version" => $profileData["version"] ?? null,
+            "platform" => $profileData["platform"] ?? null,
+            "totalconnections" => $profileData["totalconnections"] ?? null,
+            "bw_up_h" => $profileData["bw_up_h"] ?? null,
+            "bw_down_h" => $profileData["bw_down_h"] ?? null,
+            "nickname" => $profileData["nickname"] ?? null,
+            "ts" => time(),
+        ];
+        $lastSeenCache->store("u_" . (int) $cldbid, $lastSeenData, 31536000); // 365 days
+    } catch (\Exception $e) {
+        // ignore cache errors
     }
 }
 
@@ -306,27 +306,22 @@ foreach (["country", "version", "platform", "badges"] as $k) {
     }
 }
 
-// Bandwidth offline fallback: compute human-readable from last saved minute totals
+// Offline fallback: use last seen values from cache so UI shows the last online data
 if (!$isOnline) {
-    if (!isset($profileData["bw_up_h"]) || $profileData["bw_up_h"] === null) {
-        if ($dbProfile && isset($dbProfile["bw_up_last_minute"]) && is_numeric($dbProfile["bw_up_last_minute"])) {
-            $upBps = ((float) $dbProfile["bw_up_last_minute"]) / 60.0;
-            $profileData["bw_up_h"] = ($upBps >= 1024*1024)
-                ? number_format($upBps / (1024*1024), 2) . " MB/s"
-                : (($upBps >= 1024)
-                    ? number_format($upBps / 1024, 2) . " KB/s"
-                    : number_format($upBps, 0) . " B/s");
+    try {
+        $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
+        $last = $lastSeenCache->retrieve("u_" . (int) $cldbid);
+        if (is_array($last)) {
+            foreach (["country", "version", "platform", "totalconnections", "bw_up_h", "bw_down_h", "nickname"] as $k) {
+                if (!isset($profileData[$k]) || $profileData[$k] === null || $profileData[$k] === '') {
+                    if (isset($last[$k]) && $last[$k] !== null && $last[$k] !== '') {
+                        $profileData[$k] = $last[$k];
+                    }
+                }
+            }
         }
-    }
-    if (!isset($profileData["bw_down_h"]) || $profileData["bw_down_h"] === null) {
-        if ($dbProfile && isset($dbProfile["bw_down_last_minute"]) && is_numeric($dbProfile["bw_down_last_minute"])) {
-            $downBps = ((float) $dbProfile["bw_down_last_minute"]) / 60.0;
-            $profileData["bw_down_h"] = ($downBps >= 1024*1024)
-                ? number_format($downBps / (1024*1024), 2) . " MB/s"
-                : (($downBps >= 1024)
-                    ? number_format($downBps / 1024, 2) . " KB/s"
-                    : number_format($downBps, 0) . " B/s");
-        }
+    } catch (\Exception $e) {
+        // ignore cache errors
     }
 }
 
