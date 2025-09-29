@@ -111,6 +111,18 @@ if ($onlineClient) {
             $live = TeamSpeakUtils::i()->getTSNodeServer()->clientGetById($profileData["clid"])->getInfo(true);
             if (isset($live["connection_connected_time"])) {
                 $profileData["online_since_ms"] = (int) $live["connection_connected_time"]; // milliseconds
+                // Build human readable duration: days, hours, minutes, seconds
+                $totalSeconds = (int) floor(((int) $profileData["online_since_ms"]) / 1000);
+                $days = (int) floor($totalSeconds / 86400);
+                $hours = (int) floor(($totalSeconds % 86400) / 3600);
+                $minutes = (int) floor(($totalSeconds % 3600) / 60);
+                $seconds = (int) ($totalSeconds % 60);
+                $parts = [];
+                if ($days > 0) { $parts[] = $days . " day" . ($days !== 1 ? "s" : ""); }
+                if ($hours > 0) { $parts[] = $hours . " hour" . ($hours !== 1 ? "s" : ""); }
+                if ($minutes > 0) { $parts[] = $minutes . " minute" . ($minutes !== 1 ? "s" : ""); }
+                $parts[] = $seconds . " second" . ($seconds !== 1 ? "s" : "");
+                $profileData["online_since_text"] = implode(" ", $parts);
             }
             if (isset($live["client_totalconnections"])) {
                 $profileData["totalconnections"] = (int) $live["client_totalconnections"]; // live value preferred when online

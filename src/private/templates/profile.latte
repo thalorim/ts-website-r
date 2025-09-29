@@ -41,7 +41,9 @@
                             <span class="status-dot green"></span>
                             <small>
                                 Online since
-                                {ifset $profile["online_since_ms"]}
+                                {ifset $profile["online_since_text"]}
+                                    {$profile["online_since_text"]}
+                                {elseifset $profile["online_since_ms"]}
                                     {round(($profile["online_since_ms"] / 1000) / 60)} minutes
                                 {else}
                                     a moment
