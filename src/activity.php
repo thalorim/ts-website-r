@@ -198,14 +198,45 @@ function formatSecondsHMS(int $seconds): string {
     return sprintf('%02ds', $s);
 }
 
+// Member list: users who have only server group IDs 6,7; order by cldbid ASC; paginate 10 per page
+$page = isset($_GET["page"]) ? max(1, (int) $_GET["page"]) : 1;
+$members = [];
+try {
+    $rows = $db->select("profiles", ["cldbid", "nickname", "servergroups"], ["ORDER" => ["cldbid" => "ASC"]]);
+    foreach ($rows as $r) {
+        $sg = isset($r["servergroups"]) ? (string) $r["servergroups"] : "";
+        $ids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(",", $sg)), function ($v) { return $v > 0; }));
+        if (empty($ids)) continue;
+        $allInSet = true;
+        foreach ($ids as $gid) { if ($gid !== 6 && $gid !== 7) { $allInSet = false; break; } }
+        if (!$allInSet) continue;
+        $members[] = [
+            "cldbid" => (int) $r["cldbid"],
+            "nickname" => (string) ($r["nickname"] ?: ("User #" . $r["cldbid"]))
+        ];
+    }
+} catch (\Exception $e) { /* ignore */ }
+
+$perPage = 10;
+$start = ($page - 1) * $perPage;
+$pageItems = array_slice($members, $start, $perPage);
+$hasMore = count($members) > ($start + $perPage);
+$nextPageUrl = $hasMore ? ("activity.php?page=" . ($page + 1)) : null;
+
 TemplateUtils::i()->renderTemplate("activity", [
     "title" => "Activity",
     "navActiveIndex" => 6,
+    // keep old keys in case template still references them
     "userScoped" => $userScoped,
     "stats" => $stats,
     "topConnections" => $topConnections,
     "chartLabels" => $chartLabels,
     "chartData" => $chartData,
     "cldbid" => $cldbid,
+    // new member list payload
+    "members" => $pageItems,
+    "hasMore" => $hasMore,
+    "nextPageUrl" => $nextPageUrl,
+    "page" => $page,
 ]);
 
