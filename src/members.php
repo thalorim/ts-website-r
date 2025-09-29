@@ -99,10 +99,22 @@ if (empty($members)) {
             $has7 = in_array(7, $ids, true);
             if (!$has6 && !$has7) continue;
             $cat = $has6 ? 0 : 1;
+            $dbid = (int) $r["cldbid"];
+            $nick = (string) ($r["nickname"] ?: ("User #" . $dbid));
+            $country = isset($r['country']) ? (string) $r['country'] : null;
+            if (!$country) {
+                try {
+                    $lastSeenCache = new \Wruczek\PhpFileCache\PhpFileCache(__CACHE_DIR, "profile_last_seen");
+                    $cached = $lastSeenCache->retrieve("u_" . $dbid);
+                    if (is_array($cached) && !empty($cached['country'])) {
+                        $country = (string) $cached['country'];
+                    }
+                } catch (\Exception $e) { /* ignore */ }
+            }
             $members[] = [
-                "cldbid" => (int) $r["cldbid"],
-                "nickname" => (string) ($r["nickname"] ?: ("User #" . $r["cldbid"])) ,
-                "country" => isset($r['country']) ? (string) $r['country'] : null,
+                "cldbid" => $dbid,
+                "nickname" => $nick,
+                "country" => $country ?: null,
                 "cat" => $cat
             ];
         }
