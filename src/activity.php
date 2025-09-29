@@ -166,27 +166,83 @@ function formatSecondsHMS(int $seconds): string {
 
 // Member list: users who have only server group IDs 6,7; order by cldbid ASC; paginate 10 per page
 $page = isset($_GET["page"]) ? max(1, (int) $_GET["page"]) : 1;
+// Build members from live TS server group membership (preferred), fallback to DB profiles
 $members = [];
-try {
-    $rows = $db->select("profiles", ["cldbid", "nickname", "servergroups"], ["ORDER" => ["cldbid" => "ASC"]]);
-    foreach ($rows as $r) {
-        $sg = isset($r["servergroups"]) ? (string) $r["servergroups"] : "";
-        $ids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(",", $sg)), function ($v) { return $v > 0; }));
-        if (empty($ids)) continue;
-        $allInSet = true;
-        foreach ($ids as $gid) { if ($gid !== 6 && $gid !== 7) { $allInSet = false; break; } }
-        if (!$allInSet) continue;
-        $has6 = in_array(6, $ids, true);
-        $has7 = in_array(7, $ids, true);
-        // Category: 0 = both 6&7, 1 = only 7, 2 = only 6
-        $cat = ($has6 && $has7) ? 0 : ($has7 ? 1 : 2);
-        $members[] = [
-            "cldbid" => (int) $r["cldbid"],
-            "nickname" => (string) ($r["nickname"] ?: ("User #" . $r["cldbid"])) ,
-            "cat" => $cat
-        ];
-    }
-} catch (\Exception $e) { /* ignore */ }
+if (TeamSpeakUtils::i()->checkTSConnection()) {
+    try {
+        $node = TeamSpeakUtils::i()->getTSNodeServer();
+        $g6 = $node->serverGroupClientList(6) ?: [];
+        $g7 = $node->serverGroupClientList(7) ?: [];
+
+        $map = [];
+        foreach ($g6 as $c) {
+            $dbid = isset($c['cldbid']) ? (int) $c['cldbid'] : (isset($c['client_database_id']) ? (int) $c['client_database_id'] : null);
+            if (!$dbid) continue;
+            if (!isset($map[$dbid])) $map[$dbid] = ['has6' => false, 'has7' => false];
+            $map[$dbid]['has6'] = true;
+        }
+        foreach ($g7 as $c) {
+            $dbid = isset($c['cldbid']) ? (int) $c['cldbid'] : (isset($c['client_database_id']) ? (int) $c['client_database_id'] : null);
+            if (!$dbid) continue;
+            if (!isset($map[$dbid])) $map[$dbid] = ['has6' => false, 'has7' => false];
+            $map[$dbid]['has7'] = true;
+        }
+
+        if (!empty($map)) {
+            // Prepare optional nicknames from cache and profiles
+            $profilesById = [];
+            try {
+                $ids = array_keys($map);
+                if (!empty($ids)) {
+                    $rows = $db->select('profiles', ['cldbid', 'nickname'], ['cldbid' => $ids]);
+                    foreach ($rows as $r) { $profilesById[(int)$r['cldbid']] = (string) $r['nickname']; }
+                }
+            } catch (\Exception $e) { /* ignore */ }
+
+            foreach ($map as $dbid => $flags) {
+                $has6 = (bool) $flags['has6'];
+                $has7 = (bool) $flags['has7'];
+                if (!$has6 && !$has7) continue;
+                $cat = ($has6 && $has7) ? 0 : ($has7 ? 1 : 2);
+                $nick = null;
+                $online = CacheManager::i()->getClient($dbid);
+                if ($online && isset($online['client_nickname'])) {
+                    $nick = (string) $online['client_nickname'];
+                } else if (isset($profilesById[$dbid]) && $profilesById[$dbid] !== '') {
+                    $nick = $profilesById[$dbid];
+                }
+                $members[] = [
+                    'cldbid' => (int) $dbid,
+                    'nickname' => $nick ?: ('User #' . $dbid),
+                    'cat' => $cat,
+                ];
+            }
+        }
+    } catch (\Exception $e) { /* ignore */ }
+}
+
+// Fallback to profiles table if TS server not reachable
+if (empty($members)) {
+    try {
+        $rows = $db->select("profiles", ["cldbid", "nickname", "servergroups"], ["ORDER" => ["cldbid" => "ASC"]]);
+        foreach ($rows as $r) {
+            $sg = isset($r["servergroups"]) ? (string) $r["servergroups"] : "";
+            $ids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(",", $sg)), function ($v) { return $v > 0; }));
+            if (empty($ids)) continue;
+            $allInSet = true;
+            foreach ($ids as $gid) { if ($gid !== 6 && $gid !== 7) { $allInSet = false; break; } }
+            if (!$allInSet) continue;
+            $has6 = in_array(6, $ids, true);
+            $has7 = in_array(7, $ids, true);
+            $cat = ($has6 && $has7) ? 0 : ($has7 ? 1 : 2);
+            $members[] = [
+                "cldbid" => (int) $r["cldbid"],
+                "nickname" => (string) ($r["nickname"] ?: ("User #" . $r["cldbid"])) ,
+                "cat" => $cat
+            ];
+        }
+    } catch (\Exception $e) { /* ignore */ }
+}
 
 $members && usort($members, function ($a, $b) {
     if ($a["cat"] === $b["cat"]) {
