@@ -61,7 +61,20 @@ $tsInfo = null;
 try {
     if (TeamSpeakUtils::i()->checkTSConnection()) {
         // TS3 server query command is "clientdbinfo" -> method name clientDbInfo
-        $tsInfo = TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+        try {
+            $tsInfo = TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+        } catch (\Exception $e1) {
+            // Fallback to raw request in case wrapper call fails
+            try {
+                $reply = TeamSpeakUtils::i()->getTSNodeServer()->request("clientdbinfo cldbid=" . (int) $cldbid);
+                $list = $reply && method_exists($reply, 'toList') ? $reply->toList() : null;
+                if (is_array($list) && isset($list[0])) {
+                    $tsInfo = $list[0];
+                }
+            } catch (\Exception $e2) {
+                // ignore
+            }
+        }
     }
 } catch (\Exception $e) {
     // Non-fatal: proceed with what we have
@@ -332,6 +345,10 @@ if (!$isOnline) {
                         $profileData[$k] = $last[$k];
                     }
                 }
+            }
+            // Use cached timestamp as lastconnected_ts fallback if missing
+            if ((!isset($profileData["lastconnected_ts"]) || $profileData["lastconnected_ts"] === null) && isset($last['ts']) && is_numeric($last['ts'])) {
+                $profileData["lastconnected_ts"] = (int) $last['ts'];
             }
         }
     } catch (\Exception $e) {
