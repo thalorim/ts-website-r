@@ -1,0 +1,103 @@
+{extends "body.latte"}
+{var $title = 'Activity'}
+{var $navActiveIndex = 6}
+
+{block content}
+    <div class="card card-accent">
+        <div class="card-header bigger-title d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fas fa-chart-line"></i> Activity
+            </span>
+            {ifset $cldbid}
+                <span class="text-muted">User #{$cldbid}</span>
+            {/ifset}
+        </div>
+        <div class="card-body">
+            {if $userScoped}
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Country</strong> <span class="badge badge-primary">{$stats["country"] ?? '-'}</span></p>
+                        <p><strong>First connection</strong> {$stats["first_connection_text"] ?? '-'}</p>
+                        <p><strong>Last online</strong> {$stats["last_online_text"] ?? '-'}</p>
+                        <p><strong>Time online</strong> {$stats["time_online_text"] ?? '-'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Timeouts</strong> {$stats["timeouts"] ?? 0}</p>
+                        <p><strong>Kicks received</strong> {$stats["kicks_received"] ?? 0}</p>
+                        <p><strong>Bans received</strong> {$stats["bans_received"] ?? 0}</p>
+                        <p><strong>Total bantime received</strong> {ifset $stats["total_bantime_received"]}
+                            {php
+                                $sec = (int) $stats["total_bantime_received"]; echo ($sec>=3600?sprintf('%02dh%02dm', floor($sec/3600), floor(($sec%3600)/60)) : ($sec>=60?sprintf('%02dm%02ds', floor($sec/60), $sec%60) : sprintf('%02ds',$sec)));
+                            }
+                        {else}00s{/ifset}</p>
+                        <p><strong>Kicks given</strong> {$stats["kicks_given"] ?? 0}</p>
+                        <p><strong>Bans given</strong> {$stats["bans_given"] ?? 0}</p>
+                        <p><strong>Total bantime given</strong> {ifset $stats["total_bantime_given"]}
+                            {php
+                                $sec = (int) $stats["total_bantime_given"]; echo ($sec>=3600?sprintf('%02dh%02dm', floor($sec/3600), floor(($sec%3600)/60)) : ($sec>=60?sprintf('%02dm%02ds', floor($sec/60), $sec%60) : sprintf('%02ds',$sec)));
+                            }
+                        {else}00s{/ifset}</p>
+                    </div>
+                </div>
+                <hr>
+            {else}
+                <div class="alert alert-info">
+                    Select a user to view scoped activity. If you are logged in, your activity is shown by default.
+                </div>
+            {/if}
+
+            <div class="row">
+                <div class="col-md-8">
+                    <h5>Past 7 days activity</h5>
+                    <canvas id="activityChart" height="120"></canvas>
+                </div>
+                <div class="col-md-4">
+                    <h5>Top connections</h5>
+                    {if $topConnections}
+                        <ul class="list-group">
+                            {foreach $topConnections as $u}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="profile.php?cldbid={$u['cldbid']}">{$u['nickname']}</a>
+                                    <span class="badge badge-primary badge-pill">{$u['totalconnections']}</span>
+                                </li>
+                            {/foreach}
+                        </ul>
+                    {else}
+                        <em>No data</em>
+                    {/if}
+                </div>
+            </div>
+        </div>
+    </div>
+{/block}
+
+{block footerbottom}
+    {$tplutils::includeScript("{cdnjs}/chart.js/2.9.4/Chart.min.js")}
+    <script>
+        var labels = {=json_encode($chartLabels)};
+        var data = {=json_encode($chartData)};
+        var ctx = document.getElementById('activityChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Active users per day',
+                    data: data,
+                    borderColor: '#1f4b6e',
+                    backgroundColor: 'rgba(31,75,110,0.2)',
+                    lineTension: 0.2,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                legend: { display: false },
+                scales: {
+                    xAxes: [{ gridLines: { display: false } }],
+                    yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }]
+                }
+            }
+        });
+    </script>
+{/block}
+
