@@ -425,6 +425,12 @@ table.dataTable > tbody > tr.child td.child {
     color: #c7d5e0;
     border: none;
 }
+
+/* Badges */
+.badge-primary {
+    background-color: #181818;
+    border-color: #181818;
+}
 .steamlike-header .cover {
     height: 180px;
     background: linear-gradient(90deg, rgba(27,40,56,1) 0%, rgba(35,57,77,1) 50%, rgba(27,40,56,1) 100%);

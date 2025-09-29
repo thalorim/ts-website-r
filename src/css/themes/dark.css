@@ -632,9 +632,14 @@ fieldset[disabled] select,
     overflow: hidden;
 }
  
- .group-assigner .assigner-header .badge.badge-primary {
-     background-color: var(--site-secondary-color);
- }
+.group-assigner .assigner-header .badge.badge-primary {
+    background-color: #181818;
+}
+
+.badge-primary {
+    background-color: #181818;
+    border-color: #181818;
+}
  
  .group-assigner .assigner-header .badge.badge-invalid {
      background-color: red !important
