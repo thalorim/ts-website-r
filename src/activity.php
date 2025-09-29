@@ -128,44 +128,10 @@ if ($userScoped) {
 }
 
 // Top connections from profiles table
-$topConnections = [];
-try {
-    $rows = $db->select("profiles", ["cldbid", "nickname", "totalconnections"], [
-        "totalconnections[!]" => null,
-        "ORDER" => ["totalconnections" => "DESC"],
-        "LIMIT" => 5,
-    ]);
-    foreach ($rows as $r) {
-        $topConnections[] = [
-            "cldbid" => (int) $r["cldbid"],
-            "nickname" => (string) ($r["nickname"] ?: ("User #" . $r["cldbid"])),
-            "totalconnections" => (int) $r["totalconnections"],
-        ];
-    }
-} catch (\Exception $e) { /* ignore */ }
+// Remove top connections and charts for simplified member list page
 
 // Last 7 days activity: users with lastconnected in each day
-$chartLabels = [];
-$chartData = [];
-try {
-    $end = new DateTime('today');
-    for ($i = 6; $i >= 0; $i--) {
-        $day = clone $end;
-        $day->modify("-{$i} day");
-        $startTs = (int) $day->setTime(0,0,0)->getTimestamp();
-        $endTs = (int) $day->setTime(23,59,59)->getTimestamp();
-        $chartLabels[] = $day->format('d/m');
-        try {
-            $cnt = $db->count("profiles", [
-                "lastconnected_ts[>=]" => $startTs,
-                "lastconnected_ts[<=]" => $endTs,
-            ]);
-            $chartData[] = (int) $cnt;
-        } catch (\Exception $e) {
-            $chartData[] = 0;
-        }
-    }
-} catch (\Exception $e) { /* ignore */ }
+// Charts removed
 
 // Helpers
 function buildLastSeenString(int $lastTs): string {
@@ -238,13 +204,7 @@ $nextPageUrl = $hasMore ? ("activity.php?page=" . ($page + 1)) : null;
 TemplateUtils::i()->renderTemplate("activity", [
     "title" => "Activity",
     "navActiveIndex" => 6,
-    // keep old keys in case template still references them
-    "userScoped" => $userScoped,
-    "stats" => $stats,
-    "topConnections" => $topConnections,
-    "chartLabels" => $chartLabels,
-    "chartData" => $chartData,
-    "cldbid" => $cldbid,
+    // minimal payload for member list
     // new member list payload
     "members" => $pageItems,
     "hasMore" => $hasMore,

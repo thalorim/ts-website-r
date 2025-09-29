@@ -39,33 +39,5 @@
     </div>
 {/block}
 
-{block footerbottom}
-    {$tplutils::includeScript("{cdnjs}/chart.js/2.9.4/Chart.min.js")}
-    <script>
-        var labels = {=json_encode($chartLabels)};
-        var data = {=json_encode($chartData)};
-        var ctx = document.getElementById('activityChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Active users per day',
-                    data: data,
-                    borderColor: '#1f4b6e',
-                    backgroundColor: 'rgba(31,75,110,0.2)',
-                    lineTension: 0.2,
-                    pointRadius: 3
-                }]
-            },
-            options: {
-                legend: { display: false },
-                scales: {
-                    xAxes: [{ gridLines: { display: false } }],
-                    yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }]
-                }
-            }
-        });
-    </script>
-{/block}
+{block footerbottom}{/block}
 
