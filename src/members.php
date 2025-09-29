@@ -4,6 +4,7 @@ use Wruczek\TSWebsite\CacheManager;
 use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Utils\TeamSpeakUtils;
+use Wruczek\PhpFileCache\PhpFileCache;
 
 require_once __DIR__ . "/private/php/load.php";
 
@@ -65,6 +66,15 @@ if (TeamSpeakUtils::i()->checkTSConnection()) {
                         if (!$nick && !empty($profilesById[$dbid]['nickname'])) { $nick = $profilesById[$dbid]['nickname']; }
                         if (!$country && !empty($profilesById[$dbid]['country'])) { $country = $profilesById[$dbid]['country']; }
                     }
+                }
+                if (!$country) {
+                    try {
+                        $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
+                        $cached = $lastSeenCache->retrieve("u_" . (int) $dbid);
+                        if (is_array($cached) && !empty($cached['country'])) {
+                            $country = (string) $cached['country'];
+                        }
+                    } catch (\Exception $e) { /* ignore */ }
                 }
                 $members[] = [
                     'cldbid' => (int) $dbid,
