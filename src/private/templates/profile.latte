@@ -83,9 +83,9 @@
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Total connections:</strong> {$profile["totalconnections"] ?? '-'}</p>
-                    <p><strong>Upload (avg last min):</strong> {$profile["bw_up_h"] ?? '-'}</p>
-                    <p><strong>Download (avg last min):</strong> {$profile["bw_down_h"] ?? '-'}</p>
+                    <p><strong>Total connections:</strong> {ifset $profile["totalconnections"]}{$profile["totalconnections"]}{else}-{/ifset}</p>
+                    <p><strong>First connected:</strong> {$profile["first_connected_human"] ?? '-'}</p>
+                    <p><strong>Last online:</strong> {$profile["last_online_human"] ?? '-'}</p>
                 </div>
             </div>
             <hr>

@@ -301,9 +301,8 @@ if ((empty($profileData["nickname"]) || $profileData["nickname"] === null) && $d
 if ((empty($profileData["servergroups"]) || $profileData["servergroups"] === null) && $dbProfile && !empty($dbProfile["servergroups"])) {
     $profileData["servergroups"] = (string) $dbProfile["servergroups"];
 }
-// Preserve timestamps always; only preserve totalconnections when online
-$preserveNumericKeys = ["created_ts", "lastconnected_ts"];
-if ($isOnline) { $preserveNumericKeys[] = "totalconnections"; }
+// Preserve timestamps and total connections always (even when offline)
+$preserveNumericKeys = ["created_ts", "lastconnected_ts", "totalconnections"];
 foreach ($preserveNumericKeys as $k) {
     if (!isset($profileData[$k]) || $profileData[$k] === null) {
         if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null) {
@@ -338,8 +337,6 @@ if (!$isOnline) {
     } catch (\Exception $e) {
         // ignore cache errors
     }
-    // Force totalconnections to be hidden offline
-    $profileData["totalconnections"] = null;
 }
 
 // Resolve current channel name if available
@@ -441,6 +438,14 @@ if (!$isOnline) {
     }
 
     $renderData["lastSeenText"] = $lastSeenText;
+}
+
+// Compute human-readable first connected and last online date strings for Overview
+if (isset($profileData["created_ts"]) && is_numeric($profileData["created_ts"])) {
+    $renderData["profile"]["first_connected_human"] = date('jS F, Y', (int) $profileData["created_ts"]);
+}
+if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
+    $renderData["profile"]["last_online_human"] = date('jS F, Y, g:ia', (int) $profileData["lastconnected_ts"]);
 }
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);
