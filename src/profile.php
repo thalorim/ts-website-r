@@ -289,7 +289,10 @@ if ((empty($profileData["nickname"]) || $profileData["nickname"] === null) && $d
 if ((empty($profileData["servergroups"]) || $profileData["servergroups"] === null) && $dbProfile && !empty($dbProfile["servergroups"])) {
     $profileData["servergroups"] = (string) $dbProfile["servergroups"];
 }
-foreach (["created_ts", "lastconnected_ts", "totalconnections"] as $k) {
+// Preserve timestamps always; only preserve totalconnections when online
+$preserveNumericKeys = ["created_ts", "lastconnected_ts"];
+if ($isOnline) { $preserveNumericKeys[] = "totalconnections"; }
+foreach ($preserveNumericKeys as $k) {
     if (!isset($profileData[$k]) || $profileData[$k] === null) {
         if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null) {
             $profileData[$k] = is_numeric($dbProfile[$k]) ? (int) $dbProfile[$k] : $dbProfile[$k];
@@ -312,7 +315,7 @@ if (!$isOnline) {
         $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
         $last = $lastSeenCache->retrieve("u_" . (int) $cldbid);
         if (is_array($last)) {
-            foreach (["country", "version", "platform", "totalconnections", "bw_up_h", "bw_down_h", "nickname"] as $k) {
+            foreach (["country", "version", "platform", "bw_up_h", "bw_down_h", "nickname"] as $k) {
                 if (!isset($profileData[$k]) || $profileData[$k] === null || $profileData[$k] === '') {
                     if (isset($last[$k]) && $last[$k] !== null && $last[$k] !== '') {
                         $profileData[$k] = $last[$k];
@@ -323,6 +326,8 @@ if (!$isOnline) {
     } catch (\Exception $e) {
         // ignore cache errors
     }
+    // Force totalconnections to be hidden offline
+    $profileData["totalconnections"] = null;
 }
 
 // Resolve current channel name if available
