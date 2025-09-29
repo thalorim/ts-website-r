@@ -210,12 +210,24 @@ try {
         $allInSet = true;
         foreach ($ids as $gid) { if ($gid !== 6 && $gid !== 7) { $allInSet = false; break; } }
         if (!$allInSet) continue;
+        $has6 = in_array(6, $ids, true);
+        $has7 = in_array(7, $ids, true);
+        // Category: 0 = both 6&7, 1 = only 7, 2 = only 6
+        $cat = ($has6 && $has7) ? 0 : ($has7 ? 1 : 2);
         $members[] = [
             "cldbid" => (int) $r["cldbid"],
-            "nickname" => (string) ($r["nickname"] ?: ("User #" . $r["cldbid"]))
+            "nickname" => (string) ($r["nickname"] ?: ("User #" . $r["cldbid"])) ,
+            "cat" => $cat
         ];
     }
 } catch (\Exception $e) { /* ignore */ }
+
+$members && usort($members, function ($a, $b) {
+    if ($a["cat"] === $b["cat"]) {
+        return $a["cldbid"] <=> $b["cldbid"];
+    }
+    return $a["cat"] <=> $b["cat"];
+});
 
 $perPage = 10;
 $start = ($page - 1) * $perPage;
