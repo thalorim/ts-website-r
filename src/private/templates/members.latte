@@ -1,0 +1,46 @@
+{extends "body.latte"}
+{var $title = 'Members list'}
+{var $navActiveIndex = 6}
+
+{block content}
+    <div class="card card-accent">
+        <div class="card-header bigger-title d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fas fa-users"></i> Members list
+            </span>
+            <span class="text-muted">Page {$page}</span>
+        </div>
+        <div class="card-body">
+            {if $members}
+                <ul class="list-group">
+                    {foreach $members as $m}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="text-muted mr-2">#{$m['cldbid']}</span>
+                                {ifset $m['country']}
+                                    <img src="https://reape.rs/flags/{strtolower($m['country'])}.png" alt="flag" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;" class="mr-1">
+                                {/ifset}
+                                <a href="profile.php?cldbid={$m['cldbid']}">{$m['nickname']}</a>
+                            </div>
+                            <a href="profile.php?cldbid={$m['cldbid']}" class="btn btn-sm btn-primary">View</a>
+                        </li>
+                    {/foreach}
+                </ul>
+                <div class="text-center mt-3">
+                    {if $hasMore}
+                        <a href="{$nextPageUrl}" class="btn btn-primary">Next page</a>
+                    {else}
+                        <span class="text-muted">No more results</span>
+                    {/if}
+                </div>
+            {else}
+                <div class="alert alert-info mb-0">
+                    No members found in groups 6 or 7.
+                </div>
+            {/if}
+        </div>
+    </div>
+{/block}
+
+{block footerbottom}{/block}
+
