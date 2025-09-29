@@ -20,6 +20,9 @@
                                 {ifset $m['country']}
                                     <img src="https://reape.rs/flags/{strtolower($m['country'])}.png" alt="flag" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;" class="mr-1">
                                 {/ifset}
+                                {ifset $m['rank_iconid']}
+                                    <img src="api/geticon.php?iconid={$m['rank_iconid']}" alt="rank" style="height:16px;width:16px;vertical-align:middle;margin-right:.25rem;">
+                                {/ifset}
                                 <a href="profile.php?cldbid={$m['cldbid']}">{$m['nickname']}</a>
                             </div>
                             <a href="profile.php?cldbid={$m['cldbid']}" class="btn btn-sm btn-primary">View</a>

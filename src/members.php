@@ -115,6 +115,47 @@ $pageItems = array_slice($members, $start, $perPage);
 $hasMore = count($members) > ($start + $perPage);
 $nextPageUrl = $hasMore ? ("members.php?page=" . ($page + 1)) : null;
 
+// Enrich page items with rank icon (group id 9..18 highest icon)
+try {
+    $serverGroups = CacheManager::i()->getServerGroupList();
+} catch (\Exception $e) { $serverGroups = null; }
+
+if (!empty($pageItems) && $serverGroups) {
+    $idsOnPage = array_map(function ($m) { return (int) $m['cldbid']; }, $pageItems);
+    $profileSgById = [];
+    try {
+        $rows = $db->select('profiles', ['cldbid', 'servergroups'], ['cldbid' => $idsOnPage]);
+        foreach ($rows as $r) { $profileSgById[(int)$r['cldbid']] = (string) $r['servergroups']; }
+    } catch (\Exception $e) { /* ignore */ }
+
+    $tsOk = TeamSpeakUtils::i()->checkTSConnection();
+    $node = $tsOk ? TeamSpeakUtils::i()->getTSNodeServer() : null;
+
+    foreach ($pageItems as &$m) {
+        $dbid = (int) $m['cldbid'];
+        $sgids = [];
+        if ($tsOk) {
+            try {
+                $byDb = $node->clientGetServerGroupsByDbid($dbid);
+                if (is_array($byDb)) { $sgids = array_keys($byDb); }
+            } catch (\Exception $e) { /* fallback below */ }
+        }
+        if (empty($sgids) && isset($profileSgById[$dbid]) && $profileSgById[$dbid] !== '') {
+            $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $profileSgById[$dbid])), function ($v) { return $v > 0; }));
+        }
+        if (!empty($sgids)) {
+            $rankGroups = array_values(array_filter($sgids, function ($g) { return $g >= 9 && $g <= 18; }));
+            if (!empty($rankGroups)) {
+                $chosen = max($rankGroups);
+                if (isset($serverGroups[$chosen]) && !empty($serverGroups[$chosen]['iconid'])) {
+                    $m['rank_iconid'] = (int) $serverGroups[$chosen]['iconid'];
+                }
+            }
+        }
+    }
+    unset($m);
+}
+
 TemplateUtils::i()->renderTemplate("members", [
     "title" => "Members list",
     "navActiveIndex" => 6,
