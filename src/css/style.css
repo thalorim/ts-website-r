@@ -381,6 +381,7 @@ table.dataTable > tbody > tr.child td.child {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border: 1px solid rgba(0,0,0,0.05);
 }
 
 .group-assigner .list-group-item > div {
@@ -398,10 +399,13 @@ table.dataTable > tbody > tr.child td.child {
 
 .group-assigner .list-group-item:not(.assigner-header) {
     cursor: pointer;
+    background-color: #f8f9fa;
 }
 
 .group-assigner .assigner-category {
     margin-bottom: 1.5rem;
+    border-radius: .25rem;
+    overflow: hidden;
 }
 
 .group-assigner .assigner-save {

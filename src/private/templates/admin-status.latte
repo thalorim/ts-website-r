@@ -11,7 +11,8 @@
                     {$group["name"]}
                 {/if}
             {/if}
-            {$client["client_nickname"]}
+            {var $dbid = isset($client["client_database_id"]) ? $client["client_database_id"] : $client["cldbid"]}
+            <a href="profile.php?cldbid={$dbid}" title="Open profile">{$client["client_nickname"]}</a>
         </span>
         <span class="status">
             {if $isOnline}

@@ -618,6 +618,19 @@ fieldset[disabled] select,
      background-color: #212135;
      font-family: var(--font-family-main);
  }
+
+.group-assigner .list-group-item {
+    border: 1px solid #2a2a2a;
+}
+
+.group-assigner .list-group-item:not(.assigner-header) {
+    background-color: #232338;
+}
+
+.group-assigner .assigner-category {
+    border-radius: .25rem;
+    overflow: hidden;
+}
  
  .group-assigner .assigner-header .badge.badge-primary {
      background-color: var(--site-secondary-color);
