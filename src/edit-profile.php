@@ -65,7 +65,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $socials = [];
         foreach ($socialKeys as $key) {
             $val = isset($_POST[$key]) ? trim((string) $_POST[$key]) : "";
-            if ($val !== "") {
+            if ($val === "") { continue; }
+
+            if ($key === 'discord') {
+                // Accept only numeric Discord user IDs; reject invite links or URLs
+                if (preg_match('/^https?:/i', $val) || stripos($val, 'discord.gg') !== false) {
+                    throw new \Exception("Discord must be a numeric user ID, not a link.");
+                }
+                if (!preg_match('/^[0-9]{15,25}$/', $val)) {
+                    throw new \Exception("Invalid Discord user ID. Use numbers only (15-25 digits).");
+                }
+                $socials[$key] = $val; // store raw ID
+            } else {
                 $socials[$key] = $val;
             }
         }

@@ -401,13 +401,12 @@ foreach ($socials as $key => $url) {
     ];
 }
 
-// Extract Discord user ID if a direct profile link is provided
+// Discord user ID is now stored directly as numeric ID (if provided)
 $discordUserId = null;
 if (isset($socials['discord']) && is_string($socials['discord'])) {
-    $discordUrl = (string) $socials['discord'];
-    // Match forms like: https://discord.com/users/123, https://discordapp.com/users/123
-    if (preg_match('~discord(?:app)?\.com/(?:users)/([0-9]+)~i', $discordUrl, $m)) {
-        $discordUserId = $m[1];
+    $raw = trim((string) $socials['discord']);
+    if (preg_match('/^[0-9]{15,25}$/', $raw)) {
+        $discordUserId = $raw;
     }
 }
 
