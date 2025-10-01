@@ -401,6 +401,15 @@ foreach ($socials as $key => $url) {
     ];
 }
 
+// Discord user ID is now stored directly as numeric ID (if provided)
+$discordUserId = null;
+if (isset($socials['discord']) && is_string($socials['discord'])) {
+    $raw = trim((string) $socials['discord']);
+    if (preg_match('/^[0-9]{15,25}$/', $raw)) {
+        $discordUserId = $raw;
+    }
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -414,6 +423,7 @@ $renderData = [
     "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
+    "discordUserId" => $discordUserId,
 ];
 
 // Compute last seen text for offline users
