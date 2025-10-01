@@ -401,6 +401,16 @@ foreach ($socials as $key => $url) {
     ];
 }
 
+// Extract Discord user ID if a direct profile link is provided
+$discordUserId = null;
+if (isset($socials['discord']) && is_string($socials['discord'])) {
+    $discordUrl = (string) $socials['discord'];
+    // Match forms like: https://discord.com/users/123, https://discordapp.com/users/123
+    if (preg_match('~discord(?:app)?\.com/(?:users)/([0-9]+)~i', $discordUrl, $m)) {
+        $discordUserId = $m[1];
+    }
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -414,6 +424,7 @@ $renderData = [
     "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
+    "discordUserId" => $discordUserId,
 ];
 
 // Compute last seen text for offline users
