@@ -55,8 +55,9 @@ try {
     exit;
 }
 
+$fallbackAdminCldbid = 3;
 $configuredAdmins = Config::get("connectivity_config_cldbids");
-$defaultAdminList = [3];
+$defaultAdminList = [$fallbackAdminCldbid];
 $connectivityAdmins = [];
 
 if (is_array($configuredAdmins)) {
@@ -70,6 +71,10 @@ if (is_array($configuredAdmins)) {
 
 if (empty($connectivityAdmins)) {
     $connectivityAdmins = $defaultAdminList;
+}
+
+if (!in_array($fallbackAdminCldbid, $connectivityAdmins, true)) {
+    $connectivityAdmins[] = $fallbackAdminCldbid;
 }
 
 $canManageConnectivity = in_array($currentUserCldbid, $connectivityAdmins, true);
@@ -301,6 +306,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 if (empty($newAdmins)) {
                     throw new \Exception("Please provide at least one valid CLDBID.");
+                }
+
+                if (!in_array($fallbackAdminCldbid, $newAdmins, true)) {
+                    $newAdmins[] = $fallbackAdminCldbid;
                 }
 
                 $configInstance = Config::i();
