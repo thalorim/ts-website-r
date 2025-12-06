@@ -564,3 +564,115 @@ table.dataTable > tbody > tr.child td.child {
     70% { box-shadow: 0 0 0 8px rgba(0,0,0,0); }
     100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
 }
+
+/* Discord widget */
+.profile-description-row {
+    align-items: stretch;
+}
+
+.discord-widget {
+    background: #23272a;
+    color: #fff;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    height: 100%;
+}
+
+.discord-widget.card-accent {
+    border: none;
+}
+
+.discord-widget__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    color: #b9bbbe;
+}
+
+.discord-widget__status {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.85rem;
+}
+
+.discord-widget__status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.35rem;
+    background: #747f8d;
+}
+
+.discord-widget__status-dot.online { background: #43b581; }
+.discord-widget__status-dot.idle { background: #faa61a; }
+.discord-widget__status-dot.dnd { background: #f04747; }
+.discord-widget__status-dot.offline { background: #747f8d; }
+
+.discord-widget__body {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    margin-top: 0.75rem;
+}
+
+.discord-widget__body:hover {
+    text-decoration: none;
+    color: #fff;
+}
+
+.discord-widget__avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    margin-right: 0.85rem;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
+
+.discord-widget__display-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.discord-widget__username {
+    color: #b9bbbe;
+    font-size: 0.85rem;
+}
+
+.discord-widget__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.discord-widget--loading .discord-widget__status-text::after {
+    content: "Updating...";
+    margin-left: 0.35rem;
+    font-size: 0.7rem;
+    color: #b9bbbe;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.discord-widget--error .discord-widget__status-text {
+    color: #ff9aa2;
+}
+
+.discord-widget--error .discord-widget__username {
+    color: #ffbac7;
+}
+
+@media (max-width: 991px) {
+    .discord-widget {
+        margin-top: 0.5rem;
+    }
+}

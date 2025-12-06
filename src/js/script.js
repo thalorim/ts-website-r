@@ -110,6 +110,8 @@ $(function () {
             }
         });
     }
+
+    initDiscordWidgets();
 });
 
 function timestampToDate(timestamp, full) {
@@ -169,4 +171,134 @@ function copyTextToClipboard(text) {
 
     document.body.removeChild(textArea)
     return success
+}
+
+function initDiscordWidgets() {
+    var widgets = document.querySelectorAll('.discord-widget[data-discord-user-id]');
+
+    if (!widgets.length || typeof window.fetch !== 'function') {
+        return;
+    }
+
+    widgets.forEach(function(widget) {
+        if (widget.classList.contains('discord-widget--has-data')) {
+            return;
+        }
+
+        var userId = widget.getAttribute('data-discord-user-id');
+        if (!userId) {
+            return;
+        }
+
+        widget.classList.remove('discord-widget--error');
+        widget.classList.add('discord-widget--loading');
+
+        fetch('https://api.lanyard.rest/v1/users/' + encodeURIComponent(userId))
+            .then(function(resp) {
+                if (!resp.ok) {
+                    throw new Error('HTTP ' + resp.status);
+                }
+                return resp.json();
+            })
+            .then(function(payload) {
+                if (!payload || !payload.success || !payload.data || !payload.data.discord_user) {
+                    throw new Error('Invalid payload');
+                }
+                updateDiscordWidgetFromPayload(widget, payload.data, userId);
+            })
+            .catch(function() {
+                widget.classList.add('discord-widget--error');
+            })
+            .then(function() {
+                widget.classList.remove('discord-widget--loading');
+            });
+    });
+}
+
+function updateDiscordWidgetFromPayload(widget, payload, fallbackUserId) {
+    if (!payload || !widget) {
+        return;
+    }
+
+    var statusMap = {
+        online: { label: 'Online', className: 'online' },
+        idle: { label: 'Away', className: 'idle' },
+        dnd: { label: 'Do Not Disturb', className: 'dnd' },
+        offline: { label: 'Offline', className: 'offline' },
+        invisible: { label: 'Offline', className: 'offline' }
+    };
+
+    var statusKey = (payload.discord_status || 'offline').toLowerCase();
+    var statusInfo = statusMap[statusKey] || statusMap.offline;
+
+    var statusDot = widget.querySelector('[data-discord-role="status-dot"]');
+    if (statusDot) {
+        statusDot.className = 'discord-widget__status-dot ' + statusInfo.className;
+    }
+
+    var statusText = widget.querySelector('[data-discord-role="status-text"]');
+    if (statusText) {
+        statusText.textContent = statusInfo.label;
+    }
+
+    var discordUser = payload.discord_user || {};
+    var resolvedUserId = discordUser.id || fallbackUserId;
+
+    var avatarEl = widget.querySelector('[data-discord-role="avatar"]');
+    if (avatarEl) {
+        avatarEl.src = getDiscordAvatarUrl(resolvedUserId, discordUser.avatar, discordUser.discriminator);
+    }
+
+    var displayEl = widget.querySelector('[data-discord-role="display"]');
+    if (displayEl) {
+        displayEl.textContent = discordUser.global_name || discordUser.username || 'Discord user';
+    }
+
+    var usernameEl = widget.querySelector('[data-discord-role="username"]');
+    if (usernameEl) {
+        usernameEl.textContent = formatDiscordUsernameTag(discordUser, resolvedUserId);
+    }
+
+    var profileLink = widget.querySelector('[data-discord-role="profile-link"]');
+    if (profileLink) {
+        profileLink.href = 'https://discord.com/users/' + encodeURIComponent(resolvedUserId);
+    }
+
+    widget.classList.add('discord-widget--has-data');
+    widget.classList.remove('discord-widget--error');
+}
+
+function getDiscordAvatarUrl(userId, avatarHash, discriminator) {
+    if (avatarHash) {
+        return 'https://cdn.discordapp.com/avatars/' + encodeURIComponent(userId) + '/' + encodeURIComponent(avatarHash) + '.png?size=128';
+    }
+
+    var discNumber = parseInt(discriminator, 10);
+    if (isNaN(discNumber) || discNumber < 0) {
+        discNumber = 0;
+    }
+
+    return 'https://cdn.discordapp.com/embed/avatars/' + (discNumber % 5) + '.png';
+}
+
+function formatDiscordUsernameTag(discordUser, fallbackUserId) {
+    if (!discordUser || !discordUser.username) {
+        return 'ID: ' + fallbackUserId;
+    }
+
+    var discriminator = discordUser.discriminator;
+    if (!discriminator || discriminator === '0') {
+        var username = discordUser.username;
+        if (username.indexOf('@') === 0) {
+            return username;
+        }
+        return '@' + username;
+    }
+
+    var padded = discriminator.toString();
+    while (padded.length < 4) {
+        padded = '0' + padded;
+    }
+
+    return discordUser.username + '#' + padded;
 }
