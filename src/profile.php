@@ -238,6 +238,77 @@ try {
 // Fetch DB-stored fields (e.g., avatar)
 $dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
 
+// Fetch Steam data if Steam ID is set
+$steamData = null;
+if ($dbProfile && !empty($dbProfile["steam_id"])) {
+    $steamId = trim((string) $dbProfile["steam_id"]);
+    $steamApiKey = Config::get("steam_api_key", "");
+    
+    if (!empty($steamApiKey)) {
+        try {
+            // Resolve vanity URL to SteamID64 if necessary
+            $steamId64 = $steamId;
+            if (!ctype_digit($steamId) || strlen($steamId) !== 17) {
+                // Try to resolve vanity URL
+                $vanityUrl = "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key=" . urlencode($steamApiKey) . "&vanityurl=" . urlencode($steamId);
+                $vanityResponse = @file_get_contents($vanityUrl);
+                if ($vanityResponse !== false) {
+                    $vanityData = json_decode($vanityResponse, true);
+                    if (isset($vanityData['response']['success']) && $vanityData['response']['success'] == 1) {
+                        $steamId64 = $vanityData['response']['steamid'];
+                    }
+                }
+            }
+            
+            // Fetch player summaries
+            $summariesUrl = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" . urlencode($steamApiKey) . "&steamids=" . urlencode($steamId64) . "&format=json";
+            $summariesResponse = @file_get_contents($summariesUrl);
+            
+            if ($summariesResponse !== false) {
+                $summariesData = json_decode($summariesResponse, true);
+                if (isset($summariesData['response']['players'][0])) {
+                    $player = $summariesData['response']['players'][0];
+                    $steamData = [
+                        'steamid' => $steamId64,
+                        'personaname' => $player['personaname'] ?? 'Unknown',
+                        'avatar' => $player['avatarfull'] ?? '',
+                        'avatarmedium' => $player['avatarmedium'] ?? '',
+                        'profileurl' => $player['profileurl'] ?? '',
+                        'countrycode' => isset($player['loccountrycode']) ? strtolower($player['loccountrycode']) : null,
+                    ];
+                    
+                    // Fetch player level from badges
+                    $badgesUrl = "https://api.steampowered.com/IPlayerService/GetBadges/v0001/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&format=json";
+                    $badgesResponse = @file_get_contents($badgesUrl);
+                    if ($badgesResponse !== false) {
+                        $badgesData = json_decode($badgesResponse, true);
+                        if (isset($badgesData['response']['player_level'])) {
+                            $steamData['level'] = $badgesData['response']['player_level'];
+                        }
+                    }
+                    
+                    // Fetch recently played games
+                    $recentGamesUrl = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&format=json";
+                    $recentGamesResponse = @file_get_contents($recentGamesUrl);
+                    if ($recentGamesResponse !== false) {
+                        $recentGamesData = json_decode($recentGamesResponse, true);
+                        if (isset($recentGamesData['response']['games']) && !empty($recentGamesData['response']['games'])) {
+                            $steamData['recent_games'] = array_slice($recentGamesData['response']['games'], 0, 3); // Top 3 recent games
+                            // Add game icons
+                            foreach ($steamData['recent_games'] as &$game) {
+                                $game['icon'] = "https://steamcdn-a.akamaihd.net/steam/apps/" . $game['appid'] . "/capsule_184x69.jpg";
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Silently fail Steam API errors
+            $steamData = null;
+        }
+    }
+}
+
 // Resolve server group details
 $groupsDetailed = [];
 try {
@@ -430,6 +501,7 @@ $renderData = [
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
     "discordId" => $discordId,
+    "steamData" => $steamData,
 ];
 
 // Compute last seen text for offline users

@@ -56,6 +56,13 @@
                     <small class="form-text text-muted">PNG/JPG/WEBP/GIF up to 5MB. Animated GIFs supported.</small>
                 </div>
                 <hr>
+                <h5 class="mb-3"><i class="fab fa-steam"></i> Steam Integration</h5>
+                <div class="form-group">
+                    <label for="steam_id">Steam ID / Vanity URL</label>
+                    <input id="steam_id" class="form-control" name="steam_id" placeholder="SteamID64 (e.g. 76561198012345678) or Vanity URL (e.g. example)" value="{$currentSteamId ?? ''}">
+                    <small class="form-text text-muted">Enter your SteamID64 or Steam vanity URL to display Steam info on your profile</small>
+                </div>
+                <hr>
                 <h5 class="mb-3"><i class="fas fa-share-alt"></i> Social links</h5>
                 <div class="row">
                     <div class="col-md-6">

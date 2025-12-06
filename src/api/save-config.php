@@ -18,6 +18,7 @@ try {
     $assigner = @$_POST["assignerconfig"] ?? '';
     $adminGroups = @$_POST["adminstatus_groups"] ?? '';
     $discordWebhook = @$_POST["discord_login_webhook"] ?? '';
+    $steamApiKey = @$_POST["steam_api_key"] ?? '';
 
     if ($assigner !== '') {
         $assignerJson = json_decode($assigner, true);
@@ -40,6 +41,14 @@ try {
             throw new \InvalidArgumentException("discord_login_webhook must be a Discord webhook URL");
         }
         Config::i()->setValue("discord_login_webhook", (string) $discordWebhook);
+    }
+
+    if ($steamApiKey !== '') {
+        // Validate Steam API key format (32 hex characters)
+        if (!preg_match('/^[A-F0-9]{32}$/i', $steamApiKey)) {
+            throw new \InvalidArgumentException("steam_api_key must be a valid 32-character Steam API key");
+        }
+        Config::i()->setValue("steam_api_key", (string) $steamApiKey);
     }
 
     echo json_encode(["ok" => true]);

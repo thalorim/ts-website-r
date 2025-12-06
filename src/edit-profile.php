@@ -55,6 +55,12 @@ try {
     if (!$colExists4) {
         $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `description` TEXT NULL AFTER `banner_url`");
     }
+
+    $colStmt5 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'steam_id'");
+    $colExists5 = $colStmt5 && $colStmt5->fetchColumn();
+    if (!$colExists5) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `steam_id` VARCHAR(255) NULL AFTER `description`");
+    }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring avatar column", $e->getMessage());
     exit;
@@ -173,6 +179,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $updateData["description"] = $desc !== "" ? $desc : null;
         }
 
+        // Handle Steam ID (optional)
+        if (isset($_POST["steam_id"])) {
+            $steamId = trim((string) $_POST["steam_id"]);
+            $updateData["steam_id"] = $steamId !== "" ? $steamId : null;
+        }
+
         $selectedBorder = isset($_POST["avatar_border"]) ? trim((string) $_POST["avatar_border"]) : null;
         $updateData["avatar_border"] = AvatarBorderUtils::normalize($selectedBorder);
 
@@ -190,11 +202,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 // Fetch current data to display in form
-$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description"], ["cldbid" => $requestedCldbid]);
+$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description","steam_id"], ["cldbid" => $requestedCldbid]);
 $currentAvatar = $current && isset($current["avatar_url"]) && $current["avatar_url"] ? $current["avatar_url"] : "img/icons/defaulticon-128.png";
 $currentAvatarBorder = AvatarBorderUtils::normalize($current["avatar_border"] ?? null);
 $currentAvatarBorderUrl = AvatarBorderUtils::getUrl($currentAvatarBorder);
 $currentDescription = $current && isset($current["description"]) ? $current["description"] : null;
+$currentSteamId = $current && isset($current["steam_id"]) ? $current["steam_id"] : null;
 $currentSocials = [];
 if ($current && !empty($current["socials_json"])) {
     $decoded = json_decode((string) $current["socials_json"], true);
@@ -212,6 +225,7 @@ TemplateUtils::i()->renderTemplate("edit-profile", [
     "currentAvatarBorderUrl" => $currentAvatarBorderUrl,
     "borderOptions" => AvatarBorderUtils::getOptions(),
     "currentDescription" => $currentDescription,
+    "currentSteamId" => $currentSteamId,
     "currentSocials" => $currentSocials,
     "message" => $message,
     "error" => $error,

@@ -75,6 +75,51 @@
             <i class="fas fa-user"></i> Overview
         </div>
         <div class="card-body">
+            {ifset $steamData}
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{$steamData['avatar']}" alt="{$steamData['personaname']}" style="width:64px;height:64px;border-radius:4px;margin-right:1rem;">
+                        <div>
+                            <h5 class="mb-1">
+                                <i class="fab fa-steam"></i> 
+                                <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">{$steamData['personaname']}</a>
+                            </h5>
+                            {ifset $steamData['level']}
+                                <p class="mb-0"><strong>Steam Level:</strong> {$steamData['level']}</p>
+                            {/ifset}
+                            {ifset $steamData['countrycode']}
+                                <p class="mb-0">
+                                    <strong>Country:</strong> 
+                                    <img src="https://steamcommunity-a.akamaihd.net/public/images/countryflags/{$steamData['countrycode']}.gif" alt="{$steamData['countrycode']}" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;">
+                                </p>
+                            {/ifset}
+                        </div>
+                    </div>
+                    {ifset $steamData['recent_games']}
+                    <h6><i class="fas fa-gamepad"></i> Recently Played Games</h6>
+                    <div class="row">
+                        {foreach $steamData['recent_games'] as $game}
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <img src="{$game['icon']}" alt="{$game['name']}" class="card-img-top" style="width:100%;height:auto;">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title mb-1" style="font-size:0.9rem;">{$game['name']}</h6>
+                                    <p class="card-text mb-0" style="font-size:0.85rem;">
+                                        <strong>{round($game['playtime_forever'] / 60, 1)} hrs</strong> total
+                                        {if isset($game['playtime_2weeks'])}
+                                        <br><small class="text-muted">{round($game['playtime_2weeks'] / 60, 1)} hrs last 2 weeks</small>
+                                        {/if}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {/foreach}
+                    </div>
+                    {/ifset}
+                </div>
+            </div>
+            {else}
             <div class="row">
                 <div class="col-md-6">
                     <p><strong>Country:</strong> {ifset $profile["country"]}
@@ -84,11 +129,10 @@
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Total connections:</strong> {ifset $profile["totalconnections"]}{$profile["totalconnections"]}{else}-{/ifset}</p>
-                    <p><strong>First connected:</strong> {$profile["first_connected_human"] ?? '-'}</p>
-                    <p><strong>Last online:</strong> {$profile["last_online_human"] ?? '-'}</p>
+                    <p><em class="text-muted">No additional stats available</em></p>
                 </div>
             </div>
+            {/ifset}
             <hr>
             <div class="row">
                 <div class="col-md-{ifset $discordId}6{else}12{/ifset}">
