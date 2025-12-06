@@ -14,5 +14,9 @@ return [
 
     // Admin status will display members of server group ID 6
     'adminstatus_groups' => [6],
+
+    // CLDBIDs allowed to edit Website & TeamSpeak connectivity data via edit-profile.php.
+    // Replace 3 with your actual CLDBID(s).
+    'connectivity_admin_cldbids' => [3],
 ];
 
