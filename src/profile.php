@@ -404,6 +404,16 @@ foreach ($socials as $key => $url) {
     ];
 }
 
+// Extract Discord ID for Lanyard widget
+$discordId = null;
+if (isset($socials['discord']) && !empty($socials['discord'])) {
+    $discordValue = trim((string) $socials['discord']);
+    // Check if it's a numeric Discord ID
+    if (ctype_digit($discordValue)) {
+        $discordId = $discordValue;
+    }
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -419,6 +429,7 @@ $renderData = [
     "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
+    "discordId" => $discordId,
 ];
 
 // Compute last seen text for offline users
