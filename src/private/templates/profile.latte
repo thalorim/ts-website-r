@@ -23,7 +23,7 @@
                         {/ifset}
                     </h3>
                     <div class="subtext">
-                        <span><i class="fas fa-id-badge"></i> CLDBID: {$profile["cldbid"]}</span>
+                        <span><i class="fas fa-id-badge" data-toggle="tooltip" title="Database ID: {$profile['cldbid']}"></i></span>
                         {ifset $profile["cluid"]}
                             <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
                         {/ifset}
@@ -75,51 +75,6 @@
             <i class="fas fa-user"></i> Overview
         </div>
         <div class="card-body">
-            {ifset $steamData}
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="d-flex align-items-center mb-3">
-                        <img src="{$steamData['avatar']}" alt="{$steamData['personaname']}" style="width:64px;height:64px;border-radius:4px;margin-right:1rem;">
-                        <div>
-                            <h5 class="mb-1">
-                                <i class="fab fa-steam"></i> 
-                                <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">{$steamData['personaname']}</a>
-                            </h5>
-                            {ifset $steamData['level']}
-                                <p class="mb-0"><strong>Steam Level:</strong> {$steamData['level']}</p>
-                            {/ifset}
-                            {ifset $steamData['countrycode']}
-                                <p class="mb-0">
-                                    <strong>Country:</strong> 
-                                    <img src="https://steamcommunity-a.akamaihd.net/public/images/countryflags/{$steamData['countrycode']}.gif" alt="{$steamData['countrycode']}" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;">
-                                </p>
-                            {/ifset}
-                        </div>
-                    </div>
-                    {ifset $steamData['recent_games']}
-                    <h6><i class="fas fa-gamepad"></i> Recently Played Games</h6>
-                    <div class="row">
-                        {foreach $steamData['recent_games'] as $game}
-                        <div class="col-md-4 mb-3">
-                            <div class="card">
-                                <img src="{$game['icon']}" alt="{$game['name']}" class="card-img-top" style="width:100%;height:auto;">
-                                <div class="card-body p-2">
-                                    <h6 class="card-title mb-1" style="font-size:0.9rem;">{$game['name']}</h6>
-                                    <p class="card-text mb-0" style="font-size:0.85rem;">
-                                        <strong>{round($game['playtime_forever'] / 60, 1)} hrs</strong> total
-                                        {if isset($game['playtime_2weeks'])}
-                                        <br><small class="text-muted">{round($game['playtime_2weeks'] / 60, 1)} hrs last 2 weeks</small>
-                                        {/if}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        {/foreach}
-                    </div>
-                    {/ifset}
-                </div>
-            </div>
-            {else}
             <div class="row">
                 <div class="col-md-6">
                     <p><strong>Country:</strong> {ifset $profile["country"]}
@@ -129,22 +84,63 @@
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><em class="text-muted">No additional stats available</em></p>
+                    <p><em class="text-muted">TeamSpeak client information</em></p>
                 </div>
             </div>
-            {/ifset}
             <hr>
             <div class="row">
-                <div class="col-md-{ifset $discordId}6{else}12{/ifset}">
+                <div class="col-md-{ifset $discordId}{ifset $steamData}4{else}6{/ifset}{elseifset $steamData}6{else}12{/ifset}">
                     <p><strong>Description</strong></p>
                     <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
                 </div>
                 {ifset $discordId}
-                <div class="col-md-6">
+                <div class="col-md-{ifset $steamData}4{else}6{/ifset}">
                     <p><strong>Discord Status</strong></p>
                     <div id="lanyard-widget" class="lanyard-widget" data-discord-id="{$discordId}">
                         <div class="lanyard-loading">
                             <i class="fas fa-spinner fa-spin"></i> Loading Discord status...
+                        </div>
+                    </div>
+                </div>
+                {/ifset}
+                {ifset $steamData}
+                <div class="col-md-{ifset $discordId}4{else}6{/ifset}">
+                    <p><strong>Steam Status</strong></p>
+                    <div class="steam-widget">
+                        <div class="steam-content">
+                            <div class="steam-user">
+                                <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">
+                                    <img src="{$steamData['avatarmedium']}" alt="{$steamData['personaname']}" class="steam-avatar">
+                                </a>
+                                <div class="steam-user-info">
+                                    <div class="steam-username">
+                                        <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">{$steamData['personaname']}</a>
+                                    </div>
+                                    {ifset $steamData['level']}
+                                        <div class="steam-level">Level {$steamData['level']}</div>
+                                    {/ifset}
+                                    {ifset $steamData['countrycode']}
+                                        <div class="steam-country">
+                                            <img src="https://steamcommunity-a.akamaihd.net/public/images/countryflags/{$steamData['countrycode']}.gif" alt="Country" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;">
+                                        </div>
+                                    {/ifset}
+                                </div>
+                            </div>
+                            {ifset $steamData['recent_games']}
+                            {if count($steamData['recent_games']) > 0}
+                            <div class="steam-recent-game">
+                                <div class="steam-game-header">Recently Played</div>
+                                {var $topGame = $steamData['recent_games'][0]}
+                                <div class="steam-game-content">
+                                    <img src="{$topGame['icon']}" alt="{$topGame['name']}" class="steam-game-image">
+                                    <div class="steam-game-details">
+                                        <div class="steam-game-name">{$topGame['name']}</div>
+                                        <div class="steam-game-hours">{round($topGame['playtime_forever'] / 60, 1)} hrs total</div>
+                                    </div>
+                                </div>
+                            </div>
+                            {/if}
+                            {/ifset}
                         </div>
                     </div>
                 </div>

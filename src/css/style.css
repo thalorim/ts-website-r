@@ -454,8 +454,8 @@ table.dataTable > tbody > tr.child td.child {
 
 .avatar-preview {
     position: relative;
-    width: 84px;
-    height: 84px;
+    width: 140px;
+    height: 140px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -463,8 +463,8 @@ table.dataTable > tbody > tr.child td.child {
 }
 
 .avatar-preview .avatar-img {
-    width: 67px;
-    height: 67px;
+    width: 112px;
+    height: 112px;
     border-radius: 4px;
     border: 2px solid rgba(0,0,0,0.1);
     object-fit: cover;
@@ -476,8 +476,8 @@ table.dataTable > tbody > tr.child td.child {
 
 .avatar-preview .avatar-border-overlay {
     position: absolute;
-    width: 84px;
-    height: 84px;
+    width: 140px;
+    height: 140px;
     object-fit: contain;
     pointer-events: none;
     user-select: none;
@@ -734,6 +734,117 @@ table.dataTable > tbody > tr.child td.child {
 
 @media (max-width: 767px) {
     .lanyard-widget {
+        margin-top: 1rem;
+    }
+}
+
+/* Steam Widget */
+.steam-widget {
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    min-height: 70px;
+}
+
+.steam-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.steam-user {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.steam-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    margin-right: 0.75rem;
+    object-fit: cover;
+}
+
+.steam-user-info {
+    flex: 1;
+}
+
+.steam-username {
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+}
+
+.steam-username a {
+    color: #2c3e50;
+    text-decoration: none;
+}
+
+.steam-username a:hover {
+    color: #1b2838;
+    text-decoration: underline;
+}
+
+.steam-level {
+    color: #495057;
+    font-size: 0.8rem;
+}
+
+.steam-country {
+    margin-top: 0.25rem;
+}
+
+.steam-recent-game {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 0.3rem;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.steam-game-header {
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #6c757d;
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.5px;
+}
+
+.steam-game-content {
+    display: flex;
+    align-items: center;
+}
+
+.steam-game-image {
+    width: 92px;
+    height: 35px;
+    border-radius: 0.3rem;
+    margin-right: 0.6rem;
+    object-fit: cover;
+}
+
+.steam-game-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.steam-game-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.2rem;
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.steam-game-hours {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+@media (max-width: 767px) {
+    .steam-widget {
         margin-top: 1rem;
     }
 }
