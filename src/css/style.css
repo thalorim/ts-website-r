@@ -654,6 +654,23 @@ table.dataTable > tbody > tr.child td.child {
     gap: 0.2rem;
 }
 
+.discord-widget--loading .discord-widget__status-text::after {
+    content: "Updating...";
+    margin-left: 0.35rem;
+    font-size: 0.7rem;
+    color: #b9bbbe;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.discord-widget--error .discord-widget__status-text {
+    color: #ff9aa2;
+}
+
+.discord-widget--error .discord-widget__username {
+    color: #ffbac7;
+}
+
 @media (max-width: 991px) {
     .discord-widget {
         margin-top: 0.5rem;

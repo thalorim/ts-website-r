@@ -558,6 +558,7 @@ $renderData = [
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
     "discordPresence" => $discordPresence,
+    "discordUserId" => $discordUserId,
 ];
 
 // Compute last seen text for offline users

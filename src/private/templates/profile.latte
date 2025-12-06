@@ -91,32 +91,38 @@
             </div>
             <hr>
             <p><strong>Description</strong></p>
+            {var $hasDiscord = $discordUserId ?? null}
             <div class="row profile-description-row">
-                <div class="col-12{ifset $discordPresence} col-lg-8{/ifset}">
+                <div class="col-12{if $hasDiscord} col-lg-8{/if}">
                     <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
                 </div>
-                {ifset $discordPresence}
+                {if $hasDiscord}
+                    {var $discordWidgetAvatar = $discordPresence ? $discordPresence["avatarUrl"] : 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                    {var $discordWidgetStatusKey = $discordPresence ? $discordPresence["statusKey"] : 'offline'}
+                    {var $discordWidgetStatusLabel = $discordPresence ? $discordPresence["statusLabel"] : 'Status unavailable'}
+                    {var $discordWidgetDisplay = $discordPresence ? $discordPresence["displayName"] : 'Discord status unavailable'}
+                    {var $discordWidgetUsername = ($discordPresence && isset($discordPresence["usernameTag"])) ? $discordPresence["usernameTag"] : ('ID: ' . $discordUserId)}
+                    {var $discordWidgetProfileUrl = $discordPresence ? $discordPresence["profileUrl"] : ("https://discord.com/users/" . $discordUserId)}
                     <div class="col-12 col-lg-4 mt-3 mt-lg-0">
-                        <div class="discord-widget card-accent">
+                        <div class="discord-widget card-accent{if $discordPresence} discord-widget--has-data{/if}" data-discord-user-id="{$discordUserId}">
                             <div class="discord-widget__header">
                                 <span class="discord-widget__label"><i class="fab fa-discord"></i> Discord</span>
                                 <span class="discord-widget__status">
-                                    <span class="discord-widget__status-dot {$discordPresence["statusKey"]}"></span>
-                                    {$discordPresence["statusLabel"]}
+                                    <span class="discord-widget__status-dot {$discordWidgetStatusKey}" data-discord-role="status-dot"></span>
+                                    <span class="discord-widget__status-text" data-discord-role="status-text">{$discordWidgetStatusLabel}</span>
                                 </span>
                             </div>
-                            <a href="{$discordPresence["profileUrl"]}" target="_blank" rel="noopener" class="discord-widget__body">
-                                <img src="{$discordPresence["avatarUrl"]}" alt="Discord avatar" class="discord-widget__avatar">
+                            <a href="{$discordWidgetProfileUrl}" target="_blank" rel="noopener"
+                               class="discord-widget__body" data-discord-role="profile-link">
+                                <img src="{$discordWidgetAvatar}" alt="Discord avatar" class="discord-widget__avatar" data-discord-role="avatar">
                                 <div class="discord-widget__meta">
-                                    <div class="discord-widget__display-name">{$discordPresence["displayName"]}</div>
-                                    {ifset $discordPresence["usernameTag"]}
-                                        <div class="discord-widget__username">{$discordPresence["usernameTag"]}</div>
-                                    {/ifset}
+                                    <div class="discord-widget__display-name" data-discord-role="display">{$discordWidgetDisplay}</div>
+                                    <div class="discord-widget__username" data-discord-role="username">{$discordWidgetUsername}</div>
                                 </div>
                             </a>
                         </div>
                     </div>
-                {/ifset}
+                {/if}
             </div>
         </div>
     </div>
