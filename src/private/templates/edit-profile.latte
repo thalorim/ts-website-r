@@ -92,10 +92,21 @@
                 <button class="btn btn-primary" type="submit"><i class="fas fa-upload"></i> Save</button>
             </form>
 
+            <hr class="my-4">
+            <h5 class="mb-3"><i class="fas fa-server"></i> Website & TeamSpeak connectivity</h5>
+            {var $connectivityAdminIds = $connectivityAdminIds ?? []}
+            {var $connectivityAdminCount = count($connectivityAdminIds)}
+            {var $connectivityAdminText = $connectivityAdminCount ? ('#' . implode(', #', $connectivityAdminIds)) : ''}
             {if $canManageConnectivity}
-                <hr class="my-4">
-                <h5 class="mb-3"><i class="fas fa-server"></i> Website & TeamSpeak connectivity</h5>
-                <p class="text-muted">Only CLDBID <strong>#3</strong> can edit these credentials. They are used globally for TS3 connectivity.</p>
+                <p class="text-muted">
+                    {if $connectivityAllowAll}
+                        Any logged-in user can edit these credentials. They are used globally for TS3 connectivity.
+                    {elseif $connectivityAdminCount}
+                        Only CLDBID{if $connectivityAdminCount > 1}s{/if} <strong>{$connectivityAdminText}</strong> can edit these credentials. They are used globally for TS3 connectivity.
+                    {else}
+                        No CLDBID has been granted access to edit these credentials yet. Update the <code>connectivity_admin_cldbids</code> config to allow access.
+                    {/if}
+                </p>
                 {ifset $connectivityMessage}
                     <div class="alert alert-success">{$connectivityMessage}</div>
                 {/ifset}
@@ -143,6 +154,16 @@
                     </div>
                     <button class="btn btn-warning" type="submit"><i class="fas fa-save"></i> Update connectivity</button>
                 </form>
+            {else}
+                <div class="alert alert-info">
+                    {if $connectivityAllowAll}
+                        These credentials should be editable by any logged-in user, but your session does not currently have access. Try refreshing or logging in again.
+                    {elseif $connectivityAdminCount}
+                        Only CLDBID{if $connectivityAdminCount > 1}s{/if} <strong>{$connectivityAdminText}</strong> can edit these credentials. Your CLDBID is <strong>#{$cldbid}</strong>. Ask an administrator to add your ID to the <code>connectivity_admin_cldbids</code> config if you require access.
+                    {else}
+                        Connectivity editing is disabled until at least one CLDBID is configured via <code>connectivity_admin_cldbids</code>.
+                    {/if}
+                </div>
             {/if}
         </div>
     </div>

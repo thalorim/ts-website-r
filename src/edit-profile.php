@@ -55,8 +55,35 @@ try {
     exit;
 }
 
-$connectivityAdminCldbid = 3;
-$canManageConnectivity = $currentUserCldbid === $connectivityAdminCldbid;
+$connectivityAdminSetting = Config::get("connectivity_admin_cldbids", [3]);
+$allowAllConnectivityAdmins = false;
+$connectivityAdminIds = [];
+
+if ($connectivityAdminSetting === "*") {
+    $allowAllConnectivityAdmins = true;
+} elseif (is_array($connectivityAdminSetting)) {
+    foreach ($connectivityAdminSetting as $value) {
+        if (is_numeric($value)) {
+            $connectivityAdminIds[] = (int) $value;
+        }
+    }
+} elseif (is_string($connectivityAdminSetting)) {
+    $parts = preg_split('/[,\s]+/', $connectivityAdminSetting, -1, PREG_SPLIT_NO_EMPTY);
+    foreach ($parts as $part) {
+        if (is_numeric($part)) {
+            $connectivityAdminIds[] = (int) $part;
+        }
+    }
+} elseif (is_numeric($connectivityAdminSetting)) {
+    $connectivityAdminIds[] = (int) $connectivityAdminSetting;
+}
+
+$connectivityAdminIds = array_values(array_unique(array_filter($connectivityAdminIds, static function ($id) {
+    return is_int($id) && $id > 0;
+})));
+
+$canManageConnectivity = $allowAllConnectivityAdmins
+    || ($currentUserCldbid !== null && in_array($currentUserCldbid, $connectivityAdminIds, true));
 
 $connectivityDefaults = [
     "query_hostname" => (string) (Config::get("query_hostname") ?? ""),
@@ -303,5 +330,7 @@ TemplateUtils::i()->renderTemplate("edit-profile", [
     "connectivityMessage" => $connectivityMessage,
     "connectivityError" => $connectivityError,
     "connectivityFormDefaults" => $connectivityDefaults,
+    "connectivityAdminIds" => $connectivityAdminIds,
+    "connectivityAllowAll" => $allowAllConnectivityAdmins,
 ]);
 
