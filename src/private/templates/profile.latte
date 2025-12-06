@@ -91,7 +91,33 @@
             </div>
             <hr>
             <p><strong>Description</strong></p>
-            <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
+            <div class="row profile-description-row">
+                <div class="col-12{ifset $discordPresence} col-lg-8{/ifset}">
+                    <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
+                </div>
+                {ifset $discordPresence}
+                    <div class="col-12 col-lg-4 mt-3 mt-lg-0">
+                        <div class="discord-widget card-accent">
+                            <div class="discord-widget__header">
+                                <span class="discord-widget__label"><i class="fab fa-discord"></i> Discord</span>
+                                <span class="discord-widget__status">
+                                    <span class="discord-widget__status-dot {$discordPresence["statusKey"]}"></span>
+                                    {$discordPresence["statusLabel"]}
+                                </span>
+                            </div>
+                            <a href="{$discordPresence["profileUrl"]}" target="_blank" rel="noopener" class="discord-widget__body">
+                                <img src="{$discordPresence["avatarUrl"]}" alt="Discord avatar" class="discord-widget__avatar">
+                                <div class="discord-widget__meta">
+                                    <div class="discord-widget__display-name">{$discordPresence["displayName"]}</div>
+                                    {ifset $discordPresence["usernameTag"]}
+                                        <div class="discord-widget__username">{$discordPresence["usernameTag"]}</div>
+                                    {/ifset}
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                {/ifset}
+            </div>
         </div>
     </div>
 

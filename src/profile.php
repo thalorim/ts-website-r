@@ -10,6 +10,136 @@ use Wruczek\PhpFileCache\PhpFileCache;
 
 require_once __DIR__ . "/private/php/load.php";
 
+/**
+ * Attempts to extract a Discord user ID (snowflake) from optional profile input.
+ */
+function profile_extract_discord_user_id(?string $input): ?string
+{
+    if ($input === null) {
+        return null;
+    }
+
+    $value = trim((string) $input);
+    if ($value === '') {
+        return null;
+    }
+
+    if (preg_match('#discord(?:app)?\.com/(?:users|user)/(\d{15,21})#i', $value, $matches)) {
+        return $matches[1];
+    }
+
+    if (preg_match('/^\d{15,21}$/', $value)) {
+        return $value;
+    }
+
+    if (preg_match('/\b\d{15,21}\b/', $value, $matches)) {
+        return $matches[0];
+    }
+
+    return null;
+}
+
+/**
+ * Fetches Discord presence details using the public Lanyard API.
+ */
+function profile_fetch_discord_presence(string $userId): ?array
+{
+    $url = "https://api.lanyard.rest/v1/users/" . rawurlencode($userId);
+    $headers = [
+        "Accept: application/json",
+        "User-Agent: ts-website-profile-widget/1.0",
+    ];
+    $body = null;
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $response = curl_exec($ch);
+        $statusCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if ($response !== false && $statusCode >= 200 && $statusCode < 300) {
+            $body = $response;
+        }
+        curl_close($ch);
+    }
+
+    if ($body === null) {
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 4,
+                'header' => implode("\r\n", $headers) . "\r\n",
+            ],
+        ]);
+        $fallbackResponse = @file_get_contents($url, false, $context);
+        if ($fallbackResponse !== false) {
+            $body = $fallbackResponse;
+        }
+    }
+
+    if ($body === null) {
+        return null;
+    }
+
+    $decoded = json_decode($body, true);
+    if (!is_array($decoded) || empty($decoded["success"]) || !isset($decoded["data"]) || !is_array($decoded["data"])) {
+        return null;
+    }
+
+    $data = $decoded["data"];
+    if (!isset($data["discord_user"]) || !is_array($data["discord_user"])) {
+        return null;
+    }
+
+    $discordUser = $data["discord_user"];
+    $statusRaw = isset($data["discord_status"]) ? strtolower((string) $data["discord_status"]) : "offline";
+    $statusMap = [
+        "online" => ["label" => "Online", "class" => "online"],
+        "dnd" => ["label" => "Do Not Disturb", "class" => "dnd"],
+        "idle" => ["label" => "Away", "class" => "idle"],
+        "offline" => ["label" => "Offline", "class" => "offline"],
+        "invisible" => ["label" => "Offline", "class" => "offline"],
+    ];
+    $statusInfo = $statusMap[$statusRaw] ?? $statusMap["offline"];
+
+    $avatarUrl = null;
+    if (!empty($discordUser["avatar"])) {
+        $avatarUrl = sprintf(
+            "https://cdn.discordapp.com/avatars/%s/%s.png?size=128",
+            rawurlencode($userId),
+            rawurlencode($discordUser["avatar"])
+        );
+    } else {
+        $discriminator = isset($discordUser["discriminator"]) ? (int) $discordUser["discriminator"] : 0;
+        $fallbackIndex = $discriminator % 5;
+        $avatarUrl = sprintf("https://cdn.discordapp.com/embed/avatars/%d.png", $fallbackIndex);
+    }
+
+    $username = isset($discordUser["username"]) ? (string) $discordUser["username"] : null;
+    $discriminator = isset($discordUser["discriminator"]) ? (string) $discordUser["discriminator"] : null;
+    $usernameTag = null;
+    if ($username !== null) {
+        if ($discriminator !== null && $discriminator !== '' && $discriminator !== '0') {
+            $usernameTag = sprintf('%s#%s', $username, str_pad($discriminator, 4, '0', STR_PAD_LEFT));
+        } else {
+            $usernameTag = '@' . ltrim($username, '@');
+        }
+    }
+
+    $displayName = $discordUser["global_name"] ?? $username ?? "Discord user";
+
+    return [
+        "userId" => $userId,
+        "displayName" => $displayName,
+        "usernameTag" => $usernameTag,
+        "avatarUrl" => $avatarUrl,
+        "statusKey" => $statusInfo["class"],
+        "statusLabel" => $statusInfo["label"],
+        "profileUrl" => "https://discord.com/users/" . rawurlencode($userId),
+    ];
+}
+
 $cldbid = isset($_GET["cldbid"]) ? (int) $_GET["cldbid"] : 0;
 
 if ($cldbid <= 0) {
@@ -379,6 +509,14 @@ if ($dbProfile && !empty($dbProfile["socials_json"])) {
         $socials = $decoded;
     }
 }
+$discordPresence = null;
+$discordUserId = null;
+if (isset($socials["discord"])) {
+    $discordUserId = profile_extract_discord_user_id($socials["discord"]);
+    if ($discordUserId !== null) {
+        $discordPresence = profile_fetch_discord_presence($discordUserId);
+    }
+}
 
 // Prepare social items with icon classes for template
 $socialIconMap = [
@@ -419,6 +557,7 @@ $renderData = [
     "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
+    "discordPresence" => $discordPresence,
 ];
 
 // Compute last seen text for offline users
