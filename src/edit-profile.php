@@ -55,29 +55,8 @@ try {
     exit;
 }
 
-$fallbackAdminCldbid = 3;
-$configuredAdmins = Config::get("connectivity_config_cldbids");
-$defaultAdminList = [$fallbackAdminCldbid];
-$connectivityAdmins = [];
-
-if (is_array($configuredAdmins)) {
-    foreach ($configuredAdmins as $id) {
-        $id = (int) $id;
-        if ($id > 0 && !in_array($id, $connectivityAdmins, true)) {
-            $connectivityAdmins[] = $id;
-        }
-    }
-}
-
-if (empty($connectivityAdmins)) {
-    $connectivityAdmins = $defaultAdminList;
-}
-
-if (!in_array($fallbackAdminCldbid, $connectivityAdmins, true)) {
-    $connectivityAdmins[] = $fallbackAdminCldbid;
-}
-
-$canManageConnectivity = in_array($currentUserCldbid, $connectivityAdmins, true);
+$connectivityAdminCldbid = 3;
+$canManageConnectivity = $currentUserCldbid === $connectivityAdminCldbid;
 
 $connectivityDefaults = [
     "query_hostname" => (string) (Config::get("query_hostname") ?? ""),
@@ -87,7 +66,6 @@ $connectivityDefaults = [
     "query_username" => (string) (Config::get("query_username") ?? ""),
     "query_nickname" => (string) (Config::get("query_nickname") ?? ""),
 ];
-$connectivityAdminsInput = implode(", ", $connectivityAdmins);
 
 $message = null;
 $error = null;
@@ -241,7 +219,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $serverPortRaw = (string) ($_POST["tsserver_port"] ?? "");
                 $queryNickname = trim((string) ($_POST["query_nickname"] ?? ""));
                 $queryPassword = (string) ($_POST["query_password"] ?? "");
-                $adminsField = trim((string) ($_POST["connectivity_admins"] ?? ""));
 
                 $connectivityDefaults["query_hostname"] = $hostname;
                 $connectivityDefaults["query_displayip"] = $displayIp;
@@ -249,7 +226,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $connectivityDefaults["query_port"] = $queryPortRaw;
                 $connectivityDefaults["tsserver_port"] = $serverPortRaw;
                 $connectivityDefaults["query_nickname"] = $queryNickname;
-                $connectivityAdminsInput = $adminsField;
 
                 $requiredStrings = [
                     "Query hostname/IP" => $hostname,
@@ -277,41 +253,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     throw new \Exception("Server port must be a number between 1 and 65535.");
                 }
 
-                if ($adminsField === "") {
-                    throw new \Exception("Please provide at least one CLDBID allowed to manage connectivity.");
-                }
-
-                $adminParts = preg_split('/[,\s]+/', $adminsField, -1, PREG_SPLIT_NO_EMPTY);
-                if (!$adminParts) {
-                    throw new \Exception("Please provide at least one valid CLDBID.");
-                }
-
-                $newAdmins = [];
-                foreach ($adminParts as $part) {
-                    $part = trim($part);
-                    if ($part === "") {
-                        continue;
-                    }
-                    if (!ctype_digit($part)) {
-                        throw new \Exception("CLDBIDs must contain numbers only.");
-                    }
-                    $id = (int) $part;
-                    if ($id <= 0) {
-                        throw new \Exception("CLDBIDs must be positive numbers.");
-                    }
-                    if (!in_array($id, $newAdmins, true)) {
-                        $newAdmins[] = $id;
-                    }
-                }
-
-                if (empty($newAdmins)) {
-                    throw new \Exception("Please provide at least one valid CLDBID.");
-                }
-
-                if (!in_array($fallbackAdminCldbid, $newAdmins, true)) {
-                    $newAdmins[] = $fallbackAdminCldbid;
-                }
-
                 $configInstance = Config::i();
                 $configInstance->setValue("query_hostname", $hostname);
                 $configInstance->setValue("query_displayip", $displayIp);
@@ -319,7 +260,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $configInstance->setValue("tsserver_port", (int) $serverPortInt);
                 $configInstance->setValue("query_username", $username);
                 $configInstance->setValue("query_nickname", $queryNickname);
-                $configInstance->setValue("connectivity_config_cldbids", $newAdmins);
 
                 if ($queryPassword !== "") {
                     $configInstance->setValue("query_password", $queryPassword);
@@ -327,8 +267,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 TeamSpeakUtils::i()->reset();
 
-                $connectivityAdmins = $newAdmins;
-                $connectivityAdminsInput = implode(", ", $connectivityAdmins);
                 $connectivityDefaults["query_port"] = (string) $queryPortInt;
                 $connectivityDefaults["tsserver_port"] = (string) $serverPortInt;
 
@@ -365,6 +303,5 @@ TemplateUtils::i()->renderTemplate("edit-profile", [
     "connectivityMessage" => $connectivityMessage,
     "connectivityError" => $connectivityError,
     "connectivityFormDefaults" => $connectivityDefaults,
-    "connectivityAdminsInput" => $connectivityAdminsInput,
 ]);
 
