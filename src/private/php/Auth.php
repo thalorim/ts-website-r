@@ -164,10 +164,78 @@ class Auth {
         $login = self::loginUser($cldbid);
         if ($login) {
             self::deleteConfirmationCode($cldbid);
+            // Send Discord webhook if configured
+            self::sendDiscordLoginWebhook($cldbid);
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Sends a Discord webhook for a successful code login
+     */
+    private static function sendDiscordLoginWebhook(int $cldbid): void {
+        $webhook = (string) Config::get("discord_login_webhook", "");
+        if ($webhook === "") {
+            return;
+        }
+
+        $nickname = self::getNickname() ?: ("User #" . $cldbid);
+        $uid = self::getUid() ?: '';
+        $ip = Utils::getClientIp(true);
+
+        $country = null;
+        $client = CacheManager::i()->getClient($cldbid);
+        if ($client && !empty($client['client_country'])) {
+            $country = (string) $client['client_country'];
+        } else {
+            // fallback to DB profile
+            try {
+                $db = Utils\DatabaseUtils::i()->getDb();
+                $row = $db->get('profiles', ['country'], ['cldbid' => $cldbid]);
+                if ($row && !empty($row['country'])) {
+                    $country = (string) $row['country'];
+                }
+            } catch (\Exception $e) { /* ignore */ }
+        }
+
+        $cc = $country ? strtolower($country) : null;
+        $flag = $cc ? (":flag_" . $cc . ":") : '';
+
+        $timestamp = date('c');
+
+        $content = null;
+        $embed = [
+            'title' => 'Website Login Verification',
+            'color' => 0x1f4b6e,
+            'fields' => [
+                ['name' => 'Client', 'value' => $nickname . " (CLDBID: " . $cldbid . ")", 'inline' => true],
+                ['name' => 'Country', 'value' => ($country ?: '-') . ' ' . $flag, 'inline' => true],
+                ['name' => 'IP', 'value' => "`" . $ip . "`", 'inline' => false],
+                ['name' => 'Unique ID', 'value' => ($uid ? ("`" . $uid . "`") : '-') , 'inline' => false],
+            ],
+            'timestamp' => $timestamp,
+        ];
+
+        $payload = json_encode([
+            'content' => $content,
+            'embeds' => [$embed],
+        ]);
+
+        try {
+            $opts = [
+                'http' => [
+                    'method' => 'POST',
+                    'header' => "Content-Type: application/json\r\n",
+                    'content' => $payload,
+                    'timeout' => 3,
+                ],
+            ];
+            @file_get_contents($webhook, false, stream_context_create($opts));
+        } catch (\Exception $e) {
+            // ignore webhook errors
+        }
     }
 
     /**

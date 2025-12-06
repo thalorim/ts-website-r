@@ -1,10 +1,12 @@
 <?php
 
 use Wruczek\TSWebsite\CacheManager;
+use Wruczek\TSWebsite\Utils\AvatarBorderUtils;
 use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Config;
 use Wruczek\TSWebsite\Utils\TeamSpeakUtils;
+use Wruczek\PhpFileCache\PhpFileCache;
 
 require_once __DIR__ . "/private/php/load.php";
 
@@ -60,7 +62,20 @@ $tsInfo = null;
 try {
     if (TeamSpeakUtils::i()->checkTSConnection()) {
         // TS3 server query command is "clientdbinfo" -> method name clientDbInfo
-        $tsInfo = TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+        try {
+            $tsInfo = TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+        } catch (\Exception $e1) {
+            // Fallback to raw request in case wrapper call fails
+            try {
+                $reply = TeamSpeakUtils::i()->getTSNodeServer()->request("clientdbinfo cldbid=" . (int) $cldbid);
+                $list = $reply && method_exists($reply, 'toList') ? $reply->toList() : null;
+                if (is_array($list) && isset($list[0])) {
+                    $tsInfo = $list[0];
+                }
+            } catch (\Exception $e2) {
+                // ignore
+            }
+        }
     }
 } catch (\Exception $e) {
     // Non-fatal: proceed with what we have
@@ -110,14 +125,26 @@ if ($onlineClient) {
             $live = TeamSpeakUtils::i()->getTSNodeServer()->clientGetById($profileData["clid"])->getInfo(true);
             if (isset($live["connection_connected_time"])) {
                 $profileData["online_since_ms"] = (int) $live["connection_connected_time"]; // milliseconds
+                // Build human readable duration: days, hours, minutes, seconds
+                $totalSeconds = (int) floor(((int) $profileData["online_since_ms"]) / 1000);
+                $days = (int) floor($totalSeconds / 86400);
+                $hours = (int) floor(($totalSeconds % 86400) / 3600);
+                $minutes = (int) floor(($totalSeconds % 3600) / 60);
+                $seconds = (int) ($totalSeconds % 60);
+                $parts = [];
+                if ($days > 0) { $parts[] = $days . " day" . ($days !== 1 ? "s" : ""); }
+                if ($hours > 0) { $parts[] = $hours . " hour" . ($hours !== 1 ? "s" : ""); }
+                if ($minutes > 0) { $parts[] = $minutes . " minute" . ($minutes !== 1 ? "s" : ""); }
+                $parts[] = $seconds . " second" . ($seconds !== 1 ? "s" : "");
+                $profileData["online_since_text"] = implode(" ", $parts);
             }
             if (isset($live["client_totalconnections"])) {
                 $profileData["totalconnections"] = (int) $live["client_totalconnections"]; // live value preferred when online
             }
             // Bandwidth last minute totals (bytes) -> compute per-second and human readable
             if (isset($live["connection_bandwidth_sent_last_minute_total"])) {
-                $profileData["bw_up_last_minute"] = (int) $live["connection_bandwidth_sent_last_minute_total"];
-                $upBps = $profileData["bw_up_last_minute"] / 60.0;
+                $lastUpTotal = (int) $live["connection_bandwidth_sent_last_minute_total"];
+                $upBps = $lastUpTotal / 60.0;
                 $profileData["bw_up_h"] = ($upBps >= 1024*1024)
                     ? number_format($upBps / (1024*1024), 2) . " MB/s"
                     : (($upBps >= 1024)
@@ -125,8 +152,8 @@ if ($onlineClient) {
                         : number_format($upBps, 0) . " B/s");
             }
             if (isset($live["connection_bandwidth_received_last_minute_total"])) {
-                $profileData["bw_down_last_minute"] = (int) $live["connection_bandwidth_received_last_minute_total"];
-                $downBps = $profileData["bw_down_last_minute"] / 60.0;
+                $lastDownTotal = (int) $live["connection_bandwidth_received_last_minute_total"];
+                $downBps = $lastDownTotal / 60.0;
                 $profileData["bw_down_h"] = ($downBps >= 1024*1024)
                     ? number_format($downBps / (1024*1024), 2) . " MB/s"
                     : (($downBps >= 1024)
@@ -136,6 +163,26 @@ if ($onlineClient) {
         }
     } catch (\Exception $e) {
         // ignore
+    }
+}
+
+// Store last seen display data in cache when online for offline reuse (no DB changes)
+if ($isOnline) {
+    try {
+        $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
+        $lastSeenData = [
+            "country" => $profileData["country"] ?? null,
+            "version" => $profileData["version"] ?? null,
+            "platform" => $profileData["platform"] ?? null,
+            "totalconnections" => $profileData["totalconnections"] ?? null,
+            "bw_up_h" => $profileData["bw_up_h"] ?? null,
+            "bw_down_h" => $profileData["bw_down_h"] ?? null,
+            "nickname" => $profileData["nickname"] ?? null,
+            "ts" => time(),
+        ];
+        $lastSeenCache->store("u_" . (int) $cldbid, $lastSeenData, 31536000); // 365 days
+    } catch (\Exception $e) {
+        // ignore cache errors
     }
 }
 
@@ -256,6 +303,8 @@ if (!empty($groupsDetailed)) {
 
 $avatarUrl = ($dbProfile && !empty($dbProfile["avatar_url"])) ? $dbProfile["avatar_url"] : "img/icons/defaulticon-128.png";
 $bannerUrl = ($dbProfile && !empty($dbProfile["banner_url"])) ? $dbProfile["banner_url"] : null;
+$avatarBorderKey = $dbProfile && isset($dbProfile["avatar_border"]) ? AvatarBorderUtils::normalize($dbProfile["avatar_border"]) : AvatarBorderUtils::getDefaultKey();
+$avatarBorderUrl = AvatarBorderUtils::getUrl($avatarBorderKey);
 // Prefer user-saved description if present
 if ($dbProfile && !empty($dbProfile["description"])) {
     $profileData["description"] = (string) $dbProfile["description"];
@@ -268,7 +317,9 @@ if ((empty($profileData["nickname"]) || $profileData["nickname"] === null) && $d
 if ((empty($profileData["servergroups"]) || $profileData["servergroups"] === null) && $dbProfile && !empty($dbProfile["servergroups"])) {
     $profileData["servergroups"] = (string) $dbProfile["servergroups"];
 }
-foreach (["created_ts", "lastconnected_ts", "totalconnections"] as $k) {
+// Preserve timestamps and total connections always (even when offline)
+$preserveNumericKeys = ["created_ts", "lastconnected_ts", "totalconnections"];
+foreach ($preserveNumericKeys as $k) {
     if (!isset($profileData[$k]) || $profileData[$k] === null) {
         if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null) {
             $profileData[$k] = is_numeric($dbProfile[$k]) ? (int) $dbProfile[$k] : $dbProfile[$k];
@@ -282,6 +333,29 @@ foreach (["country", "version", "platform", "badges"] as $k) {
         if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null && $dbProfile[$k] !== '') {
             $profileData[$k] = $dbProfile[$k];
         }
+    }
+}
+
+// Offline fallback: use last seen values from cache so UI shows the last online data
+if (!$isOnline) {
+    try {
+        $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
+        $last = $lastSeenCache->retrieve("u_" . (int) $cldbid);
+        if (is_array($last)) {
+            foreach (["country", "version", "platform", "bw_up_h", "bw_down_h", "nickname"] as $k) {
+                if (!isset($profileData[$k]) || $profileData[$k] === null || $profileData[$k] === '') {
+                    if (isset($last[$k]) && $last[$k] !== null && $last[$k] !== '') {
+                        $profileData[$k] = $last[$k];
+                    }
+                }
+            }
+            // Use cached timestamp as lastconnected_ts fallback if missing
+            if ((!isset($profileData["lastconnected_ts"]) || $profileData["lastconnected_ts"] === null) && isset($last['ts']) && is_numeric($last['ts'])) {
+                $profileData["lastconnected_ts"] = (int) $last['ts'];
+            }
+        }
+    } catch (\Exception $e) {
+        // ignore cache errors
     }
 }
 
@@ -336,6 +410,8 @@ $renderData = [
     "isOnline" => $isOnline,
     "profile" => $profileData,
     "avatarUrl" => $avatarUrl,
+    "avatarBorderUrl" => $avatarBorderUrl,
+    "avatarBorderKey" => $avatarBorderKey,
     "bannerUrl" => $bannerUrl,
     "groups" => $groupsDetailed,
     "socials" => $socialItems,
@@ -344,6 +420,55 @@ $renderData = [
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
 ];
+
+// Compute last seen text for offline users
+if (!$isOnline) {
+    $lastSeenTs = null;
+    if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
+        $lastSeenTs = (int) $profileData["lastconnected_ts"]; // unix seconds
+    }
+    if ($lastSeenTs === null) {
+        try {
+            $lastSeenCache = new \Wruczek\PhpFileCache\PhpFileCache(__CACHE_DIR, "profile_last_seen");
+            $cached = $lastSeenCache->retrieve("u_" . (int) $cldbid);
+            if (is_array($cached) && isset($cached["ts"]) && is_numeric($cached["ts"])) {
+                $lastSeenTs = (int) $cached["ts"];
+            }
+        } catch (\Exception $e) {
+            // ignore
+        }
+    }
+
+    $lastSeenText = null;
+    if ($lastSeenTs !== null && $lastSeenTs > 0) {
+        $now = time();
+        $diff = max(0, $now - $lastSeenTs);
+        if ($diff < 60) {
+            $lastSeenText = (int) $diff . " seconds ago";
+        } else if ($diff < 3600) { // < 60 minutes
+            $mins = (int) floor($diff / 60);
+            $lastSeenText = $mins . " minute" . ($mins !== 1 ? "s" : "") . " ago";
+        } else if ($diff < 86400) { // < 24 hours
+            $hrs = (int) floor($diff / 3600);
+            $lastSeenText = $hrs . " hour" . ($hrs !== 1 ? "s" : "") . " ago";
+        } else if ($diff < 2592000) { // < 30 days
+            $days = (int) floor($diff / 86400);
+            $lastSeenText = $days . " day" . ($days !== 1 ? "s" : "") . " ago";
+        } else {
+            $lastSeenText = date('d/m/Y', $lastSeenTs);
+        }
+    }
+
+    $renderData["lastSeenText"] = $lastSeenText;
+}
+
+// Compute human-readable first connected and last online date strings for Overview
+if (isset($profileData["created_ts"]) && is_numeric($profileData["created_ts"])) {
+    $renderData["profile"]["first_connected_human"] = date('jS F, Y', (int) $profileData["created_ts"]);
+}
+if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
+    $renderData["profile"]["last_online_human"] = date('jS F, Y, g:ia', (int) $profileData["lastconnected_ts"]);
+}
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);
 

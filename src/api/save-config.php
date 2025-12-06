@@ -17,6 +17,7 @@ if (!Auth::isLoggedIn() || Auth::getCldbid() !== 3) {
 try {
     $assigner = @$_POST["assignerconfig"] ?? '';
     $adminGroups = @$_POST["adminstatus_groups"] ?? '';
+    $discordWebhook = @$_POST["discord_login_webhook"] ?? '';
 
     if ($assigner !== '') {
         $assignerJson = json_decode($assigner, true);
@@ -32,6 +33,13 @@ try {
             throw new \InvalidArgumentException("adminstatus_groups must be valid JSON");
         }
         Config::i()->setValue("adminstatus_groups", $groupsJson);
+    }
+
+    if ($discordWebhook !== '') {
+        if (strpos($discordWebhook, "https://discord.com/api/webhooks/") !== 0) {
+            throw new \InvalidArgumentException("discord_login_webhook must be a Discord webhook URL");
+        }
+        Config::i()->setValue("discord_login_webhook", (string) $discordWebhook);
     }
 
     echo json_encode(["ok" => true]);

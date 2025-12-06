@@ -1,6 +1,7 @@
 <?php
 
 use Wruczek\TSWebsite\Auth;
+use Wruczek\TSWebsite\Utils\AvatarBorderUtils;
 use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Config;
@@ -23,7 +24,7 @@ $dbConfig = Config::i()->getDatabaseConfig();
 $prefix = isset($dbConfig["prefix"]) ? $dbConfig["prefix"] : "";
 $rawTableName = $prefix . "profiles";
 
-// Ensure avatar_url, banner_url and socials_json, description columns exist
+// Ensure avatar/border/social/banner/description columns exist
 try {
     $colStmt = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'avatar_url'");
     $colExists = $colStmt && $colStmt->fetchColumn();
@@ -31,10 +32,16 @@ try {
         $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `avatar_url` VARCHAR(255) NULL AFTER `servergroups`");
     }
 
+    $colStmtBorder = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'avatar_border'");
+    $colExistsBorder = $colStmtBorder && $colStmtBorder->fetchColumn();
+    if (!$colExistsBorder) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `avatar_border` VARCHAR(64) NULL AFTER `avatar_url`");
+    }
+
     $colStmt2 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'socials_json'");
     $colExists2 = $colStmt2 && $colStmt2->fetchColumn();
     if (!$colExists2) {
-        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `socials_json` TEXT NULL AFTER `avatar_url`");
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `socials_json` TEXT NULL AFTER `avatar_border`");
     }
 
     $colStmt3 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'banner_url'");
@@ -166,6 +173,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $updateData["description"] = $desc !== "" ? $desc : null;
         }
 
+        $selectedBorder = isset($_POST["avatar_border"]) ? trim((string) $_POST["avatar_border"]) : null;
+        $updateData["avatar_border"] = AvatarBorderUtils::normalize($selectedBorder);
+
         // Persist changes
         if ($db->has("profiles", ["cldbid" => $requestedCldbid])) {
             $db->update("profiles", $updateData, ["cldbid" => $requestedCldbid]);
@@ -179,9 +189,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-// Fetch current avatar to display in form
-$current = $db->get("profiles", ["avatar_url","socials_json","banner_url","description"], ["cldbid" => $requestedCldbid]);
+// Fetch current data to display in form
+$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description"], ["cldbid" => $requestedCldbid]);
 $currentAvatar = $current && isset($current["avatar_url"]) && $current["avatar_url"] ? $current["avatar_url"] : "img/icons/defaulticon-128.png";
+$currentAvatarBorder = AvatarBorderUtils::normalize($current["avatar_border"] ?? null);
+$currentAvatarBorderUrl = AvatarBorderUtils::getUrl($currentAvatarBorder);
 $currentDescription = $current && isset($current["description"]) ? $current["description"] : null;
 $currentSocials = [];
 if ($current && !empty($current["socials_json"])) {
@@ -196,6 +208,9 @@ TemplateUtils::i()->renderTemplate("edit-profile", [
     "navActiveIndex" => 0,
     "cldbid" => $requestedCldbid,
     "currentAvatar" => $currentAvatar,
+    "currentAvatarBorder" => $currentAvatarBorder,
+    "currentAvatarBorderUrl" => $currentAvatarBorderUrl,
+    "borderOptions" => AvatarBorderUtils::getOptions(),
     "currentDescription" => $currentDescription,
     "currentSocials" => $currentSocials,
     "message" => $message,

@@ -83,6 +83,9 @@ $navActiveIndex = isset($navActiveIndex) ? (int) $navActiveIndex : 0;
                 <li class="nav-item{if $navActiveIndex === 5} active{/if}">
                     <a class="nav-link" href="faq.php"><i class="far fa-question-circle"></i>{_"NAV_FAQ"}</a>
                 </li>
+                <li class="nav-item{if $navActiveIndex === 6} active{/if}">
+                    <a class="nav-link" href="members.php"><i class="fas fa-users"></i>Members</a>
+                </li>
             </ul>
             <ul class="navbar-nav ml-md-auto">
 
@@ -171,9 +174,17 @@ $navActiveIndex = isset($navActiveIndex) ? (int) $navActiveIndex : 0;
 <script>
     // Simple error handler
     window.onerror = function (msg, url, linenumber) {
-        // TODO: log to acp and deal with it, also better display (notification?)
-        alert('Javascript error occurred: ' + msg + '\nURL: ' + url + '\nLine Number: ' + linenumber);
-        return false // still run the default handler
+        try {
+            var text = (msg || '').toString();
+            if (/getContext/i.test(text) || /Cannot read properties of null/i.test(text)) {
+                return true; // swallow noisy canvas/context errors
+            }
+        } catch (e) {}
+        // In production, avoid blocking alerts; log to console instead
+        if (typeof console !== 'undefined' && console.error) {
+            console.error('Javascript error occurred:', msg, '\nURL:', url, '\nLine Number:', linenumber);
+        }
+        return true; // prevent default alert
     }
 </script>
 

@@ -6,8 +6,9 @@
         <div class="cover" n:attr="style => isset($bannerUrl) && $bannerUrl ? 'background-image:url(' . $bannerUrl . '); background-size:cover; background-position:center;' : null"></div>
         <div class="avatar-and-meta d-flex align-items-center">
             <div class="d-flex align-items-center">
-                <div class="avatar">
-                    <img src="{$avatarUrl}" alt="avatar">
+                <div class="avatar avatar-preview">
+                    <img src="{$avatarUrl}" alt="avatar" class="avatar-img">
+                    <img src="{$avatarBorderUrl}" alt="avatar border" class="avatar-border-overlay">
                 </div>
                 <div class="meta ml-3">
                     <h3 class="nickname mb-1 d-flex align-items-center">
@@ -15,7 +16,7 @@
                         {ifset $groups}
                             {foreach $groups as $g}
                                 {if $g['sgid'] === 6}
-                                    <i class="fas fa-shield-alt ml-2" style="color:#DC143C" data-toggle="tooltip" title="Group 6"></i>
+                                    <img src="https://cdn3.emoji.gg/emojis/28948-staff.png" alt="Group 6" class="ml-2" style="height:24px;width:24px;object-fit:contain;vertical-align:middle;" data-toggle="tooltip" title="Group 6">
                                     {breakIf true}
                                 {/if}
                             {/foreach}
@@ -41,7 +42,9 @@
                             <span class="status-dot green"></span>
                             <small>
                                 Online since
-                                {ifset $profile["online_since_ms"]}
+                                {ifset $profile["online_since_text"]}
+                                    {$profile["online_since_text"]}
+                                {elseifset $profile["online_since_ms"]}
                                     {round(($profile["online_since_ms"] / 1000) / 60)} minutes
                                 {else}
                                     a moment
@@ -52,7 +55,9 @@
                             </small>
                         {else}
                             <span class="status-dot gray"></span>
-                            <small>Offline</small>
+                            <small>
+                                Offline{ifset $lastSeenText} • last seen {$lastSeenText}{/ifset}
+                            </small>
                         {/if}
                     </div>
                 </div>
@@ -79,9 +84,9 @@
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Total connections:</strong> {$profile["totalconnections"] ?? '-'}</p>
-                    <p><strong>Upload (avg last min):</strong> {$profile["bw_up_h"] ?? '-'}</p>
-                    <p><strong>Download (avg last min):</strong> {$profile["bw_down_h"] ?? '-'}</p>
+                    <p><strong>Total connections:</strong> {ifset $profile["totalconnections"]}{$profile["totalconnections"]}{else}-{/ifset}</p>
+                    <p><strong>First connected:</strong> {$profile["first_connected_human"] ?? '-'}</p>
+                    <p><strong>Last online:</strong> {$profile["last_online_human"] ?? '-'}</p>
                 </div>
             </div>
             <hr>
