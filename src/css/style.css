@@ -885,3 +885,45 @@ table.dataTable > tbody > tr.child td.child {
     flex-shrink: 0;
 }
 
+/* Recent Games Sidebar Widget */
+.recent-game-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    transition: background-color 0.2s ease;
+}
+
+.recent-game-item:last-child {
+    border-bottom: none;
+}
+
+.recent-game-item:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.recent-game-capsule {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.recent-game-info {
+    text-align: center;
+}
+
+.recent-game-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recent-game-time {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+

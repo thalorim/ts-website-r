@@ -318,6 +318,26 @@ if ($dbProfile && !empty($dbProfile["steam_id"])) {
                         }
                     }
                     
+                    // Fetch recently played games
+                    $recentGamesUrl = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&count=3&format=json";
+                    $recentGamesResponse = @file_get_contents($recentGamesUrl);
+                    if ($recentGamesResponse !== false) {
+                        $recentGamesData = json_decode($recentGamesResponse, true);
+                        if (isset($recentGamesData['response']['games']) && !empty($recentGamesData['response']['games'])) {
+                            $steamData['recent_games'] = [];
+                            foreach ($recentGamesData['response']['games'] as $game) {
+                                $steamData['recent_games'][] = [
+                                    'appid' => $game['appid'],
+                                    'name' => $game['name'],
+                                    'playtime_2weeks' => isset($game['playtime_2weeks']) ? round($game['playtime_2weeks'] / 60, 1) : 0,
+                                    'playtime_forever' => round($game['playtime_forever'] / 60, 1),
+                                    'img_icon_url' => $game['img_icon_url'] ?? '',
+                                    'capsule_url' => "https://steamcdn-a.akamaihd.net/steam/apps/" . $game['appid'] . "/capsule_184x69.jpg"
+                                ];
+                            }
+                        }
+                    }
+                    
                     // Fetch owned games count
                     $ownedGamesUrl = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&include_appinfo=1&format=json";
                     $ownedGamesResponse = @file_get_contents($ownedGamesUrl);
@@ -552,6 +572,12 @@ if (isset($socials['discord']) && !empty($socials['discord'])) {
     }
 }
 
+// Extract recent games for sidebar
+$recentGamesForSidebar = null;
+if ($steamData && isset($steamData['recent_games']) && !empty($steamData['recent_games'])) {
+    $recentGamesForSidebar = $steamData['recent_games'];
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -569,6 +595,7 @@ $renderData = [
     "rankLevel" => $rankLevel,
     "discordId" => $discordId,
     "steamData" => $steamData,
+    "steamRecentGames" => $recentGamesForSidebar,
 ];
 
 // Compute last seen text for offline users
