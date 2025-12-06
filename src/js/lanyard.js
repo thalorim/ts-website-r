@@ -71,7 +71,6 @@
                         </div>
                         <div class="lanyard-user-info">
                             <div class="lanyard-username">${this.escapeHtml(data.discord_user.username)}</div>
-                            <div class="lanyard-discriminator">#${this.escapeHtml(data.discord_user.discriminator)}</div>
                             <div class="lanyard-status-text">${statusText}</div>
                         </div>
                     </div>
