@@ -75,36 +75,35 @@
             <i class="fas fa-user"></i> Overview
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
+            <div class="profile-overview-grid">
+                <div class="overview-stats">
                     <p><strong>Country:</strong> {ifset $profile["country"]}
                         <img src="https://reape.rs/flags/{strtolower($profile['country'])}.png" alt="flag" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;"> {$profile["country"]}
                     {else}-{/ifset}</p>
                     <p><strong>Platform:</strong> {$profile["platform"] ?? '-'}</p>
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
                 </div>
-                <div class="col-md-6">
-                    <p><em class="text-muted">TeamSpeak client information</em></p>
-                </div>
-            </div>
-            <hr>
-            <div class="row">
-                <div class="col-md-{ifset $discordId}{ifset $steamData}4{else}6{/ifset}{elseifset $steamData}6{else}12{/ifset}">
+                <div class="overview-description">
                     <p><strong>Description</strong></p>
                     <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
                 </div>
-                {ifset $discordId}
-                <div class="col-md-{ifset $steamData}4{else}6{/ifset}">
+                <div class="overview-discord">
+                    {ifset $discordId}
                     <p><strong>Discord Status</strong></p>
                     <div id="lanyard-widget" class="lanyard-widget" data-discord-id="{$discordId}">
                         <div class="lanyard-loading">
                             <i class="fas fa-spinner fa-spin"></i> Loading Discord status...
                         </div>
                     </div>
+                    {else}
+                    <div class="widget-placeholder">
+                        <i class="fab fa-discord" style="font-size:2rem;color:#ccc;"></i>
+                        <p class="text-muted mb-0" style="font-size:0.85rem;">No Discord linked</p>
+                    </div>
+                    {/ifset}
                 </div>
-                {/ifset}
-                {ifset $steamData}
-                <div class="col-md-{ifset $discordId}4{else}6{/ifset}">
+                <div class="overview-steam">
+                    {ifset $steamData}
                     <p><strong>Steam Status</strong></p>
                     <div class="steam-widget">
                         <div class="steam-content">
@@ -143,8 +142,13 @@
                             {/ifset}
                         </div>
                     </div>
+                    {else}
+                    <div class="widget-placeholder">
+                        <i class="fab fa-steam" style="font-size:2rem;color:#ccc;"></i>
+                        <p class="text-muted mb-0" style="font-size:0.85rem;">No Steam linked</p>
+                    </div>
+                    {/ifset}
                 </div>
-                {/ifset}
             </div>
         </div>
     </div>
