@@ -280,6 +280,21 @@ if ($dbProfile && !empty($dbProfile["steam_id"])) {
                         $profileState = $stateMap[$player['communityvisibilitystate']] ?? 'Unknown';
                     }
                     
+                    // Map persona state (online status)
+                    $personaState = 'Offline';
+                    if (isset($player['personastate'])) {
+                        $personaStateMap = [
+                            0 => 'Offline',
+                            1 => 'Online',
+                            2 => 'Busy',
+                            3 => 'Away',
+                            4 => 'Snooze',
+                            5 => 'Looking to trade',
+                            6 => 'Looking to play'
+                        ];
+                        $personaState = $personaStateMap[$player['personastate']] ?? 'Offline';
+                    }
+                    
                     $steamData = [
                         'steamid' => $steamId64,
                         'personaname' => $player['personaname'] ?? 'Unknown',
@@ -289,6 +304,7 @@ if ($dbProfile && !empty($dbProfile["steam_id"])) {
                         'customurl' => isset($player['profileurl']) ? basename($player['profileurl']) : null,
                         'countrycode' => isset($player['loccountrycode']) ? strtolower($player['loccountrycode']) : null,
                         'profilestate' => $profileState,
+                        'personastate' => $personaState,
                         'timecreated' => isset($player['timecreated']) ? date('M j, Y', $player['timecreated']) : null,
                     ];
                     

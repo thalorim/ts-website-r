@@ -107,42 +107,22 @@
                     <p><strong>Steam Status</strong></p>
                     <div class="steam-widget">
                         <div class="steam-content">
-                            <div class="steam-user">
-                                <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">
-                                    <img src="{$steamData['avatarmedium']}" alt="{$steamData['personaname']}" class="steam-avatar">
-                                </a>
-                                <div class="steam-user-info">
-                                    <div class="steam-username">
-                                        <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">{$steamData['personaname']}</a>
-                                    </div>
-                                    {ifset $steamData['customurl']}
-                                        <div class="steam-info-item"><strong>URL:</strong> {$steamData['customurl']}</div>
-                                    {/ifset}
-                                    {ifset $steamData['profilestate']}
-                                        <div class="steam-info-item"><strong>State:</strong> {$steamData['profilestate']}</div>
-                                    {/ifset}
-                                    {ifset $steamData['timecreated']}
-                                        <div class="steam-info-item"><strong>Created:</strong> {$steamData['timecreated']}</div>
-                                    {/ifset}
-                                    {ifset $steamData['level']}
-                                        <div class="steam-info-item"><strong>Level:</strong> {$steamData['level']}</div>
-                                    {/ifset}
+                            <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">
+                                <img src="{$steamData['avatarmedium']}" alt="{$steamData['personaname']}" class="steam-avatar">
+                            </a>
+                            <div class="steam-user-info">
+                                <div class="steam-username">
+                                    <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">{$steamData['personaname']}</a>
                                 </div>
+                                {ifset $steamData['personastate']}
+                                    <div class="steam-info-item"><strong>Status:</strong> {$steamData['personastate']}</div>
+                                {/ifset}
+                                <div class="steam-info-item"><strong>SteamID64:</strong> {$steamData['steamid']}</div>
                             </div>
-                            {ifset $steamData['recent_games']}
-                            {if count($steamData['recent_games']) > 0}
-                            <div class="steam-recent-game">
-                                <div class="steam-game-header">Recently Played</div>
-                                {var $topGame = $steamData['recent_games'][0]}
-                                <div class="steam-game-content">
-                                    <img src="{$topGame['icon']}" alt="{$topGame['name']}" class="steam-game-image">
-                                    <div class="steam-game-details">
-                                        <div class="steam-game-name">{$topGame['name']}</div>
-                                        <div class="steam-game-hours">{round($topGame['playtime_forever'] / 60, 1)} hrs total</div>
-                                    </div>
-                                </div>
+                            {ifset $steamData['level']}
+                            <div class="steam-level-badge">
+                                {$steamData['level']}
                             </div>
-                            {/if}
                             {/ifset}
                         </div>
                     </div>

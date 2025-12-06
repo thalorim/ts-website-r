@@ -656,8 +656,9 @@ table.dataTable > tbody > tr.child td.child {
 .lanyard-widget {
     border-radius: 0.5rem;
     padding: 0.75rem;
-    min-height: 100px;
-    background: #f8f9fa;
+    min-height: 120px;
+    height: 120px;
+    background: transparent;
     border: 1px solid rgba(0,0,0,0.1);
 }
 
@@ -810,38 +811,41 @@ table.dataTable > tbody > tr.child td.child {
 .steam-widget {
     border-radius: 0.5rem;
     padding: 0.75rem;
-    min-height: 100px;
-    background: #f8f9fa;
+    min-height: 120px;
+    height: 120px;
+    background: transparent;
     border: 1px solid rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
 }
 
 .steam-content {
     display: flex;
-    flex-direction: column;
-}
-
-.steam-user {
-    display: flex;
     align-items: center;
-    margin-bottom: 0.5rem;
+    width: 100%;
+    gap: 0.75rem;
 }
 
 .steam-avatar {
-    width: 48px;
-    height: 48px;
+    width: 64px;
+    height: 64px;
     border-radius: 4px;
-    margin-right: 0.75rem;
     object-fit: cover;
+    flex-shrink: 0;
 }
 
 .steam-user-info {
     flex: 1;
+    min-width: 0;
 }
 
 .steam-username {
     font-weight: bold;
     font-size: 0.95rem;
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .steam-username a {
@@ -854,71 +858,30 @@ table.dataTable > tbody > tr.child td.child {
     text-decoration: underline;
 }
 
-.steam-level {
-    color: #495057;
-    font-size: 0.8rem;
-}
-
 .steam-info-item {
     font-size: 0.75rem;
     color: #6c757d;
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .steam-info-item strong {
     color: #495057;
 }
 
-.steam-country {
-    margin-top: 0.25rem;
-}
-
-.steam-recent-game {
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.05);
-    border-radius: 0.3rem;
-    padding: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.steam-game-header {
-    font-weight: 600;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    color: #6c757d;
-    margin-bottom: 0.35rem;
-    letter-spacing: 0.5px;
-}
-
-.steam-game-content {
+.steam-level-badge {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #6c757d;
+    color: #ffffff;
     display: flex;
     align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: bold;
+    flex-shrink: 0;
 }
 
-.steam-game-image {
-    width: 92px;
-    height: 35px;
-    border-radius: 0.3rem;
-    margin-right: 0.6rem;
-    object-fit: cover;
-}
-
-.steam-game-details {
-    flex: 1;
-    min-width: 0;
-}
-
-.steam-game-name {
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 0.2rem;
-    font-size: 0.85rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.steam-game-hours {
-    font-size: 0.75rem;
-    color: #6c757d;
-}
