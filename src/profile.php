@@ -573,8 +573,8 @@ if (isset($socials['discord']) && !empty($socials['discord'])) {
 }
 
 // Extract recent games for sidebar
-$recentGamesForSidebar = null;
-if ($steamData && isset($steamData['recent_games']) && !empty($steamData['recent_games'])) {
+$recentGamesForSidebar = [];
+if ($steamData !== null && isset($steamData['recent_games']) && is_array($steamData['recent_games']) && !empty($steamData['recent_games'])) {
     $recentGamesForSidebar = $steamData['recent_games'];
 }
 

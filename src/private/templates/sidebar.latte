@@ -90,7 +90,7 @@
     </div>
 {/ifset}
 
-{ifset $steamRecentGames}
+{if isset($steamRecentGames) && !empty($steamRecentGames)}
     <div class="card card-accent">
         <div class="card-header">
             <i class="fab fa-steam"></i> Recently Played Games
@@ -115,4 +115,4 @@
             {/foreach}
         </div>
     </div>
-{/ifset}
+{/if}
