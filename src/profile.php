@@ -318,16 +318,52 @@ if ($dbProfile && !empty($dbProfile["steam_id"])) {
                         }
                     }
                     
-                    // Fetch recently played games
-                    $recentGamesUrl = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&format=json";
-                    $recentGamesResponse = @file_get_contents($recentGamesUrl);
-                    if ($recentGamesResponse !== false) {
-                        $recentGamesData = json_decode($recentGamesResponse, true);
-                        if (isset($recentGamesData['response']['games']) && !empty($recentGamesData['response']['games'])) {
-                            $steamData['recent_games'] = array_slice($recentGamesData['response']['games'], 0, 3); // Top 3 recent games
-                            // Add game icons
-                            foreach ($steamData['recent_games'] as &$game) {
-                                $game['icon'] = "https://steamcdn-a.akamaihd.net/steam/apps/" . $game['appid'] . "/capsule_184x69.jpg";
+                    // Fetch owned games count
+                    $ownedGamesUrl = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&include_appinfo=1&format=json";
+                    $ownedGamesResponse = @file_get_contents($ownedGamesUrl);
+                    if ($ownedGamesResponse !== false) {
+                        $ownedGamesData = json_decode($ownedGamesResponse, true);
+                        if (isset($ownedGamesData['response']['game_count'])) {
+                            $steamData['games_count'] = $ownedGamesData['response']['game_count'];
+                        }
+                        
+                        // Check if user owns CS2 (AppID 730)
+                        if (isset($ownedGamesData['response']['games']) && is_array($ownedGamesData['response']['games'])) {
+                            foreach ($ownedGamesData['response']['games'] as $game) {
+                                if (isset($game['appid']) && $game['appid'] == 730) {
+                                    $steamData['cs2_playtime'] = isset($game['playtime_forever']) ? round($game['playtime_forever'] / 60, 1) : 0;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Fetch CS2 stats if user owns the game
+                    if (isset($steamData['cs2_playtime'])) {
+                        $cs2StatsUrl = "https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&appid=730";
+                        $cs2StatsResponse = @file_get_contents($cs2StatsUrl);
+                        if ($cs2StatsResponse !== false) {
+                            $cs2StatsData = json_decode($cs2StatsResponse, true);
+                            if (isset($cs2StatsData['playerstats']['stats']) && is_array($cs2StatsData['playerstats']['stats'])) {
+                                $stats = [];
+                                foreach ($cs2StatsData['playerstats']['stats'] as $stat) {
+                                    $stats[$stat['name']] = $stat['value'];
+                                }
+                                
+                                // Extract key stats
+                                $steamData['cs2_stats'] = [
+                                    'kills' => $stats['total_kills'] ?? 0,
+                                    'deaths' => $stats['total_deaths'] ?? 0,
+                                    'wins' => $stats['total_wins'] ?? 0,
+                                    'mvps' => $stats['total_mvps'] ?? 0,
+                                ];
+                                
+                                // Calculate K/D ratio
+                                if (isset($steamData['cs2_stats']['deaths']) && $steamData['cs2_stats']['deaths'] > 0) {
+                                    $steamData['cs2_stats']['kd_ratio'] = round($steamData['cs2_stats']['kills'] / $steamData['cs2_stats']['deaths'], 2);
+                                } else {
+                                    $steamData['cs2_stats']['kd_ratio'] = $steamData['cs2_stats']['kills'];
+                                }
                             }
                         }
                     }

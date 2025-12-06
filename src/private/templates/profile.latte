@@ -118,6 +118,15 @@
                                     <div class="steam-info-item"><strong>Status:</strong> {$steamData['personastate']}</div>
                                 {/ifset}
                                 <div class="steam-info-item"><strong>SteamID64:</strong> {$steamData['steamid']}</div>
+                                {ifset $steamData['games_count']}
+                                    <div class="steam-info-item"><strong>Games:</strong> {$steamData['games_count']}</div>
+                                {/ifset}
+                                {ifset $steamData['cs2_playtime']}
+                                    <div class="steam-info-item"><strong>CS2:</strong> {$steamData['cs2_playtime']} hrs</div>
+                                {/ifset}
+                                {ifset $steamData['cs2_stats']}
+                                    <div class="steam-info-item"><strong>K/D:</strong> {$steamData['cs2_stats']['kd_ratio']} | <strong>Wins:</strong> {$steamData['cs2_stats']['wins']}</div>
+                                {/ifset}
                             </div>
                             {ifset $steamData['level']}
                             <div class="steam-level-badge">
