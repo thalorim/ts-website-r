@@ -115,13 +115,17 @@
                                     <div class="steam-username">
                                         <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">{$steamData['personaname']}</a>
                                     </div>
-                                    {ifset $steamData['level']}
-                                        <div class="steam-level">Level {$steamData['level']}</div>
+                                    {ifset $steamData['customurl']}
+                                        <div class="steam-info-item"><strong>URL:</strong> {$steamData['customurl']}</div>
                                     {/ifset}
-                                    {ifset $steamData['countrycode']}
-                                        <div class="steam-country">
-                                            <img src="https://steamcommunity-a.akamaihd.net/public/images/countryflags/{$steamData['countrycode']}.gif" alt="Country" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;">
-                                        </div>
+                                    {ifset $steamData['profilestate']}
+                                        <div class="steam-info-item"><strong>State:</strong> {$steamData['profilestate']}</div>
+                                    {/ifset}
+                                    {ifset $steamData['timecreated']}
+                                        <div class="steam-info-item"><strong>Created:</strong> {$steamData['timecreated']}</div>
+                                    {/ifset}
+                                    {ifset $steamData['level']}
+                                        <div class="steam-info-item"><strong>Level:</strong> {$steamData['level']}</div>
                                     {/ifset}
                                 </div>
                             </div>

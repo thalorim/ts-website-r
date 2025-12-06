@@ -656,13 +656,14 @@ table.dataTable > tbody > tr.child td.child {
 .lanyard-widget {
     border-radius: 0.5rem;
     padding: 0.75rem;
-    min-height: 150px;
-    background: linear-gradient(135deg, #5865F2 0%, #7289DA 100%);
+    min-height: 100px;
+    background: #f8f9fa;
+    border: 1px solid rgba(0,0,0,0.1);
 }
 
 .lanyard-loading {
     text-align: center;
-    color: #ffffff;
+    color: #6c757d;
     padding: 0.5rem;
 }
 
@@ -699,7 +700,7 @@ table.dataTable > tbody > tr.child td.child {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    border: 2px solid #5865F2;
+    border: 2px solid #f8f9fa;
     background-color: #747f8d;
 }
 
@@ -723,17 +724,23 @@ table.dataTable > tbody > tr.child td.child {
     font-weight: bold;
     font-size: 0.95rem;
     margin-bottom: 0.15rem;
-    color: #ffffff;
+    color: #2c3e50;
 }
 
 .lanyard-status-text {
-    color: #e3e5e8;
+    color: #495057;
     font-size: 0.8rem;
 }
 
+.lanyard-discord-id {
+    color: #6c757d;
+    font-size: 0.75rem;
+    font-family: monospace;
+}
+
 .lanyard-activity {
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.05);
     border-radius: 0.3rem;
     padding: 0.5rem;
     margin-top: 0.5rem;
@@ -743,7 +750,7 @@ table.dataTable > tbody > tr.child td.child {
     font-weight: 600;
     font-size: 0.7rem;
     text-transform: uppercase;
-    color: #b9bbbe;
+    color: #6c757d;
     margin-bottom: 0.35rem;
     letter-spacing: 0.5px;
 }
@@ -768,7 +775,7 @@ table.dataTable > tbody > tr.child td.child {
 
 .lanyard-activity-name {
     font-weight: 600;
-    color: #ffffff;
+    color: #2c3e50;
     margin-bottom: 0.2rem;
     font-size: 0.85rem;
     overflow: hidden;
@@ -778,7 +785,7 @@ table.dataTable > tbody > tr.child td.child {
 
 .lanyard-activity-details-text {
     font-size: 0.75rem;
-    color: #b9bbbe;
+    color: #6c757d;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -786,7 +793,7 @@ table.dataTable > tbody > tr.child td.child {
 
 .lanyard-activity-state {
     font-size: 0.75rem;
-    color: #b9bbbe;
+    color: #6c757d;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -794,7 +801,7 @@ table.dataTable > tbody > tr.child td.child {
 
 .lanyard-error {
     text-align: center;
-    color: #ffffff;
+    color: #dc3545;
     padding: 0.5rem;
     font-size: 0.85rem;
 }
@@ -803,8 +810,9 @@ table.dataTable > tbody > tr.child td.child {
 .steam-widget {
     border-radius: 0.5rem;
     padding: 0.75rem;
-    min-height: 150px;
-    background: linear-gradient(135deg, #1b2838 0%, #2a475e 100%);
+    min-height: 100px;
+    background: #f8f9fa;
+    border: 1px solid rgba(0,0,0,0.1);
 }
 
 .steam-content {
@@ -837,18 +845,28 @@ table.dataTable > tbody > tr.child td.child {
 }
 
 .steam-username a {
-    color: #c7d5e0;
+    color: #2c3e50;
     text-decoration: none;
 }
 
 .steam-username a:hover {
-    color: #ffffff;
+    color: #1b2838;
     text-decoration: underline;
 }
 
 .steam-level {
-    color: #8f98a0;
+    color: #495057;
     font-size: 0.8rem;
+}
+
+.steam-info-item {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0.15rem;
+}
+
+.steam-info-item strong {
+    color: #495057;
 }
 
 .steam-country {
@@ -856,8 +874,8 @@ table.dataTable > tbody > tr.child td.child {
 }
 
 .steam-recent-game {
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.05);
     border-radius: 0.3rem;
     padding: 0.5rem;
     margin-top: 0.5rem;
@@ -867,7 +885,7 @@ table.dataTable > tbody > tr.child td.child {
     font-weight: 600;
     font-size: 0.7rem;
     text-transform: uppercase;
-    color: #8f98a0;
+    color: #6c757d;
     margin-bottom: 0.35rem;
     letter-spacing: 0.5px;
 }
@@ -892,7 +910,7 @@ table.dataTable > tbody > tr.child td.child {
 
 .steam-game-name {
     font-weight: 600;
-    color: #c7d5e0;
+    color: #2c3e50;
     margin-bottom: 0.2rem;
     font-size: 0.85rem;
     overflow: hidden;
@@ -902,5 +920,5 @@ table.dataTable > tbody > tr.child td.child {
 
 .steam-game-hours {
     font-size: 0.75rem;
-    color: #8f98a0;
+    color: #6c757d;
 }

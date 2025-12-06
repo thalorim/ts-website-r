@@ -268,13 +268,28 @@ if ($dbProfile && !empty($dbProfile["steam_id"])) {
                 $summariesData = json_decode($summariesResponse, true);
                 if (isset($summariesData['response']['players'][0])) {
                     $player = $summariesData['response']['players'][0];
+                    
+                    // Map profile state
+                    $profileState = 'Private';
+                    if (isset($player['communityvisibilitystate'])) {
+                        $stateMap = [
+                            1 => 'Private',
+                            2 => 'Friends Only',
+                            3 => 'Public'
+                        ];
+                        $profileState = $stateMap[$player['communityvisibilitystate']] ?? 'Unknown';
+                    }
+                    
                     $steamData = [
                         'steamid' => $steamId64,
                         'personaname' => $player['personaname'] ?? 'Unknown',
                         'avatar' => $player['avatarfull'] ?? '',
                         'avatarmedium' => $player['avatarmedium'] ?? '',
                         'profileurl' => $player['profileurl'] ?? '',
+                        'customurl' => isset($player['profileurl']) ? basename($player['profileurl']) : null,
                         'countrycode' => isset($player['loccountrycode']) ? strtolower($player['loccountrycode']) : null,
+                        'profilestate' => $profileState,
+                        'timecreated' => isset($player['timecreated']) ? date('M j, Y', $player['timecreated']) : null,
                     ];
                     
                     // Fetch player level from badges
