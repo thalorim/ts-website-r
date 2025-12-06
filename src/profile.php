@@ -1,6 +1,7 @@
 <?php
 
 use Wruczek\TSWebsite\CacheManager;
+use Wruczek\TSWebsite\Utils\AvatarBorderUtils;
 use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Config;
@@ -302,6 +303,8 @@ if (!empty($groupsDetailed)) {
 
 $avatarUrl = ($dbProfile && !empty($dbProfile["avatar_url"])) ? $dbProfile["avatar_url"] : "img/icons/defaulticon-128.png";
 $bannerUrl = ($dbProfile && !empty($dbProfile["banner_url"])) ? $dbProfile["banner_url"] : null;
+$avatarBorderKey = $dbProfile && isset($dbProfile["avatar_border"]) ? AvatarBorderUtils::normalize($dbProfile["avatar_border"]) : AvatarBorderUtils::getDefaultKey();
+$avatarBorderUrl = AvatarBorderUtils::getUrl($avatarBorderKey);
 // Prefer user-saved description if present
 if ($dbProfile && !empty($dbProfile["description"])) {
     $profileData["description"] = (string) $dbProfile["description"];
@@ -407,6 +410,8 @@ $renderData = [
     "isOnline" => $isOnline,
     "profile" => $profileData,
     "avatarUrl" => $avatarUrl,
+    "avatarBorderUrl" => $avatarBorderUrl,
+    "avatarBorderKey" => $avatarBorderKey,
     "bannerUrl" => $bannerUrl,
     "groups" => $groupsDetailed,
     "socials" => $socialItems,
