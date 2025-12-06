@@ -927,3 +927,28 @@ table.dataTable > tbody > tr.child td.child {
     color: #6c757d;
 }
 
+/* No Games Played Widget */
+.no-games-played {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 0.75rem !important;
+    text-align: center;
+}
+
+.busy-gif {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.no-games-message {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #495057;
+    margin-top: 0.5rem;
+}
+
