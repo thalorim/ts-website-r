@@ -16,9 +16,12 @@
             {/ifset}
 
             <div class="d-flex align-items-center mb-3">
-                <img src="{$currentAvatar}" alt="current avatar" style="width:96px;height:96px;border-radius:4px;border:2px solid rgba(0,0,0,.1);">
-                <div class="ml-3">
-                    <div class="text-muted">Current avatar</div>
+                <div class="avatar-preview mr-3">
+                    <img src="{$currentAvatar}" alt="current avatar" class="avatar-img">
+                    <img src="{$currentAvatarBorderUrl}" alt="selected border" class="avatar-border-overlay">
+                </div>
+                <div>
+                    <div class="text-muted">Current avatar &amp; border</div>
                     <small>PNG/JPG/WEBP up to 2MB</small>
                 </div>
             </div>
@@ -28,6 +31,24 @@
                 <div class="form-group">
                     <label for="avatar">Upload new avatar</label>
                     <input id="avatar" name="avatar" type="file" class="form-control-file" accept="image/png,image/jpeg,image/webp">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-circle-notch"></i> Choose avatar border</label>
+                    <div class="border-options">
+                        {foreach $borderOptions as $key => $border}
+                            <label class="border-option">
+                                <input type="radio" name="avatar_border" value="{$key}" {if $currentAvatarBorder === $key}checked{/if}>
+                                <div class="border-option__body">
+                                    <div class="avatar-preview avatar-preview--sm mb-2">
+                                        <img src="{$currentAvatar}" alt="preview avatar" class="avatar-img">
+                                        <img src="{$border['url']}" alt="{$border['label']} border" class="avatar-border-overlay">
+                                    </div>
+                                    <div class="font-weight-bold">{$border['label']}</div>
+                                    <small class="text-muted d-block mt-1">{$border['description']}</small>
+                                </div>
+                            </label>
+                        {/foreach}
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="banner">Upload profile banner (optional)</label>
