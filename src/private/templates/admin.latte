@@ -88,14 +88,170 @@
             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Rules</button>
         </form>
 
+        <hr class="my-4">
+        <h5><i class="fas fa-newspaper"></i> News Management</h5>
+        
         <form id="form-news" method="post" action="api/save-news.php">
             {$csrfField}
-            <h5>Post News</h5>
-            <input type="text" class="form-control mb-2" name="title" placeholder="Title" required>
-            <textarea class="form-control mb-2" name="content" rows="8" placeholder="HTML content" required></textarea>
-            <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Add News</button>
+            <input type="hidden" name="action" value="add" id="news-action">
+            <input type="hidden" name="newsid" value="" id="news-id">
+            <div class="form-group">
+                <label for="news-title">News Title</label>
+                <input type="text" id="news-title" class="form-control" name="title" placeholder="Enter news title" required>
+            </div>
+            <div class="form-group">
+                <label for="news-content">News Content (HTML)</label>
+                <textarea id="news-content" class="form-control" name="content" rows="8" placeholder="Enter HTML content" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-success" id="news-submit-btn"><i class="fas fa-plus"></i> Add News</button>
+            <button type="button" class="btn btn-secondary" id="news-cancel-btn" style="display:none;"><i class="fas fa-times"></i> Cancel</button>
         </form>
+
+        {if $newsList}
+        <div class="mt-4">
+            <h6>Existing News Posts</h6>
+            <div class="list-group">
+                {foreach $newsList as $news}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{$news['title']}</h6>
+                            <p class="mb-1 text-muted" style="font-size:0.85rem;">
+                                Added: {date('M j, Y g:i A', $news['added'])}
+                                {if $news['edited']} • Edited: {date('M j, Y g:i A', $news['edited'])}{/if}
+                            </p>
+                            <div class="small text-muted" style="max-height:60px;overflow:hidden;">{$news['description']|noescape|truncate:150}</div>
+                        </div>
+                        <div class="btn-group ml-3">
+                            <button type="button" class="btn btn-sm btn-primary edit-news-btn" 
+                                    data-newsid="{$news['newsId']}" 
+                                    data-title="{$news['title']|escape}" 
+                                    data-content="{$news['description']|escape}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger delete-news-btn" 
+                                    data-newsid="{$news['newsId']}" 
+                                    data-title="{$news['title']|escape}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {/foreach}
+            </div>
+        </div>
+        {/if}
     </div>
 </div>
 {/block}
 
+{block scripts}
+{include parent}
+<script>
+$(document).ready(function() {
+    // Edit news button handler
+    $('.edit-news-btn').on('click', function() {
+        const newsId = $(this).data('newsid');
+        const title = $(this).data('title');
+        const content = $(this).data('content');
+        
+        // Populate form
+        $('#news-id').val(newsId);
+        $('#news-title').val(title);
+        $('#news-content').val(content);
+        $('#news-action').val('edit');
+        
+        // Update button text
+        $('#news-submit-btn').html('<i class="fas fa-save"></i> Update News');
+        $('#news-cancel-btn').show();
+        
+        // Scroll to form
+        $('html, body').animate({
+            scrollTop: $('#form-news').offset().top - 100
+        }, 500);
+    });
+    
+    // Cancel edit button handler
+    $('#news-cancel-btn').on('click', function() {
+        $('#news-id').val('');
+        $('#news-title').val('');
+        $('#news-content').val('');
+        $('#news-action').val('add');
+        $('#news-submit-btn').html('<i class="fas fa-plus"></i> Add News');
+        $(this).hide();
+    });
+    
+    // Delete news button handler
+    $('.delete-news-btn').on('click', function() {
+        const newsId = $(this).data('newsid');
+        const title = $(this).data('title');
+        
+        if (!confirm('Are you sure you want to delete "' + title + '"?')) {
+            return;
+        }
+        
+        const $btn = $(this);
+        $btn.prop('disabled', true);
+        
+        $.ajax({
+            url: 'api/delete-news.php',
+            method: 'POST',
+            data: {
+                newsid: newsId
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.ok) {
+                    $btn.closest('.list-group-item').fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                    alert('News post deleted successfully!');
+                } else {
+                    alert('Error: ' + (response.error || 'Unknown error'));
+                    $btn.prop('disabled', false);
+                }
+            },
+            error: function() {
+                alert('Failed to delete news post. Please try again.');
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+    
+    // Form submit handler
+    $('#form-news').on('submit', function(e) {
+        e.preventDefault();
+        
+        const $form = $(this);
+        const $submitBtn = $('#news-submit-btn');
+        const action = $('#news-action').val();
+        
+        $submitBtn.prop('disabled', true);
+        
+        $.ajax({
+            url: $form.attr('action'),
+            method: 'POST',
+            data: $form.serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if (response.ok) {
+                    if (action === 'edit') {
+                        alert('News post updated successfully!');
+                    } else {
+                        alert('News post added successfully!');
+                    }
+                    location.reload();
+                } else {
+                    alert('Error: ' + (response.error || 'Unknown error'));
+                    $submitBtn.prop('disabled', false);
+                }
+            },
+            error: function() {
+                alert('Failed to save news post. Please try again.');
+                $submitBtn.prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
+{/block}
