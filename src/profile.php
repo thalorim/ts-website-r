@@ -411,19 +411,24 @@ $rankImageUrls = [
     'https://support.faceit.com/hc/article_attachments/10525189646876', // Rank 10
 ];
 
-// Determine rank by presence of server group ids 9..18 (9->Rank1, 18->Rank10)
+// Get configurable rank badge range from database, default to 9-18
+$rankBadgeRange = Config::get("rank_badge_range", ["min" => 9, "max" => 18]);
+$rankMin = isset($rankBadgeRange['min']) ? (int)$rankBadgeRange['min'] : 9;
+$rankMax = isset($rankBadgeRange['max']) ? (int)$rankBadgeRange['max'] : 18;
+
+// Determine rank by presence of server group ids (configurable range)
 if (!empty($groupsDetailed)) {
     $matchedRankGroupIds = [];
     foreach ($groupsDetailed as $g) {
         $sgid = isset($g['sgid']) ? (int) $g['sgid'] : 0;
-        if ($sgid >= 9 && $sgid <= 18) {
+        if ($sgid >= $rankMin && $sgid <= $rankMax) {
             $matchedRankGroupIds[] = $sgid;
         }
     }
     if (!empty($matchedRankGroupIds)) {
         // Prefer the highest group id -> highest rank
         $chosenGroupId = max($matchedRankGroupIds);
-        $rankLevel = $chosenGroupId - 8; // 9->1, 18->10
+        $rankLevel = $chosenGroupId - ($rankMin - 1); // e.g., 9->1 if min=9
         $idx = $rankLevel - 1;
         if ($idx >= 0 && $idx < count($rankImageUrls)) {
             $rankImageUrl = $rankImageUrls[$idx];

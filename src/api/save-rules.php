@@ -7,7 +7,7 @@ require_once __DIR__ . "/../private/php/load.php";
 
 header('Content-Type: application/json');
 
-if (!Auth::isLoggedIn() || Auth::getCldbid() !== 3) {
+if (!Auth::isLoggedIn() || Auth::getUid() !== "Jv/d1+pX7/q343RrIMPTTVpob+U=") {
     http_response_code(403);
     echo json_encode(["ok" => false, "error" => "forbidden"]);
     exit;

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Widget Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #5865f2;
+            padding-bottom: 10px;
+        }
+        
+        .profile-description-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 20px;
+        }
+        
+        .description-col {
+            flex: 1 1 60%;
+            min-width: 300px;
+        }
+        
+        .widget-col {
+            flex: 1 1 30%;
+            min-width: 250px;
+        }
+        
+        .desc {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #5865f2;
+        }
+        
+        /* Discord Widget Styles */
+        .discord-widget {
+            background: #23272a;
+            color: #fff;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+            height: 100%;
+        }
+        
+        .discord-widget__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            color: #b9bbbe;
+            margin-bottom: 0.75rem;
+        }
+        
+        .discord-widget__label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .discord-widget__status {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.85rem;
+        }
+        
+        .discord-widget__status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.35rem;
+        }
+        
+        .discord-widget__status-dot.online { background: #43b581; }
+        .discord-widget__status-dot.idle { background: #faa61a; }
+        .discord-widget__status-dot.dnd { background: #f04747; }
+        .discord-widget__status-dot.offline { background: #747f8d; }
+        
+        .discord-widget__body {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .discord-widget__body:hover {
+            opacity: 0.9;
+        }
+        
+        .discord-widget__avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            margin-right: 0.85rem;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+        }
+        
+        .discord-widget__display-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #fff;
+        }
+        
+        .discord-widget__username {
+            color: #b9bbbe;
+            font-size: 0.85rem;
+            margin-top: 0.2rem;
+        }
+        
+        .discord-widget__meta {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .example-box {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 20px 0;
+        }
+        
+        .status-examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .profile-description-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Discord Widget - Live Example</h1>
+        
+        <div class="example-box">
+            <strong>📍 Widget Position:</strong> The Discord widget is positioned on the <strong>right side</strong> of the profile description box (33% width on desktop, 100% width on mobile).
+        </div>
+        
+        <h2>Desktop Layout (≥992px)</h2>
+        <div class="profile-description-row">
+            <div class="description-col">
+                <strong>Profile Description</strong>
+                <div class="desc">
+                    <p><strong>About Me:</strong></p>
+                    <p>Hey there! I'm a passionate gamer and TeamSpeak enthusiast. I've been part of this community for several years and love connecting with fellow players.</p>
+                    <p>My favorite games include CS:GO, Valorant, and League of Legends. Always up for a good match!</p>
+                    <p>Feel free to reach out if you want to team up or just chat. 🎮</p>
+                </div>
+            </div>
+            
+            <div class="widget-col">
+                <div class="discord-widget">
+                    <div class="discord-widget__header">
+                        <span class="discord-widget__label">
+                            <svg width="16" height="16" viewBox="0 0 71 55" fill="currentColor">
+                                <path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.440769 45.4204 0.525289C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.525289C25.5141 0.443589 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978ZM23.7259 37.3253C20.2276 37.3253 17.3451 34.1136 17.3451 30.1693C17.3451 26.225 20.1717 23.0133 23.7259 23.0133C27.308 23.0133 30.1626 26.2532 30.1066 30.1693C30.1066 34.1136 27.28 37.3253 23.7259 37.3253ZM47.3178 37.3253C43.8196 37.3253 40.9371 34.1136 40.9371 30.1693C40.9371 26.225 43.7636 23.0133 47.3178 23.0133C50.9 23.0133 53.7545 26.2532 53.6986 30.1693C53.6986 34.1136 50.9 37.3253 47.3178 37.3253Z"/>
+                            </svg>
+                            Discord
+                        </span>
+                        <span class="discord-widget__status">
+                            <span class="discord-widget__status-dot online"></span>
+                            <span class="discord-widget__status-text">Online</span>
+                        </span>
+                    </div>
+                    <a href="https://discord.com/users/123456789" class="discord-widget__body" target="_blank">
+                        <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Discord avatar" class="discord-widget__avatar">
+                        <div class="discord-widget__meta">
+                            <div class="discord-widget__display-name">John Doe</div>
+                            <div class="discord-widget__username">@johndoe</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <h2 style="margin-top: 40px;">Status Examples</h2>
+        <div class="status-examples">
+            <!-- Online Status -->
+            <div class="discord-widget">
+                <div class="discord-widget__header">
+                    <span class="discord-widget__label">🎮 Discord</span>
+                    <span class="discord-widget__status">
+                        <span class="discord-widget__status-dot online"></span>
+                        <span>Online</span>
+                    </span>
+                </div>
+                <div class="discord-widget__body">
+                    <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="avatar" class="discord-widget__avatar">
+                    <div class="discord-widget__meta">
+                        <div class="discord-widget__display-name">Active User</div>
+                        <div class="discord-widget__username">@activeuser</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Idle Status -->
+            <div class="discord-widget">
+                <div class="discord-widget__header">
+                    <span class="discord-widget__label">🎮 Discord</span>
+                    <span class="discord-widget__status">
+                        <span class="discord-widget__status-dot idle"></span>
+                        <span>Away</span>
+                    </span>
+                </div>
+                <div class="discord-widget__body">
+                    <img src="https://cdn.discordapp.com/embed/avatars/1.png" alt="avatar" class="discord-widget__avatar">
+                    <div class="discord-widget__meta">
+                        <div class="discord-widget__display-name">Idle User</div>
+                        <div class="discord-widget__username">@idleuser</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- DND Status -->
+            <div class="discord-widget">
+                <div class="discord-widget__header">
+                    <span class="discord-widget__label">🎮 Discord</span>
+                    <span class="discord-widget__status">
+                        <span class="discord-widget__status-dot dnd"></span>
+                        <span>Do Not Disturb</span>
+                    </span>
+                </div>
+                <div class="discord-widget__body">
+                    <img src="https://cdn.discordapp.com/embed/avatars/2.png" alt="avatar" class="discord-widget__avatar">
+                    <div class="discord-widget__meta">
+                        <div class="discord-widget__display-name">Busy User</div>
+                        <div class="discord-widget__username">@busyuser</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Offline Status -->
+            <div class="discord-widget">
+                <div class="discord-widget__header">
+                    <span class="discord-widget__label">🎮 Discord</span>
+                    <span class="discord-widget__status">
+                        <span class="discord-widget__status-dot offline"></span>
+                        <span>Offline</span>
+                    </span>
+                </div>
+                <div class="discord-widget__body">
+                    <img src="https://cdn.discordapp.com/embed/avatars/3.png" alt="avatar" class="discord-widget__avatar">
+                    <div class="discord-widget__meta">
+                        <div class="discord-widget__display-name">Offline User</div>
+                        <div class="discord-widget__username">@offlineuser</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="example-box" style="margin-top: 40px;">
+            <h3>✅ Feature Complete!</h3>
+            <p><strong>Implementation Status:</strong> The Discord widget feature is fully implemented and ready to use.</p>
+            <ul>
+                <li>✅ Positioned on the right side of profile description</li>
+                <li>✅ Responsive design (adapts to mobile/tablet/desktop)</li>
+                <li>✅ Real-time status updates via Lanyard API</li>
+                <li>✅ Beautiful Discord-themed styling</li>
+                <li>✅ Clickable link to Discord profile</li>
+                <li>✅ All status types supported (online/idle/dnd/offline)</li>
+            </ul>
+        </div>
+        
+        <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; text-align: center;">
+            <p>📚 See <code>DISCORD_WIDGET_FEATURE.md</code> for technical details</p>
+            <p>📖 See <code>DISCORD_WIDGET_USAGE.md</code> for usage instructions</p>
+            <p>✅ See <code>IMPLEMENTATION_COMPLETE.md</code> for full summary</p>
+        </footer>
+    </div>
+</body>
+</html>
