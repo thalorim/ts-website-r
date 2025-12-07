@@ -60,7 +60,12 @@
             </div>
             {ifset $rankImageUrl}
                 <div class="rank-badge">
-                    <img src="{$rankImageUrl}" alt="Rank {$rankLevel}">
+                    <img src="{$rankImageUrl}" alt="Rank {$rankLevel}" 
+                         {ifset $totalOnlineHours}
+                         data-toggle="tooltip" 
+                         data-html="true"
+                         title="Total time: {$totalOnlineHours} hours<br>Connected days: {$totalOnlineDays} days {$totalOnlineRemainingHours} hours"
+                         {/ifset}>
                 </div>
             {/ifset}
         </div>

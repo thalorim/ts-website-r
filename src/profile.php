@@ -106,6 +106,7 @@ if ($tsInfo) {
     $profileData["created_ts"] = isset($tsInfo["client_created"]) ? (int) $tsInfo["client_created"] : null;
     $profileData["lastconnected_ts"] = isset($tsInfo["client_lastconnected"]) ? (int) $tsInfo["client_lastconnected"] : null;
     $profileData["totalconnections"] = isset($tsInfo["client_totalconnections"]) ? (int) $tsInfo["client_totalconnections"] : null;
+    $profileData["total_connection_time"] = isset($tsInfo["client_total_connection_time"]) ? (int) $tsInfo["client_total_connection_time"] : null;
 }
 
 if ($onlineClient) {
@@ -597,6 +598,18 @@ $renderData = [
     "steamData" => $steamData,
     "steamRecentGames" => $recentGamesForSidebar,
 ];
+
+// Calculate total online time if available
+if (isset($profileData["total_connection_time"]) && $profileData["total_connection_time"] > 0) {
+    $totalSeconds = (int) $profileData["total_connection_time"];
+    $totalHours = round($totalSeconds / 3600, 1);
+    $totalDays = floor($totalSeconds / 86400);
+    $remainingHours = floor(($totalSeconds % 86400) / 3600);
+    
+    $renderData["totalOnlineHours"] = $totalHours;
+    $renderData["totalOnlineDays"] = $totalDays;
+    $renderData["totalOnlineRemainingHours"] = $remainingHours;
+}
 
 // Compute last seen text for offline users
 if (!$isOnline) {
