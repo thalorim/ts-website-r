@@ -71,7 +71,7 @@
                         </div>
                         <div class="lanyard-user-info">
                             <div class="lanyard-username">${this.escapeHtml(data.discord_user.username)}</div>
-                            <div class="lanyard-status-text"><strong>Status:</strong> ${statusText}</div>
+                            <div class="lanyard-status-text"><strong>Status:</strong> <span class="status-value ${this.escapeHtml(data.discord_status)}">${statusText}</span></div>
                             <div class="lanyard-discord-id"><strong>ID:</strong> ${this.escapeHtml(data.discord_user.id)}</div>
                         </div>
                     </div>

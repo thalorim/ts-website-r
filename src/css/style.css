@@ -706,15 +706,15 @@ table.dataTable > tbody > tr.child td.child {
 }
 
 .lanyard-status-indicator.online {
-    background-color: #43b581;
+    background-color: #28a745;
 }
 
 .lanyard-status-indicator.idle {
-    background-color: #faa61a;
+    background-color: #ffc107;
 }
 
 .lanyard-status-indicator.dnd {
-    background-color: #f04747;
+    background-color: #dc3545;
 }
 
 .lanyard-user-info {
@@ -729,14 +729,47 @@ table.dataTable > tbody > tr.child td.child {
 }
 
 .lanyard-status-text {
+    font-size: 0.75rem;
+    margin-bottom: 0.15rem;
+}
+
+.lanyard-status-text strong {
     color: #495057;
-    font-size: 0.8rem;
+}
+
+.lanyard-status-text .status-value {
+    color: #495057;
+}
+
+.lanyard-status-text .status-value.online {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.lanyard-status-text .status-value.idle {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.lanyard-status-text .status-value.dnd {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.lanyard-status-text .status-value.offline {
+    color: #6c757d;
+    font-weight: 600;
 }
 
 .lanyard-discord-id {
     color: #6c757d;
     font-size: 0.75rem;
     font-family: monospace;
+    margin-bottom: 0.15rem;
+}
+
+.lanyard-discord-id strong {
+    color: #495057;
 }
 
 .lanyard-activity {
@@ -860,8 +893,7 @@ table.dataTable > tbody > tr.child td.child {
 
 .steam-info-item {
     font-size: 0.75rem;
-    color: #6c757d;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.15rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -871,18 +903,66 @@ table.dataTable > tbody > tr.child td.child {
     color: #495057;
 }
 
+.steam-info-item .status-value {
+    color: #495057;
+}
+
+.steam-info-item .status-value.online {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.offline {
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.busy {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.away {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.snooze {
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.looking-to-trade,
+.steam-info-item .status-value.looking-to-play {
+    color: #17a2b8;
+    font-weight: 600;
+}
+
 .steam-level-badge {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background: #6c757d;
     color: #ffffff;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
-    font-weight: bold;
     flex-shrink: 0;
+}
+
+.steam-level-number {
+    font-size: 1.1rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.steam-level-text {
+    font-size: 0.6rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    margin-top: 2px;
+    opacity: 0.9;
 }
 
 /* Recent Games Sidebar Widget */

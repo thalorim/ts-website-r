@@ -28,7 +28,7 @@
                             <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
                         {/ifset}
                         {if $socials}
-                            <span class="ml-3">
+                            <span class="ml-2">
                                 {foreach $socials as $s}
                                     <a href="{$s['url']}" target="_blank" rel="noopener" class="ml-2" data-toggle="tooltip" title="{$s['key']}">
                                         <i class="{$s['icon']}"></i>
@@ -115,7 +115,7 @@
                                     <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">{$steamData['personaname']}</a>
                                 </div>
                                 {ifset $steamData['personastate']}
-                                    <div class="steam-info-item"><strong>Status:</strong> {$steamData['personastate']}</div>
+                                    <div class="steam-info-item"><strong>Status:</strong> <span class="status-value {$steamData['personastate']|lower|replace:' ':'-'}">{$steamData['personastate']}</span></div>
                                 {/ifset}
                                 <div class="steam-info-item"><strong>SteamID64:</strong> {$steamData['steamid']}</div>
                                 {ifset $steamData['games_count']}
@@ -130,7 +130,8 @@
                             </div>
                             {ifset $steamData['level']}
                             <div class="steam-level-badge">
-                                {$steamData['level']}
+                                <div class="steam-level-number">{$steamData['level']}</div>
+                                <div class="steam-level-text">Level</div>
                             </div>
                             {/ifset}
                         </div>
