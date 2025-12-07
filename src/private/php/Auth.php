@@ -351,6 +351,59 @@ class Auth {
             return in_array($serverGroup["sgid"], $serverGroupIds, true);
         });
     }
+
+    /**
+     * Checks if the currently logged-in user is an admin based on configuration.
+     * Supports both UID-based and server group-based authentication.
+     * 
+     * Configuration keys:
+     * - admin_uids: array of allowed admin unique identifiers
+     * - admin_cldbids: array of allowed admin client database IDs
+     * - admin_groups: array of server group IDs that grant admin access
+     * 
+     * @return bool true if user is an admin, false otherwise
+     */
+    public static function isAdmin(): bool {
+        if (!self::isLoggedIn()) {
+            return false;
+        }
+
+        // Check UID-based admin access
+        $adminUids = Config::get("admin_uids", []);
+        if (!empty($adminUids) && is_array($adminUids)) {
+            $currentUid = self::getUid();
+            if ($currentUid && in_array($currentUid, $adminUids, true)) {
+                return true;
+            }
+        }
+
+        // Check CLDBID-based admin access
+        $adminCldbids = Config::get("admin_cldbids", []);
+        if (!empty($adminCldbids) && is_array($adminCldbids)) {
+            $currentCldbid = self::getCldbid();
+            if ($currentCldbid && in_array($currentCldbid, $adminCldbids, true)) {
+                return true;
+            }
+        }
+
+        // Check server group-based admin access
+        $adminGroups = Config::get("admin_groups", []);
+        if (!empty($adminGroups) && is_array($adminGroups)) {
+            try {
+                $userGroups = self::getUserServerGroupIds();
+                foreach ($adminGroups as $adminGroupId) {
+                    if (in_array($adminGroupId, $userGroups, true)) {
+                        return true;
+                    }
+                }
+            } catch (\Exception $e) {
+                // If we can't get user groups, deny access
+                return false;
+            }
+        }
+
+        return false;
+    }
 }
 
 class UserNotAuthenticatedException extends \Exception {}

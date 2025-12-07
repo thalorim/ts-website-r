@@ -67,6 +67,8 @@ class Assigner {
      *             1 - no change between current groups and submitted groups
      *             2 - group assigner is not configured, stopping
      *             3 - reached category group limit
+     *             4 - user is not currently connected to the TeamSpeak server (error 512)
+     *             5 - other TeamSpeak error occurred
      * @throws UserNotAuthenticatedException
      * @throws \TeamSpeak3_Exception
      */
@@ -118,17 +120,32 @@ class Assigner {
 
         // finally, add or remove the groups
         $tsServer = TeamSpeakUtils::i()->getTSNodeServer();
+        $cldbid = Auth::getCldbid();
 
         foreach ($groupsToAdd as $sgid) {
             try {
-                $tsServer->serverGroupClientAdd($sgid, Auth::getCldbid());
-            } catch (\TeamSpeak3_Exception $e) {} // TODO log it to the admin panel?
+                $tsServer->serverGroupClientAdd($sgid, $cldbid);
+            } catch (\TeamSpeak3_Exception $e) {
+                // Error 512 means invalid clientID - user is not connected to TS server
+                if ($e->getCode() === 512) {
+                    return 4;
+                }
+                // Other TeamSpeak errors
+                return 5;
+            }
         }
 
         foreach ($groupsToRemove as $sgid) {
             try {
-                $tsServer->serverGroupClientDel($sgid, Auth::getCldbid());
-            } catch (\TeamSpeak3_Exception $e) {} // TODO log it to the admin panel?
+                $tsServer->serverGroupClientDel($sgid, $cldbid);
+            } catch (\TeamSpeak3_Exception $e) {
+                // Error 512 means invalid clientID - user is not connected to TS server
+                if ($e->getCode() === 512) {
+                    return 4;
+                }
+                // Other TeamSpeak errors
+                return 5;
+            }
         }
 
         return 0;

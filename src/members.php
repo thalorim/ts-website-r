@@ -11,11 +11,26 @@ require_once __DIR__ . "/private/php/load.php";
 
 $db = DatabaseUtils::i()->getDb();
 
-// Get configurable member groups from database, default to [6, 7]
-$memberGroups = Config::get("members_groups", [6, 7]);
+// Get configurable member groups from database, default to [532, 556, 542, 533]
+// Display order: 532, then 556, then 542, then 533
+$memberGroups = Config::get("members_groups", [532, 556, 542, 533]);
 if (!is_array($memberGroups) || empty($memberGroups)) {
-    $memberGroups = [6, 7];
+    $memberGroups = [532, 556, 542, 533];
 }
+
+// Define priority order for member groups (lower priority value = displayed first)
+$groupPriority = array_flip(array_values($memberGroups));
+
+// Helper function to get the best priority for a user based on their groups
+$getBestPriority = function($groups) use ($groupPriority) {
+    $priorities = [];
+    foreach ($groups as $gid) {
+        if (isset($groupPriority[$gid])) {
+            $priorities[] = $groupPriority[$gid];
+        }
+    }
+    return !empty($priorities) ? min($priorities) : PHP_INT_MAX;
+};
 
 // Build members from live TS server group membership (preferred), fallback to DB profiles
 $members = [];
@@ -60,30 +75,55 @@ if (TeamSpeakUtils::i()->checkTSConnection()) {
             foreach ($map as $dbid => $data) {
                 $groups = $data['groups'];
                 if (empty($groups)) continue;
-                // Category: lowest group ID in the list (for sorting)
-                $cat = min($groups);
+                // Category: best priority from user's groups (for sorting)
+                $cat = $getBestPriority($groups);
                 $nick = null;
                 $country = null;
+                $isOnline = false;
+                
+                // Try to get data from online client (highest priority)
                 $online = CacheManager::i()->getClient($dbid);
                 if ($online) {
+                    $isOnline = true;
                     if (isset($online['client_nickname'])) { $nick = (string) $online['client_nickname']; }
                     if (!empty($online['client_country'])) { $country = (string) $online['client_country']; }
+                    
+                    // Cache online data for offline use (similar to viewer/profile behavior)
+                    if ($nick || $country) {
+                        try {
+                            $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
+                            $cacheData = $lastSeenCache->retrieve("u_" . (int) $dbid);
+                            if (!is_array($cacheData)) {
+                                $cacheData = [];
+                            }
+                            if ($nick) { $cacheData['nickname'] = $nick; }
+                            if ($country) { $cacheData['country'] = $country; }
+                            $cacheData['ts'] = time();
+                            $lastSeenCache->store("u_" . (int) $dbid, $cacheData, 31536000); // 365 days
+                        } catch (\Exception $e) { /* ignore cache errors */ }
+                    }
                 }
+                
+                // Fallback to profile DB data if still missing
                 if (!$nick || !$country) {
                     if (isset($profilesById[$dbid])) {
                         if (!$nick && !empty($profilesById[$dbid]['nickname'])) { $nick = $profilesById[$dbid]['nickname']; }
                         if (!$country && !empty($profilesById[$dbid]['country'])) { $country = $profilesById[$dbid]['country']; }
                     }
                 }
-                if (!$country) {
+                
+                // Final fallback: use cached "last seen" data from when user was online
+                if (!$nick || !$country) {
                     try {
                         $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
                         $cached = $lastSeenCache->retrieve("u_" . (int) $dbid);
-                        if (is_array($cached) && !empty($cached['country'])) {
-                            $country = (string) $cached['country'];
+                        if (is_array($cached)) {
+                            if (!$nick && !empty($cached['nickname'])) { $nick = (string) $cached['nickname']; }
+                            if (!$country && !empty($cached['country'])) { $country = (string) $cached['country']; }
                         }
                     } catch (\Exception $e) { /* ignore */ }
                 }
+                
                 $members[] = [
                     'cldbid' => (int) $dbid,
                     'nickname' => $nick ?: ('User #' . $dbid),
@@ -106,22 +146,26 @@ if (empty($members)) {
             // Check if user has any of the configured member groups
             $matchingGroups = array_intersect($ids, $memberGroups);
             if (empty($matchingGroups)) continue;
-            $cat = min($matchingGroups);
+            $cat = $getBestPriority(array_values($matchingGroups));
             $dbid = (int) $r["cldbid"];
-            $nick = (string) ($r["nickname"] ?: ("User #" . $dbid));
-            $country = isset($r['country']) ? (string) $r['country'] : null;
-            if (!$country) {
+            $nick = isset($r["nickname"]) && $r["nickname"] !== '' ? (string) $r["nickname"] : null;
+            $country = isset($r['country']) && $r['country'] !== '' ? (string) $r['country'] : null;
+            
+            // Try to use cached "last seen" data as fallback (from when user was online)
+            if (!$nick || !$country) {
                 try {
                     $lastSeenCache = new \Wruczek\PhpFileCache\PhpFileCache(__CACHE_DIR, "profile_last_seen");
                     $cached = $lastSeenCache->retrieve("u_" . $dbid);
-                    if (is_array($cached) && !empty($cached['country'])) {
-                        $country = (string) $cached['country'];
+                    if (is_array($cached)) {
+                        if (!$nick && !empty($cached['nickname'])) { $nick = (string) $cached['nickname']; }
+                        if (!$country && !empty($cached['country'])) { $country = (string) $cached['country']; }
                     }
                 } catch (\Exception $e) { /* ignore */ }
             }
+            
             $members[] = [
                 "cldbid" => $dbid,
-                "nickname" => $nick,
+                "nickname" => $nick ?: ("User #" . $dbid),
                 "country" => $country ?: null,
                 "cat" => $cat
             ];
@@ -129,7 +173,7 @@ if (empty($members)) {
     } catch (\Exception $e) { /* ignore */ }
 }
 
-// Sort: by category (lowest group ID first), then by cldbid ascending
+// Sort: by category (priority order: 532, 556, 542, 533), then by cldbid ascending
 $members && usort($members, function ($a, $b) {
     if ($a["cat"] === $b["cat"]) {
         return $a["cldbid"] <=> $b["cldbid"];
