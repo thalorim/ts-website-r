@@ -7,140 +7,238 @@
         <i class="fas fa-tools"></i> Admin Panel
     </div>
     <div class="card-body">
-        <p>Only user with CLDBID 3 can access this page.</p>
+        <p class="mb-3">Only user with CLDBID 3 can access this page.</p>
 
-        <form id="form-config" method="post" action="api/save-config.php" class="mb-4">
-            {$csrfField}
-            <h5>Assigner Config (JSON)</h5>
-            <textarea class="form-control mb-2" name="assignerconfig" rows="10">{$assignerConfigJson|noescape}</textarea>
+        <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="discord-ts-tab" data-toggle="tab" href="#discord-ts" role="tab">
+                    <i class="fab fa-discord"></i> Discord & TeamSpeak
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="general-tab" data-toggle="tab" href="#general" role="tab">
+                    <i class="fas fa-cog"></i> General Settings
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="news-tab" data-toggle="tab" href="#news" role="tab">
+                    <i class="fas fa-newspaper"></i> News
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="faq-tab" data-toggle="tab" href="#faq" role="tab">
+                    <i class="far fa-question-circle"></i> FAQ
+                </a>
+            </li>
+        </ul>
 
-            <h5 class="mt-3">Admin Status Groups (JSON)</h5>
-            <textarea class="form-control mb-2" name="adminstatus_groups" rows="6">{$adminStatusGroupsJson|noescape}</textarea>
-
-            <h5 class="mt-3">Discord Login Webhook URL</h5>
-            <input type="url" class="form-control mb-2" name="discord_login_webhook" placeholder="https://discord.com/api/webhooks/..." value="{$config['discord_login_webhook'] ?? ''}">
-
-            <h5 class="mt-3">Steam API Key</h5>
-            <input type="text" class="form-control mb-2" name="steam_api_key" placeholder="Enter your Steam Web API Key" value="{$config['steam_api_key'] ?? ''}">
-            <small class="form-text text-muted">Get your Steam API key from <a href="https://steamcommunity.com/dev/apikey" target="_blank">https://steamcommunity.com/dev/apikey</a></small>
-
-            <hr class="my-4">
-            <h5><i class="fas fa-server"></i> TeamSpeak 3 Server Settings</h5>
-            
-            <div class="row">
-                <div class="col-md-6">
+        <div class="tab-content mt-3" id="adminTabsContent">
+            <!-- Discord & TeamSpeak Tab -->
+            <div class="tab-pane fade show active" id="discord-ts" role="tabpanel">
+                <form id="form-discord-ts" method="post" action="api/save-config.php">
+                    {$csrfField}
+                    
+                    <h5><i class="fab fa-discord"></i> Discord Settings</h5>
                     <div class="form-group">
-                        <label>Query Host</label>
-                        <input type="text" class="form-control" name="ts3_host" placeholder="127.0.0.1" value="{$config['ts3_host'] ?? ''}">
-                        <small class="form-text text-muted">TeamSpeak server host address</small>
+                        <label>Discord Login Webhook URL</label>
+                        <input type="url" class="form-control" name="discord_login_webhook" placeholder="https://discord.com/api/webhooks/..." value="{$config['discord_login_webhook'] ?? ''}">
+                        <small class="form-text text-muted">Webhook URL for login notifications</small>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Query Port</label>
-                        <input type="number" class="form-control" name="ts3_queryport" placeholder="10011" value="{$config['ts3_queryport'] ?? ''}">
-                        <small class="form-text text-muted">ServerQuery port (default: 10011)</small>
-                    </div>
-                </div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Server Port</label>
-                        <input type="number" class="form-control" name="ts3_serverport" placeholder="9987" value="{$config['ts3_serverport'] ?? ''}">
-                        <small class="form-text text-muted">Voice server port (default: 9987)</small>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Display IP</label>
-                        <input type="text" class="form-control" name="ts3_displayip" placeholder="ts.example.com" value="{$config['ts3_displayip'] ?? ''}">
-                        <small class="form-text text-muted">Public IP/domain for clients</small>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Query Username</label>
-                        <input type="text" class="form-control" name="ts3_username" placeholder="serveradmin" value="{$config['ts3_username'] ?? ''}">
-                        <small class="form-text text-muted">ServerQuery login username</small>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Query Password</label>
-                        <input type="password" class="form-control" name="ts3_password" placeholder="Enter query password" value="{$config['ts3_password'] ?? ''}">
-                        <small class="form-text text-muted">ServerQuery login password</small>
-                    </div>
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Config</button>
-        </form>
-
-        <form id="form-rules" method="post" action="api/save-rules.php" class="mb-4">
-            {$csrfField}
-            <h5>Rules HTML</h5>
-            <textarea class="form-control mb-2" name="rules_html" rows="10">{$rulesHtml|noescape}</textarea>
-            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Rules</button>
-        </form>
-
-        <hr class="my-4">
-        <h5><i class="fas fa-newspaper"></i> News Management</h5>
-        
-        <form id="form-news" method="post" action="api/save-news.php">
-            {$csrfField}
-            <input type="hidden" name="action" value="add" id="news-action">
-            <input type="hidden" name="newsid" value="" id="news-id">
-            <div class="form-group">
-                <label for="news-title">News Title</label>
-                <input type="text" id="news-title" class="form-control" name="title" placeholder="Enter news title" required>
-            </div>
-            <div class="form-group">
-                <label for="news-content">News Content (HTML)</label>
-                <textarea id="news-content" class="form-control" name="content" rows="8" placeholder="Enter HTML content" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-success" id="news-submit-btn"><i class="fas fa-plus"></i> Add News</button>
-            <button type="button" class="btn btn-secondary" id="news-cancel-btn" style="display:none;"><i class="fas fa-times"></i> Cancel</button>
-        </form>
-
-        {if $newsList}
-        <div class="mt-4">
-            <h6>Existing News Posts</h6>
-            <div class="list-group">
-                {foreach $newsList as $news}
-                <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">{$news['title']}</h6>
-                            <p class="mb-1 text-muted" style="font-size:0.85rem;">
-                                Added: {date('M j, Y g:i A', $news['added'])}
-                                {if $news['edited']} • Edited: {date('M j, Y g:i A', $news['edited'])}{/if}
-                            </p>
-                            <div class="small text-muted" style="max-height:60px;overflow:hidden;">{$news['description']|noescape|truncate:150}</div>
+                    <hr class="my-4">
+                    <h5><i class="fas fa-server"></i> TeamSpeak 3 Server Settings</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Query Host</label>
+                                <input type="text" class="form-control" name="ts3_host" placeholder="127.0.0.1" value="{$config['ts3_host'] ?? ''}">
+                                <small class="form-text text-muted">TeamSpeak server host address</small>
+                            </div>
                         </div>
-                        <div class="btn-group ml-3">
-                            <button type="button" class="btn btn-sm btn-primary edit-news-btn" 
-                                    data-newsid="{$news['newsId']}" 
-                                    data-title="{$news['title']|escape}" 
-                                    data-content="{$news['description']|escape}">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-danger delete-news-btn" 
-                                    data-newsid="{$news['newsId']}" 
-                                    data-title="{$news['title']|escape}">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Query Port</label>
+                                <input type="number" class="form-control" name="ts3_queryport" placeholder="10011" value="{$config['ts3_queryport'] ?? ''}">
+                                <small class="form-text text-muted">ServerQuery port (default: 10011)</small>
+                            </div>
                         </div>
                     </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Server Port</label>
+                                <input type="number" class="form-control" name="ts3_serverport" placeholder="9987" value="{$config['ts3_serverport'] ?? ''}">
+                                <small class="form-text text-muted">Voice server port (default: 9987)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Display IP</label>
+                                <input type="text" class="form-control" name="ts3_displayip" placeholder="ts.example.com" value="{$config['ts3_displayip'] ?? ''}">
+                                <small class="form-text text-muted">Public IP/domain for clients</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Query Username</label>
+                                <input type="text" class="form-control" name="ts3_username" placeholder="serveradmin" value="{$config['ts3_username'] ?? ''}">
+                                <small class="form-text text-muted">ServerQuery login username</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Query Password</label>
+                                <input type="password" class="form-control" name="ts3_password" placeholder="Enter query password" value="{$config['ts3_password'] ?? ''}">
+                                <small class="form-text text-muted">ServerQuery login password</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Discord & TS Settings</button>
+                </form>
+            </div>
+
+            <!-- General Settings Tab -->
+            <div class="tab-pane fade" id="general" role="tabpanel">
+                <form id="form-config" method="post" action="api/save-config.php">
+                    {$csrfField}
+                    
+                    <h5>Assigner Config (JSON)</h5>
+                    <textarea class="form-control mb-3" name="assignerconfig" rows="10">{$assignerConfigJson|noescape}</textarea>
+
+                    <h5 class="mt-3">Admin Status Groups (JSON)</h5>
+                    <textarea class="form-control mb-3" name="adminstatus_groups" rows="6">{$adminStatusGroupsJson|noescape}</textarea>
+
+                    <h5 class="mt-3">Steam API Key</h5>
+                    <input type="text" class="form-control mb-2" name="steam_api_key" placeholder="Enter your Steam Web API Key" value="{$config['steam_api_key'] ?? ''}">
+                    <small class="form-text text-muted mb-3">Get your Steam API key from <a href="https://steamcommunity.com/dev/apikey" target="_blank">https://steamcommunity.com/dev/apikey</a></small>
+
+                    <button type="submit" class="btn btn-primary mt-2"><i class="fas fa-save"></i> Save General Settings</button>
+                </form>
+
+                <hr class="my-4">
+                
+                <form id="form-rules" method="post" action="api/save-rules.php">
+                    {$csrfField}
+                    <h5>Rules HTML</h5>
+                    <textarea class="form-control mb-2" name="rules_html" rows="10">{$rulesHtml|noescape}</textarea>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Rules</button>
+                </form>
+            </div>
+
+            <!-- News Tab -->
+            <div class="tab-pane fade" id="news" role="tabpanel">
+                <h5><i class="fas fa-newspaper"></i> News Management</h5>
+                
+                <form id="form-news" method="post" action="api/save-news.php">
+                    {$csrfField}
+                    <input type="hidden" name="action" value="add" id="news-action">
+                    <input type="hidden" name="newsid" value="" id="news-id">
+                    <div class="form-group">
+                        <label for="news-title">News Title</label>
+                        <input type="text" id="news-title" class="form-control" name="title" placeholder="Enter news title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="news-content">News Content (HTML)</label>
+                        <textarea id="news-content" class="form-control" name="content" rows="8" placeholder="Enter HTML content" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success" id="news-submit-btn"><i class="fas fa-plus"></i> Add News</button>
+                    <button type="button" class="btn btn-secondary" id="news-cancel-btn" style="display:none;"><i class="fas fa-times"></i> Cancel</button>
+                </form>
+
+                {if $newsList}
+                <div class="mt-4">
+                    <h6>Existing News Posts</h6>
+                    <div class="list-group">
+                        {foreach $newsList as $news}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{$news['title']}</h6>
+                                    <p class="mb-1 text-muted" style="font-size:0.85rem;">
+                                        Added: {date('M j, Y g:i A', $news['added'])}
+                                        {if $news['edited']} • Edited: {date('M j, Y g:i A', $news['edited'])}{/if}
+                                    </p>
+                                    <div class="small text-muted" style="max-height:60px;overflow:hidden;">{$news['description']|noescape|truncate:150}</div>
+                                </div>
+                                <div class="btn-group ml-3">
+                                    <button type="button" class="btn btn-sm btn-primary edit-news-btn" 
+                                            data-newsid="{$news['newsId']}" 
+                                            data-title="{$news['title']}" 
+                                            data-content="{$news['description']}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger delete-news-btn" 
+                                            data-newsid="{$news['newsId']}" 
+                                            data-title="{$news['title']}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {/foreach}
+                    </div>
                 </div>
-                {/foreach}
+                {/if}
+            </div>
+
+            <!-- FAQ Tab -->
+            <div class="tab-pane fade" id="faq" role="tabpanel">
+                <h5><i class="far fa-question-circle"></i> FAQ Management</h5>
+                
+                <form id="form-faq" method="post" action="api/save-faq.php">
+                    {$csrfField}
+                    <input type="hidden" name="action" value="add" id="faq-action">
+                    <input type="hidden" name="faqid" value="" id="faq-id">
+                    <div class="form-group">
+                        <label for="faq-question">Question</label>
+                        <input type="text" id="faq-question" class="form-control" name="question" placeholder="Enter FAQ question" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="faq-answer">Answer (HTML)</label>
+                        <textarea id="faq-answer" class="form-control" name="answer" rows="6" placeholder="Enter HTML answer" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success" id="faq-submit-btn"><i class="fas fa-plus"></i> Add FAQ</button>
+                    <button type="button" class="btn btn-secondary" id="faq-cancel-btn" style="display:none;"><i class="fas fa-times"></i> Cancel</button>
+                </form>
+
+                {if $faqList}
+                <div class="mt-4">
+                    <h6>Existing FAQ Items</h6>
+                    <div class="list-group">
+                        {foreach $faqList as $faq}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{$faq['question']|noescape}</h6>
+                                    <div class="small text-muted" style="max-height:60px;overflow:hidden;">{$faq['answer']|noescape|truncate:150}</div>
+                                </div>
+                                <div class="btn-group ml-3">
+                                    <button type="button" class="btn btn-sm btn-primary edit-faq-btn" 
+                                            data-faqid="{$faq['id']}" 
+                                            data-question="{$faq['question']}" 
+                                            data-answer="{$faq['answer']}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger delete-faq-btn" 
+                                            data-faqid="{$faq['id']}" 
+                                            data-question="{$faq['question']}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {/foreach}
+                    </div>
+                </div>
+                {/if}
             </div>
         </div>
-        {/if}
     </div>
 </div>
 {/block}
@@ -149,6 +247,7 @@
 {include parent}
 <script>
 $(document).ready(function() {
+    // ========== NEWS HANDLERS ==========
     // Edit news button handler
     $('.edit-news-btn').on('click', function() {
         const newsId = $(this).data('newsid');
@@ -248,6 +347,111 @@ $(document).ready(function() {
             },
             error: function() {
                 alert('Failed to save news post. Please try again.');
+                $submitBtn.prop('disabled', false);
+            }
+        });
+    });
+
+    // ========== FAQ HANDLERS ==========
+    // Edit FAQ button handler
+    $('.edit-faq-btn').on('click', function() {
+        const faqId = $(this).data('faqid');
+        const question = $(this).data('question');
+        const answer = $(this).data('answer');
+        
+        // Populate form
+        $('#faq-id').val(faqId);
+        $('#faq-question').val(question);
+        $('#faq-answer').val(answer);
+        $('#faq-action').val('edit');
+        
+        // Update button text
+        $('#faq-submit-btn').html('<i class="fas fa-save"></i> Update FAQ');
+        $('#faq-cancel-btn').show();
+        
+        // Scroll to form
+        $('html, body').animate({
+            scrollTop: $('#form-faq').offset().top - 100
+        }, 500);
+    });
+    
+    // Cancel FAQ edit button handler
+    $('#faq-cancel-btn').on('click', function() {
+        $('#faq-id').val('');
+        $('#faq-question').val('');
+        $('#faq-answer').val('');
+        $('#faq-action').val('add');
+        $('#faq-submit-btn').html('<i class="fas fa-plus"></i> Add FAQ');
+        $(this).hide();
+    });
+    
+    // Delete FAQ button handler
+    $('.delete-faq-btn').on('click', function() {
+        const faqId = $(this).data('faqid');
+        const question = $(this).data('question');
+        
+        if (!confirm('Are you sure you want to delete "' + question + '"?')) {
+            return;
+        }
+        
+        const $btn = $(this);
+        $btn.prop('disabled', true);
+        
+        $.ajax({
+            url: 'api/delete-faq.php',
+            method: 'POST',
+            data: {
+                faqid: faqId
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.ok) {
+                    $btn.closest('.list-group-item').fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                    alert('FAQ deleted successfully!');
+                } else {
+                    alert('Error: ' + (response.error || 'Unknown error'));
+                    $btn.prop('disabled', false);
+                }
+            },
+            error: function() {
+                alert('Failed to delete FAQ. Please try again.');
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+    
+    // FAQ form submit handler
+    $('#form-faq').on('submit', function(e) {
+        e.preventDefault();
+        
+        const $form = $(this);
+        const $submitBtn = $('#faq-submit-btn');
+        const action = $('#faq-action').val();
+        
+        $submitBtn.prop('disabled', true);
+        
+        $.ajax({
+            url: $form.attr('action'),
+            method: 'POST',
+            data: $form.serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if (response.ok) {
+                    if (action === 'edit') {
+                        alert('FAQ updated successfully!');
+                    } else {
+                        alert('FAQ added successfully!');
+                    }
+                    location.reload();
+                } else {
+                    alert('Error: ' + (response.error || 'Unknown error'));
+                    $submitBtn.prop('disabled', false);
+                }
+            },
+            error: function() {
+                alert('Failed to save FAQ. Please try again.');
                 $submitBtn.prop('disabled', false);
             }
         });
