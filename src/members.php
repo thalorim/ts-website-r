@@ -181,21 +181,16 @@ if (!empty($pageItems) && $serverGroups) {
             }
         }
 
-        // Add client info (first joined, last active)
-        foreach ($clientList as $client) {
-            if (isset($client['client_database_id']) && (int) $client['client_database_id'] === $dbid) {
-                $m['client_created'] = isset($client['client_created']) ? (int) $client['client_created'] : null;
-                $m['client_lastconnected'] = isset($client['client_lastconnected']) ? (int) $client['client_lastconnected'] : null;
-                $m['is_online'] = true;
-                break;
-            }
-        }
+        // Initialize cache for this user
+        $lastSeenCache = null;
+        try {
+            $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
+        } catch (\Exception $e) { /* ignore */ }
 
-        // If not online, try to get from last_seen cache
-        if (!isset($m['is_online'])) {
-            $m['is_online'] = false;
+        // First, try to load from cache
+        $m['is_online'] = false;
+        if ($lastSeenCache) {
             try {
-                $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
                 $cached = $lastSeenCache->retrieve("u_" . $dbid);
                 if (is_array($cached)) {
                     if (isset($cached['client_created'])) {
@@ -206,6 +201,39 @@ if (!empty($pageItems) && $serverGroups) {
                     }
                 }
             } catch (\Exception $e) { /* ignore */ }
+        }
+
+        // Then check if user is currently online and update with live data
+        foreach ($clientList as $client) {
+            if (isset($client['client_database_id']) && (int) $client['client_database_id'] === $dbid) {
+                $m['is_online'] = true;
+                
+                // Get live data
+                if (isset($client['client_created'])) {
+                    $m['client_created'] = (int) $client['client_created'];
+                }
+                if (isset($client['client_lastconnected'])) {
+                    $m['client_lastconnected'] = (int) $client['client_lastconnected'];
+                }
+
+                // Update cache with current data so it persists when they go offline
+                if ($lastSeenCache && (isset($m['client_created']) || isset($m['client_lastconnected']))) {
+                    try {
+                        $cacheData = [];
+                        if (isset($m['client_created'])) {
+                            $cacheData['client_created'] = $m['client_created'];
+                        }
+                        if (isset($m['client_lastconnected'])) {
+                            $cacheData['client_lastconnected'] = $m['client_lastconnected'];
+                        }
+                        if (isset($m['country'])) {
+                            $cacheData['country'] = $m['country'];
+                        }
+                        $lastSeenCache->store("u_" . $dbid, $cacheData, 86400 * 365); // Cache for 1 year
+                    } catch (\Exception $e) { /* ignore */ }
+                }
+                break;
+            }
         }
     }
     unset($m);
