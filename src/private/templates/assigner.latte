@@ -43,6 +43,28 @@
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
+                    {elseif $groupChangeStatus === 3} {* reached group limit *}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle"></i><strong>Group Limit Reached:</strong> You have reached the maximum number of groups allowed in this category.
+                            <button type="button" class="close" data-dismiss="alert" aria-label="{_"ARIA_CLOSE"}">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {elseif $groupChangeStatus === 4} {* user not connected to TeamSpeak *}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle"></i><strong>You must be connected to the TeamSpeak server to use the group assigner.</strong><br>
+                            Please connect to the TeamSpeak server and try again.
+                            <button type="button" class="close" data-dismiss="alert" aria-label="{_"ARIA_CLOSE"}">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {elseif $groupChangeStatus === 5} {* other TeamSpeak error *}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle"></i><strong>TeamSpeak Error:</strong> Unable to change groups. Please try again later or contact an administrator.
+                            <button type="button" class="close" data-dismiss="alert" aria-label="{_"ARIA_CLOSE"}">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
                     {else} {* something went wrong *}
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="fas fa-exclamation-circle"></i>{_"ASSIGNER_SAVE_ERROR"}
