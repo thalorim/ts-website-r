@@ -1,0 +1,91 @@
+{extends "body.latte"}
+{var $title = 'Edit Clan Settings'}
+
+{block content}
+    <div class="card card-accent">
+        <div class="card-header bigger-title">
+            <i class="fas fa-edit"></i> Edit Clan Settings
+        </div>
+        <div class="card-body">
+            {if $message}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {$message}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {/if}
+            
+            {if $error}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {$error}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {/if}
+
+            <form method="POST" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="clan_name">Clan Name</label>
+                            <input type="text" class="form-control" id="clan_name" name="clan_name" 
+                                   value="{$currentName}" placeholder="Enter clan name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="clan_description">Clan Description</label>
+                            <textarea class="form-control" id="clan_description" name="clan_description" 
+                                      rows="8" placeholder="Enter clan description (HTML supported)">{$currentDescription}</textarea>
+                            <small class="form-text text-muted">HTML tags are supported (e.g., &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, &lt;br&gt; for line breaks)</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Current Clan Avatar</label>
+                            <div class="text-center mb-3">
+                                <img src="{$currentAvatar}" alt="Current avatar" 
+                                     style="max-width: 200px; max-height: 200px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="clan_avatar">Upload New Clan Avatar (Optional)</label>
+                            <input type="file" class="form-control-file" id="clan_avatar" name="clan_avatar" 
+                                   accept="image/png,image/jpeg,image/webp">
+                            <small class="form-text text-muted">Max 2MB. Formats: PNG, JPG, WEBP</small>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="clan.php?groupid={$groupId}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Clan Page
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            <i class="fas fa-info-circle"></i> Help
+        </div>
+        <div class="card-body">
+            <h5>Clan Settings Guide</h5>
+            <ul>
+                <li><strong>Clan Name:</strong> The display name for your clan (required)</li>
+                <li><strong>Clan Description:</strong> A detailed description about your clan. HTML is supported for formatting.</li>
+                <li><strong>Clan Avatar:</strong> Upload a custom avatar/logo for your clan. Recommended size: 200x200px or larger.</li>
+            </ul>
+            <p class="mb-0"><strong>Note:</strong> Only authorized users (cldbid 3) can edit these settings.</p>
+        </div>
+    </div>
+{/block}
