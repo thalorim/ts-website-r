@@ -137,7 +137,7 @@ $pageItems = array_slice($members, $start, $perPage);
 $hasMore = count($members) > ($start + $perPage);
 $nextPageUrl = $hasMore ? ("members.php?page=" . ($page + 1)) : null;
 
-// Enrich page items with rank icon (group id 9..18 highest icon)
+// Enrich page items with rank icon (group id 9..18 highest icon) and client info
 try {
     $serverGroups = CacheManager::i()->getServerGroupList();
 } catch (\Exception $e) { $serverGroups = null; }
@@ -152,6 +152,12 @@ if (!empty($pageItems) && $serverGroups) {
 
     $tsOk = TeamSpeakUtils::i()->checkTSConnection();
     $node = $tsOk ? TeamSpeakUtils::i()->getTSNodeServer() : null;
+
+    // Get client list for additional info
+    $clientList = [];
+    try {
+        $clientList = CacheManager::i()->getClientList();
+    } catch (\Exception $e) { /* ignore */ }
 
     foreach ($pageItems as &$m) {
         $dbid = (int) $m['cldbid'];
@@ -173,6 +179,33 @@ if (!empty($pageItems) && $serverGroups) {
                     $m['rank_iconid'] = (int) $serverGroups[$chosen]['iconid'];
                 }
             }
+        }
+
+        // Add client info (first joined, last active)
+        foreach ($clientList as $client) {
+            if (isset($client['client_database_id']) && (int) $client['client_database_id'] === $dbid) {
+                $m['client_created'] = isset($client['client_created']) ? (int) $client['client_created'] : null;
+                $m['client_lastconnected'] = isset($client['client_lastconnected']) ? (int) $client['client_lastconnected'] : null;
+                $m['is_online'] = true;
+                break;
+            }
+        }
+
+        // If not online, try to get from last_seen cache
+        if (!isset($m['is_online'])) {
+            $m['is_online'] = false;
+            try {
+                $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
+                $cached = $lastSeenCache->retrieve("u_" . $dbid);
+                if (is_array($cached)) {
+                    if (isset($cached['client_created'])) {
+                        $m['client_created'] = (int) $cached['client_created'];
+                    }
+                    if (isset($cached['client_lastconnected'])) {
+                        $m['client_lastconnected'] = (int) $cached['client_lastconnected'];
+                    }
+                }
+            } catch (\Exception $e) { /* ignore */ }
         }
     }
     unset($m);
