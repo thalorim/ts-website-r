@@ -332,7 +332,7 @@ if ($dbProfile && !empty($dbProfile["steam_id"])) {
                                     'playtime_2weeks' => isset($game['playtime_2weeks']) ? round($game['playtime_2weeks'] / 60, 1) : 0,
                                     'playtime_forever' => round($game['playtime_forever'] / 60, 1),
                                     'img_icon_url' => $game['img_icon_url'] ?? '',
-                                    'capsule_url' => "https://steamcdn-a.akamaihd.net/steam/apps/" . $game['appid'] . "/capsule_184x69.jpg"
+                                    'capsule_url' => "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/" . $game['appid'] . "/header.jpg"
                                 ];
                             }
                         }
