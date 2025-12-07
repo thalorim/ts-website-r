@@ -4,67 +4,63 @@
 {block content}
     <div class="profile-header steamlike-header card-accent">
         <div class="cover" n:attr="style => isset($bannerUrl) && $bannerUrl ? 'background-image:url(' . $bannerUrl . '); background-size:cover; background-position:center;' : null"></div>
-        <div class="avatar-and-meta d-flex align-items-center">
-            <div class="d-flex align-items-center">
-                <div class="avatar avatar-preview">
-                    <img src="{$avatarUrl}" alt="avatar" class="avatar-img">
-                    <img src="{$avatarBorderUrl}" alt="avatar border" class="avatar-border-overlay">
+        <div class="avatar-and-meta">
+            <div class="avatar avatar-preview">
+                <img src="{$avatarUrl}" alt="avatar" class="avatar-img">
+                <img src="{$avatarBorderUrl}" alt="avatar border" class="avatar-border-overlay">
+            </div>
+            <div class="meta">
+                <h3 class="nickname">
+                    <span>{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
+                    {ifset $groups}
+                        {foreach $groups as $g}
+                            {if $g['sgid'] === 6}
+                                <img src="https://cdn3.emoji.gg/emojis/28948-staff.png" alt="Group 6" class="rank-icon" data-toggle="tooltip" title="Group 6">
+                                {breakIf true}
+                            {/if}
+                        {/foreach}
+                    {/ifset}
+                </h3>
+                <div class="subtext">
+                    <i class="fas fa-id-badge" data-toggle="tooltip" title="Database ID: {$profile['cldbid']}"></i>
+                    {ifset $profile["cluid"]}
+                        <i class="fas fa-fingerprint ml-2" data-toggle="tooltip" title="{$profile['cluid']}"></i>
+                    {/ifset}
+                    {if $socials}
+                        {foreach $socials as $s}
+                            <a href="{$s['url']}" target="_blank" rel="noopener" class="social-icon" data-toggle="tooltip" title="{$s['key']}">
+                                <i class="{$s['icon']}"></i>
+                            </a>
+                        {/foreach}
+                    {/if}
                 </div>
-                <div class="meta ml-3">
-                    <h3 class="nickname mb-1 d-flex align-items-center">
-                        <span>{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
-                        {ifset $groups}
-                            {foreach $groups as $g}
-                                {if $g['sgid'] === 6}
-                                    <img src="https://cdn3.emoji.gg/emojis/28948-staff.png" alt="Group 6" class="ml-2" style="height:24px;width:24px;object-fit:contain;vertical-align:middle;" data-toggle="tooltip" title="Group 6">
-                                    {breakIf true}
-                                {/if}
-                            {/foreach}
-                        {/ifset}
-                    </h3>
-                    <div class="subtext">
-                        <span><i class="fas fa-id-badge" data-toggle="tooltip" title="Database ID: {$profile['cldbid']}"></i></span>
-                        {ifset $profile["cluid"]}
-                            <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
-                        {/ifset}
-                        {if $socials}
-                            <span class="ml-2">
-                                {foreach $socials as $s}
-                                    <a href="{$s['url']}" target="_blank" rel="noopener" class="ml-2" data-toggle="tooltip" title="{$s['key']}">
-                                        <i class="{$s['icon']}"></i>
-                                    </a>
-                                {/foreach}
-                            </span>
-                        {/if}
-                    </div>
-                    <div class="online-subtext mt-2">
-                        {if $isOnline}
-                            <span class="status-dot green"></span>
-                            <small>
-                                Online since
-                                {ifset $profile["online_since_text"]}
-                                    {$profile["online_since_text"]}
-                                {elseifset $profile["online_since_ms"]}
-                                    {round(($profile["online_since_ms"] / 1000) / 60)} minutes
-                                {else}
-                                    a moment
-                                {/ifset}
-                                {ifset $currentChannelName}
-                                    • talking on {ifset $currentChannelId}<a href="ts3server://web.reape.rs?cid={$currentChannelId}">{$currentChannelName}</a>{else}{$currentChannelName}{/ifset}
-                                {/ifset}
-                            </small>
-                        {else}
-                            <span class="status-dot gray"></span>
-                            <small>
-                                Offline{ifset $lastSeenText} • last seen {$lastSeenText}{/ifset}
-                            </small>
-                        {/if}
-                    </div>
+                <div class="online-subtext">
+                    {if $isOnline}
+                        <span class="status-dot green"></span>
+                        <small>
+                            Online since
+                            {ifset $profile["online_since_text"]}
+                                {$profile["online_since_text"]}
+                            {elseifset $profile["online_since_ms"]}
+                                {round(($profile["online_since_ms"] / 1000) / 60)} minutes
+                            {else}
+                                a moment
+                            {/ifset}
+                            {ifset $currentChannelName}
+                                • talking on {ifset $currentChannelId}<a href="ts3server://web.reape.rs?cid={$currentChannelId}">{$currentChannelName}</a>{else}{$currentChannelName}{/ifset}
+                            {/ifset}
+                        </small>
+                    {else}
+                        <span class="status-dot gray"></span>
+                        <small>
+                            Offline{ifset $lastSeenText} • last seen {$lastSeenText}{/ifset}
+                        </small>
+                    {/if}
                 </div>
             </div>
             {ifset $rankImageUrl}
-                <div class="ml-auto">
-                    <img src="{$rankImageUrl}" alt="Rank {$rankLevel}" style="height:48px;width:auto;">
+                <div class="rank-badge">
+                    <img src="{$rankImageUrl}" alt="Rank {$rankLevel}">
                 </div>
             {/ifset}
         </div>
