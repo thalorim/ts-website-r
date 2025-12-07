@@ -72,16 +72,32 @@ $error = null;
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     try {
         $updateData = [];
+        $changes = []; // Track what changed for webhook
+
+        // Get current data for comparison
+        $currentData = $db->get("profiles", ["avatar_url","socials_json","steam_id","description","banner_url"], ["cldbid" => $requestedCldbid]);
 
         // Handle socials
         $socialKeys = ["instagram","facebook","youtube","twitter","steam","soundcloud","github","telegram","twitch","discord"];
         $socials = [];
+        $oldSocials = [];
+        
+        if ($currentData && !empty($currentData["socials_json"])) {
+            $oldSocials = json_decode((string) $currentData["socials_json"], true) ?: [];
+        }
+        
         foreach ($socialKeys as $key) {
             $val = isset($_POST[$key]) ? trim((string) $_POST[$key]) : "";
             if ($val !== "") {
                 $socials[$key] = $val;
             }
         }
+        
+        // Check if socials changed
+        if ($socials !== $oldSocials) {
+            $changes[] = 'social_links';
+        }
+        
         if (!empty($socials)) {
             $updateData["socials_json"] = json_encode($socials);
         } else {
@@ -128,6 +144,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
 
             $updateData["avatar_url"] = $publicPath;
+            $changes[] = 'avatar';
         }
 
         // Handle banner (optional)
@@ -171,6 +188,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
 
             $updateData["banner_url"] = $publicPath;
+            $changes[] = 'banner';
         }
 
         // Handle description (optional)
@@ -182,6 +200,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         // Handle Steam ID (optional)
         if (isset($_POST["steam_id"])) {
             $steamId = trim((string) $_POST["steam_id"]);
+            $oldSteamId = $currentData && isset($currentData["steam_id"]) ? $currentData["steam_id"] : null;
+            
+            if ($steamId !== $oldSteamId) {
+                if ($steamId !== "" && $oldSteamId === null) {
+                    $changes[] = 'steam_added';
+                } else if ($steamId !== "" && $oldSteamId !== null) {
+                    $changes[] = 'steam_changed';
+                }
+            }
+            
             $updateData["steam_id"] = $steamId !== "" ? $steamId : null;
         }
 
@@ -193,6 +221,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $db->update("profiles", $updateData, ["cldbid" => $requestedCldbid]);
         } else {
             $db->insert("profiles", ["cldbid" => $requestedCldbid] + $updateData);
+        }
+
+        // Send Discord webhook for profile updates
+        if (!empty($changes)) {
+            sendProfileUpdateWebhook($requestedCldbid, $changes, $updateData);
         }
 
         $message = "Profile updated";
@@ -213,6 +246,92 @@ if ($current && !empty($current["socials_json"])) {
     $decoded = json_decode((string) $current["socials_json"], true);
     if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
         $currentSocials = $decoded;
+    }
+}
+
+/**
+ * Sends Discord webhook for profile updates
+ */
+function sendProfileUpdateWebhook(int $cldbid, array $changes, array $updateData): void {
+    $webhook = (string) Config::get("discord_login_webhook", "");
+    if ($webhook === "") {
+        return;
+    }
+
+    $nickname = Auth::getNickname() ?: ("User #" . $cldbid);
+    $timestamp = date('c');
+    
+    $changeDescriptions = [
+        'avatar' => '🖼️ Updated avatar',
+        'banner' => '🎨 Updated profile banner',
+        'social_links' => '🔗 Modified social links',
+        'steam_added' => '🎮 Linked Steam account',
+        'steam_changed' => '🎮 Updated Steam ID',
+    ];
+    
+    $changesList = [];
+    foreach ($changes as $change) {
+        if (isset($changeDescriptions[$change])) {
+            $changesList[] = $changeDescriptions[$change];
+        }
+    }
+    
+    $description = '**' . $nickname . '** updated their profile.';
+    $fields = [
+        ['name' => '👤 User', 'value' => $nickname, 'inline' => true],
+        ['name' => '🆔 CLDBID', 'value' => (string) $cldbid, 'inline' => true],
+        ['name' => '📝 Changes Made', 'value' => implode("\n", $changesList), 'inline' => false],
+    ];
+    
+    // Add Steam ID if it was added/changed
+    if (in_array('steam_added', $changes) || in_array('steam_changed', $changes)) {
+        if (isset($updateData['steam_id']) && $updateData['steam_id']) {
+            $fields[] = ['name' => '🎮 Steam ID', 'value' => '`' . $updateData['steam_id'] . '`', 'inline' => false];
+        }
+    }
+    
+    // Add social links info if changed
+    if (in_array('social_links', $changes) && isset($updateData['socials_json'])) {
+        $socials = json_decode($updateData['socials_json'], true);
+        if ($socials && !empty($socials)) {
+            $socialList = [];
+            foreach ($socials as $key => $value) {
+                $socialList[] = ucfirst($key);
+            }
+            $fields[] = ['name' => '🔗 Social Platforms', 'value' => implode(', ', $socialList), 'inline' => false];
+        }
+    }
+
+    $embed = [
+        'title' => '✏️ Profile Updated',
+        'description' => $description,
+        'color' => 0x9b59b6, // Purple
+        'fields' => $fields,
+        'footer' => [
+            'text' => 'Profile Editor',
+            'icon_url' => 'https://cdn-icons-png.flaticon.com/512/1077/1077114.png'
+        ],
+        'timestamp' => $timestamp,
+    ];
+
+    $payload = json_encode([
+        'username' => 'TS-Website Profiles',
+        'avatar_url' => 'https://cdn-icons-png.flaticon.com/512/1077/1077114.png',
+        'embeds' => [$embed],
+    ]);
+
+    try {
+        $opts = [
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/json\r\n",
+                'content' => $payload,
+                'timeout' => 3,
+            ],
+        ];
+        @file_get_contents($webhook, false, stream_context_create($opts));
+    } catch (\Exception $e) {
+        // ignore webhook errors
     }
 }
 
