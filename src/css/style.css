@@ -1108,3 +1108,64 @@ table.dataTable > tbody > tr.child td.child {
     margin-top: 0.5rem;
 }
 
+/* Profile Comments */
+.profile-comment {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    transition: background-color 0.2s ease;
+}
+
+.profile-comment:last-child {
+    border-bottom: none;
+}
+
+.profile-comment:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    gap: 0.75rem;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: #2c3e50;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.comment-author:hover {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.comment-date {
+    font-size: 0.85rem;
+    flex-grow: 1;
+}
+
+.comment-body {
+    color: #495057;
+    line-height: 1.6;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.delete-comment-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    margin-left: auto;
+}
+
+#comment-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+#comment-form .btn {
+    margin-top: 0.5rem;
+}
+

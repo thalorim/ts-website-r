@@ -660,5 +660,30 @@ if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconn
     $renderData["profile"]["last_online_human"] = date('jS F, Y, g:ia', (int) $profileData["lastconnected_ts"]);
 }
 
+// Fetch profile comments
+$comments = [];
+try {
+    $dbConfig = Config::i()->getDatabaseConfig();
+    $prefix = isset($dbConfig["prefix"]) ? $dbConfig["prefix"] : "";
+    $tableName = $prefix . "profile_comments";
+    
+    // Check if table exists
+    $existsStmt = $db->query("SHOW TABLES LIKE '" . addslashes($tableName) . "'");
+    $exists = $existsStmt && $existsStmt->fetchColumn();
+    
+    if ($exists) {
+        $comments = $db->select($tableName, "*", [
+            "profile_cldbid" => $cldbid,
+            "ORDER" => ["created_at" => "DESC"]
+        ]);
+    }
+} catch (\Exception $e) {
+    // Silently fail if comments table doesn't exist yet
+}
+
+$renderData["comments"] = $comments;
+$renderData["canComment"] = Auth::isLoggedIn();
+$renderData["currentUserCldbid"] = Auth::isLoggedIn() ? Auth::getCldbid() : null;
+
 TemplateUtils::i()->renderTemplate("profile", $renderData);
 
