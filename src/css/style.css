@@ -442,6 +442,8 @@ table.dataTable > tbody > tr.child td.child {
     grid-template-areas: "avatar meta rank";
     gap: 1rem;
     align-items: center;
+    background: rgba(27, 40, 56, 0.75);
+    backdrop-filter: blur(4px);
 }
 
 .steamlike-header .avatar-and-meta .avatar {
