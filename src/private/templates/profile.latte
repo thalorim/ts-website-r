@@ -82,6 +82,11 @@
                 <div class="overview-description">
                     <p><strong>Description</strong></p>
                     <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
+                    {ifset $profile["first_connected_human"]}
+                        <div class="mt-3 text-muted" style="font-size:0.9rem;">
+                            <i class="fas fa-user-plus"></i> <strong>First joined:</strong> {$profile["first_connected_human"]}
+                        </div>
+                    {/ifset}
                 </div>
                 <div class="overview-discord">
                     {ifset $discordId}
