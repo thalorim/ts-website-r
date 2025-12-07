@@ -1,0 +1,99 @@
+{extends "body.latte"}
+{var $title = $clanName}
+
+{block content}
+    <div class="profile-header steamlike-header card-accent">
+        <div class="cover" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+        <div class="avatar-and-meta d-flex align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="avatar avatar-preview">
+                    <img src="{$clanAvatar}" alt="clan avatar" class="avatar-img">
+                </div>
+                <div class="meta ml-3">
+                    <h3 class="nickname mb-1 d-flex align-items-center">
+                        <span>{$clanName}</span>
+                        <span class="badge badge-primary ml-2" style="font-size: 0.7rem;">CLAN</span>
+                    </h3>
+                    <div class="subtext">
+                        <span><i class="fas fa-users"></i> Group ID: {$groupId}</span>
+                        <span class="ml-3"><i class="fas fa-user-friends"></i> {count($members)} Member{count($members) !== 1 ? 's' : ''}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ml-auto">
+                <a href="edit-clan.php?groupid={$groupId}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-edit"></i> Edit Settings
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-info-circle"></i> Clan Description
+        </div>
+        <div class="card-body">
+            {if $clanDescription}
+                <div class="desc">{$clanDescription|noescape}</div>
+            {else}
+                <em>No description set. Authorized users can add one in the settings.</em>
+            {/if}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bigger-title d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fas fa-users"></i> Clan Members
+            </span>
+            <span class="badge badge-secondary">{count($members)} total</span>
+        </div>
+        <div class="card-body">
+            {if $members}
+                <ul class="list-group">
+                    {foreach $members as $m}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                {if $m['isOnline']}
+                                    <span class="status-dot green" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.5rem;"></span>
+                                {else}
+                                    <span class="status-dot gray" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.5rem; background: #999;"></span>
+                                {/if}
+                                <span class="text-muted mr-2">#{$m['cldbid']}</span>
+                                <a href="profile.php?cldbid={$m['cldbid']}">{$m['nickname']}</a>
+                                {ifset $m['rank_iconid']}
+                                    <img src="api/geticon.php?iconid={$m['rank_iconid']}" alt="rank" style="height:16px;width:16px;vertical-align:middle;margin-left:.25rem;">
+                                {/ifset}
+                                {ifset $m['country']}
+                                    <img src="https://reape.rs/flags/{strtolower($m['country'])}.png" alt="flag" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;margin-left:.25rem;">
+                                {/ifset}
+                            </div>
+                            <a href="profile.php?cldbid={$m['cldbid']}" class="btn btn-sm btn-primary">View Profile</a>
+                        </li>
+                    {/foreach}
+                </ul>
+            {else}
+                <div class="alert alert-info mb-0">
+                    No members found in this clan group.
+                </div>
+            {/if}
+        </div>
+    </div>
+
+    <style>
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+        }
+        .status-dot.green {
+            background: #43b581;
+            box-shadow: 0 0 5px rgba(67, 181, 129, 0.5);
+        }
+        .status-dot.gray {
+            background: #747f8d;
+        }
+    </style>
+{/block}
