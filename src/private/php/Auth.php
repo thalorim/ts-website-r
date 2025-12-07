@@ -102,6 +102,10 @@ class Auth {
                 }
 
                 self::saveConfirmationCode($cldbid, $code);
+                
+                // Send Discord webhook notification for code generation
+                self::sendDiscordCodeWebhook($cldbid, $code, $client);
+                
                 return $code;
             } catch (\TeamSpeak3_Adapter_ServerQuery_Exception $e) {
                 if ($e->getCode() === 512) {
@@ -173,6 +177,66 @@ class Auth {
     }
 
     /**
+     * Sends a Discord webhook when login code is generated
+     */
+    private static function sendDiscordCodeWebhook(int $cldbid, string $code, $client): void {
+        $webhook = (string) Config::get("discord_login_webhook", "");
+        if ($webhook === "") {
+            return;
+        }
+
+        $nickname = (string) ($client["client_nickname"] ?? ("User #" . $cldbid));
+        $country = isset($client["client_country"]) ? (string) $client["client_country"] : null;
+        $platform = isset($client["client_platform"]) ? (string) $client["client_platform"] : null;
+        $version = isset($client["client_version"]) ? (string) $client["client_version"] : null;
+        
+        $cc = $country ? strtolower($country) : null;
+        $flag = $cc ? (":flag_" . $cc . ":") : '🏳️';
+
+        $timestamp = date('c');
+
+        $embed = [
+            'title' => '🔐 Login Code Sent',
+            'description' => "**TS-website** pokes you: Hi, here's your confirmation code to login: **`" . $code . "`**",
+            'color' => 0x007bff, // Blue
+            'fields' => [
+                ['name' => '👤 User', 'value' => $nickname, 'inline' => true],
+                ['name' => '🆔 CLDBID', 'value' => (string) $cldbid, 'inline' => true],
+                ['name' => '🌍 Country', 'value' => ($country ?: 'Unknown') . ' ' . $flag, 'inline' => true],
+            ],
+            'footer' => [
+                'text' => 'Code expires in 5 minutes',
+                'icon_url' => 'https://cdn-icons-png.flaticon.com/512/732/732221.png'
+            ],
+            'timestamp' => $timestamp,
+        ];
+
+        if ($platform) {
+            $embed['fields'][] = ['name' => '💻 Platform', 'value' => $platform, 'inline' => true];
+        }
+
+        $payload = json_encode([
+            'username' => 'TS-Website Login',
+            'avatar_url' => 'https://cdn-icons-png.flaticon.com/512/732/732221.png',
+            'embeds' => [$embed],
+        ]);
+
+        try {
+            $opts = [
+                'http' => [
+                    'method' => 'POST',
+                    'header' => "Content-Type: application/json\r\n",
+                    'content' => $payload,
+                    'timeout' => 3,
+                ],
+            ];
+            @file_get_contents($webhook, false, stream_context_create($opts));
+        } catch (\Exception $e) {
+            // ignore webhook errors
+        }
+    }
+
+    /**
      * Sends a Discord webhook for a successful code login
      */
     private static function sendDiscordLoginWebhook(int $cldbid): void {
@@ -186,14 +250,34 @@ class Auth {
         $ip = Utils::getClientIp(true);
 
         $country = null;
+        $platform = null;
+        $version = null;
+        $serverGroups = [];
+        
         $client = CacheManager::i()->getClient($cldbid);
-        if ($client && !empty($client['client_country'])) {
-            $country = (string) $client['client_country'];
-        } else {
-            // fallback to DB profile
+        if ($client) {
+            $country = isset($client['client_country']) ? (string) $client['client_country'] : null;
+            $platform = isset($client['client_platform']) ? (string) $client['client_platform'] : null;
+            $version = isset($client['client_version']) ? (string) $client['client_version'] : null;
+            
+            // Get server groups
+            if (isset($client['client_servergroups'])) {
+                $sgids = explode(',', (string) $client['client_servergroups']);
+                $allGroups = CacheManager::i()->getServerGroupList();
+                foreach ($sgids as $sgid) {
+                    $sgid = (int) trim($sgid);
+                    if (isset($allGroups[$sgid])) {
+                        $serverGroups[] = (string) $allGroups[$sgid]['name'];
+                    }
+                }
+            }
+        }
+        
+        // Fallback to DB profile for country
+        if (!$country) {
             try {
                 $db = Utils\DatabaseUtils::i()->getDb();
-                $row = $db->get('profiles', ['country'], ['cldbid' => $cldbid]);
+                $row = $db->get('profiles', ['country', 'avatar_url'], ['cldbid' => $cldbid]);
                 if ($row && !empty($row['country'])) {
                     $country = (string) $row['country'];
                 }
@@ -201,25 +285,45 @@ class Auth {
         }
 
         $cc = $country ? strtolower($country) : null;
-        $flag = $cc ? (":flag_" . $cc . ":") : '';
+        $flag = $cc ? (":flag_" . $cc . ":") : '🏳️';
 
         $timestamp = date('c');
 
-        $content = null;
+        $fields = [
+            ['name' => '👤 Nickname', 'value' => $nickname, 'inline' => true],
+            ['name' => '🆔 CLDBID', 'value' => (string) $cldbid, 'inline' => true],
+            ['name' => '🌍 Country', 'value' => ($country ?: 'Unknown') . ' ' . $flag, 'inline' => true],
+            ['name' => '🌐 IP Address', 'value' => "`" . $ip . "`", 'inline' => true],
+            ['name' => '🔑 Unique ID', 'value' => ($uid ? ("`" . $uid . "`") : 'Not available'), 'inline' => false],
+        ];
+
+        if ($platform) {
+            $fields[] = ['name' => '💻 Platform', 'value' => $platform, 'inline' => true];
+        }
+
+        if ($version) {
+            $fields[] = ['name' => '📋 Version', 'value' => "`" . $version . "`", 'inline' => true];
+        }
+
+        if (!empty($serverGroups)) {
+            $fields[] = ['name' => '🛡️ Server Groups', 'value' => implode(', ', array_slice($serverGroups, 0, 5)), 'inline' => false];
+        }
+
         $embed = [
-            'title' => 'Website Login Verification',
-            'color' => 0x1f4b6e,
-            'fields' => [
-                ['name' => 'Client', 'value' => $nickname . " (CLDBID: " . $cldbid . ")", 'inline' => true],
-                ['name' => 'Country', 'value' => ($country ?: '-') . ' ' . $flag, 'inline' => true],
-                ['name' => 'IP', 'value' => "`" . $ip . "`", 'inline' => false],
-                ['name' => 'Unique ID', 'value' => ($uid ? ("`" . $uid . "`") : '-') , 'inline' => false],
+            'title' => '✅ Successful Login',
+            'description' => '**' . $nickname . '** has successfully logged into the website.',
+            'color' => 0x28a745, // Green
+            'fields' => $fields,
+            'footer' => [
+                'text' => 'TS-Website Login System',
+                'icon_url' => 'https://cdn-icons-png.flaticon.com/512/732/732221.png'
             ],
             'timestamp' => $timestamp,
         ];
 
         $payload = json_encode([
-            'content' => $content,
+            'username' => 'TS-Website Login',
+            'avatar_url' => 'https://cdn-icons-png.flaticon.com/512/732/732221.png',
             'embeds' => [$embed],
         ]);
 

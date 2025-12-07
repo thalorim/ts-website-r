@@ -7,6 +7,7 @@ $navActiveIndex = isset($navActiveIndex) ? (int) $navActiveIndex : 0;
 }<!DOCTYPE html>
 <html n:attr="lang => $userlangcode">
 <head>
+    <base href="{php echo rtrim(dirname($_SERVER['SCRIPT_NAME']), '/admin') . '/'; }">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -97,6 +98,11 @@ $navActiveIndex = isset($navActiveIndex) ? (int) $navActiveIndex : 0;
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownUser">
                             <a class="dropdown-item" href="profile.php?cldbid={$auth::getCldbid()}"><i class="fas fa-user"></i>My profile</a>
                             <a class="dropdown-item" href="edit-profile.php"><i class="fas fa-user-cog"></i>Edit profile</a>
+                            {if $auth::getCldbid() === 3}
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="admin/index.php"><i class="fas fa-tools"></i>Admin Panel</a>
+                            {/if}
+                            <div class="dropdown-divider"></div>
                             <button class="dropdown-item logoutUser"><i class="fas fa-sign-out-alt"></i>{_"NAV_ACCOUNT_LOGOUT"}</button>
                         </div>
                     </li>

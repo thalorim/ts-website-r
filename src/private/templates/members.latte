@@ -14,18 +14,38 @@
             {if $members}
                 <ul class="list-group">
                     {foreach $members as $m}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="text-muted mr-2">#{$m['cldbid']}</span>
-                                <a href="profile.php?cldbid={$m['cldbid']}">{$m['nickname']}</a>
-                                {ifset $m['rank_iconid']}
-                                    <img src="api/geticon.php?iconid={$m['rank_iconid']}" alt="rank" style="height:16px;width:16px;vertical-align:middle;margin-left:.25rem;">
-                                {/ifset}
-                                {ifset $m['country']}
-                                    <img src="https://reape.rs/flags/{strtolower($m['country'])}.png" alt="flag" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;margin-left:.25rem;">
-                                {/ifset}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="mb-1">
+                                        <span class="text-muted mr-2">#{$m['cldbid']}</span>
+                                        <a href="profile.php?cldbid={$m['cldbid']}">{$m['nickname']}</a>
+                                        {ifset $m['rank_iconid']}
+                                            <img src="api/geticon.php?iconid={$m['rank_iconid']}" alt="rank" style="height:16px;width:16px;vertical-align:middle;margin-left:.25rem;">
+                                        {/ifset}
+                                        {ifset $m['country']}
+                                            <img src="https://reape.rs/flags/{strtolower($m['country'])}.png" alt="flag" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;margin-left:.25rem;">
+                                        {/ifset}
+                                    </div>
+                                    <div class="small text-muted">
+                                        {ifset $m['client_created']}
+                                            <span class="mr-3">
+                                                <i class="fas fa-user-plus"></i> First joined: <span data-relativetime="fuzzydate" data-timestamp="{$m['client_created']}">{date('M j, Y', $m['client_created'])}</span>
+                                            </span>
+                                        {/ifset}
+                                        {if isset($m['is_online']) && $m['is_online']}
+                                            <span class="text-success">
+                                                <i class="fas fa-circle"></i> Currently online
+                                            </span>
+                                        {elseif isset($m['client_lastconnected'])}
+                                            <span>
+                                                <i class="fas fa-clock"></i> Last active: <span data-relativetime="fuzzydate" data-timestamp="{$m['client_lastconnected']}">{date('M j, Y', $m['client_lastconnected'])}</span>
+                                            </span>
+                                        {/if}
+                                    </div>
+                                </div>
+                                <a href="profile.php?cldbid={$m['cldbid']}" class="btn btn-sm btn-primary ml-2">View</a>
                             </div>
-                            <a href="profile.php?cldbid={$m['cldbid']}" class="btn btn-sm btn-primary">View</a>
                         </li>
                     {/foreach}
                 </ul>

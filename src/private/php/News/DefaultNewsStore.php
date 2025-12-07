@@ -93,4 +93,12 @@ class DefaultNewsStore implements INewsStore {
 
         return $update->rowCount() !== 0;
     }
+
+    public function deleteNews(int $newsId): bool {
+        $delete = $this->db->delete($this->newsTable, [
+            "newsId" => $newsId
+        ]);
+
+        return $delete->rowCount() !== 0;
+    }
 }

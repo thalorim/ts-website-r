@@ -437,51 +437,147 @@ table.dataTable > tbody > tr.child td.child {
 }
 .steamlike-header .avatar-and-meta {
     padding: 1rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "avatar meta rank";
+    gap: 1rem;
+    align-items: center;
+    background: rgba(27, 40, 56, 0.75);
+    backdrop-filter: blur(4px);
+}
+
+.steamlike-header .avatar-and-meta .avatar {
+    grid-area: avatar;
+}
+
+.steamlike-header .avatar-and-meta .meta {
+    grid-area: meta;
+    min-width: 0;
+}
+
+.steamlike-header .avatar-and-meta .rank-badge {
+    grid-area: rank;
+}
+
+.steamlike-header .avatar-and-meta .rank-badge img {
+    height: 48px;
+    width: auto;
+    display: block;
+}
+
+.steamlike-header .nickname {
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.steamlike-header .nickname .rank-icon {
+    height: 24px;
+    width: 24px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+.steamlike-header .subtext {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.steamlike-header .subtext i {
+    font-size: 1rem;
+}
+
+.steamlike-header .subtext .social-icon {
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+.steamlike-header .subtext .social-icon:hover {
+    opacity: 0.7;
+}
+
+.steamlike-header .online-subtext {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+@media (max-width: 767px) {
+    .steamlike-header .avatar-and-meta {
+        grid-template-columns: 1fr;
+        grid-template-areas: 
+            "avatar"
+            "meta"
+            "rank";
+        justify-items: center;
+        text-align: center;
+    }
+    
+    .steamlike-header .nickname,
+    .steamlike-header .subtext,
+    .steamlike-header .online-subtext {
+        justify-content: center;
+    }
 }
 
 .avatar-preview {
     position: relative;
-    width: 120px;
-    height: 120px;
+    width: 110px;
+    height: 110px;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: 0 auto;
 }
 
 .avatar-preview .avatar-img {
-    width: 96px;
-    height: 96px;
+    width: 88px;
+    height: 88px;
     border-radius: 4px;
     border: 2px solid rgba(0,0,0,0.1);
     object-fit: cover;
     display: block;
     background-color: #0f141a;
+    position: relative;
+    z-index: 1;
 }
 
 .avatar-preview .avatar-border-overlay {
     position: absolute;
-    width: 120px;
-    height: 120px;
+    width: 110px;
+    height: 110px;
     object-fit: contain;
     pointer-events: none;
     user-select: none;
-    top: 0;
-    left: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
 }
 
 .avatar-preview--sm {
-    width: 90px;
-    height: 90px;
+    width: 63px;
+    height: 63px;
+    margin: 0 auto;
 }
 
 .avatar-preview--sm .avatar-img {
-    width: 64px;
-    height: 64px;
+    width: 45px;
+    height: 45px;
 }
 
 .avatar-preview--sm .avatar-border-overlay {
-    width: 90px;
-    height: 90px;
+    width: 63px;
+    height: 63px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .steamlike-header .avatar-preview .avatar-img {
@@ -492,13 +588,13 @@ table.dataTable > tbody > tr.child td.child {
 .border-options {
     display: flex;
     flex-wrap: wrap;
-    margin: -0.5rem;
+    margin: -0.35rem;
 }
 
 .border-option {
-    flex: 1 1 200px;
-    max-width: 240px;
-    margin: 0.5rem;
+    flex: 1 1 140px;
+    max-width: 170px;
+    margin: 0.35rem;
     position: relative;
     cursor: pointer;
 }
@@ -510,10 +606,9 @@ table.dataTable > tbody > tr.child td.child {
 }
 
 .border-option__body {
-    border: 1px solid #ced4da;
+    border: 2px solid #ced4da;
     border-radius: 0.5rem;
-    padding: 0.75rem;
-    background-color: #f8f9fa;
+    padding: 0.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -564,3 +659,513 @@ table.dataTable > tbody > tr.child td.child {
     70% { box-shadow: 0 0 0 8px rgba(0,0,0,0); }
     100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
 }
+
+/* Profile Overview Grid Layout */
+.profile-overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 1rem;
+}
+
+.overview-stats {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.overview-description {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.overview-discord {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.overview-steam {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.widget-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    border-radius: 0.5rem;
+    background: #f8f9fa;
+    padding: 1rem;
+}
+
+@media (max-width: 767px) {
+    .profile-overview-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+    }
+    
+    .overview-stats {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    
+    .overview-description {
+        grid-column: 1;
+        grid-row: 2;
+    }
+    
+    .overview-discord {
+        grid-column: 1;
+        grid-row: 3;
+    }
+    
+    .overview-steam {
+        grid-column: 1;
+        grid-row: 4;
+    }
+}
+
+/* Discord Lanyard Widget */
+.lanyard-widget {
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    min-height: 120px;
+    height: 120px;
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.lanyard-loading {
+    text-align: center;
+    color: #6c757d;
+    padding: 0.5rem;
+}
+
+.lanyard-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.lanyard-user {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.lanyard-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    position: relative;
+}
+
+.lanyard-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.lanyard-status-indicator {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #f8f9fa;
+    background-color: #747f8d;
+}
+
+.lanyard-status-indicator.online {
+    background-color: #28a745;
+}
+
+.lanyard-status-indicator.idle {
+    background-color: #ffc107;
+}
+
+.lanyard-status-indicator.dnd {
+    background-color: #dc3545;
+}
+
+.lanyard-user-info {
+    flex: 1;
+}
+
+.lanyard-username {
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+    color: #2c3e50;
+}
+
+.lanyard-status-text {
+    font-size: 0.75rem;
+    margin-bottom: 0.15rem;
+}
+
+.lanyard-status-text strong {
+    color: #495057;
+}
+
+.lanyard-status-text .status-value {
+    color: #495057;
+}
+
+.lanyard-status-text .status-value.online {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.lanyard-status-text .status-value.idle {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.lanyard-status-text .status-value.dnd {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.lanyard-status-text .status-value.offline {
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.lanyard-discord-id {
+    color: #6c757d;
+    font-size: 0.75rem;
+    font-family: monospace;
+    margin-bottom: 0.15rem;
+}
+
+.lanyard-discord-id strong {
+    color: #495057;
+}
+
+.lanyard-activity {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 0.3rem;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.lanyard-activity-header {
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #6c757d;
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.5px;
+}
+
+.lanyard-activity-content {
+    display: flex;
+    align-items: center;
+}
+
+.lanyard-activity-image {
+    width: 45px;
+    height: 45px;
+    border-radius: 0.3rem;
+    margin-right: 0.6rem;
+    object-fit: cover;
+}
+
+.lanyard-activity-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.lanyard-activity-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.2rem;
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lanyard-activity-details-text {
+    font-size: 0.75rem;
+    color: #6c757d;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lanyard-activity-state {
+    font-size: 0.75rem;
+    color: #6c757d;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lanyard-error {
+    text-align: center;
+    color: #dc3545;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* Steam Widget */
+.steam-widget {
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    min-height: 120px;
+    height: 120px;
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+}
+
+.steam-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 0.75rem;
+}
+
+.steam-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.steam-user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.steam-username {
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.steam-username a {
+    color: #2c3e50;
+    text-decoration: none;
+}
+
+.steam-username a:hover {
+    color: #1b2838;
+    text-decoration: underline;
+}
+
+.steam-info-item {
+    font-size: 0.75rem;
+    margin-bottom: 0.15rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.steam-info-item strong {
+    color: #495057;
+}
+
+.steam-info-item .status-value {
+    color: #495057;
+}
+
+.steam-info-item .status-value.online {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.offline {
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.busy {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.away {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.snooze {
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.steam-info-item .status-value.looking-to-trade,
+.steam-info-item .status-value.looking-to-play {
+    color: #17a2b8;
+    font-weight: 600;
+}
+
+.steam-level-badge {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #6c757d;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.steam-level-number {
+    font-size: 1.1rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.steam-level-text {
+    font-size: 0.6rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    margin-top: 2px;
+    opacity: 0.9;
+}
+
+/* Recent Games Sidebar Widget */
+.recent-game-item {
+    padding: 0.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    transition: background-color 0.2s ease;
+}
+
+.recent-game-item:last-child {
+    border-bottom: none;
+}
+
+.recent-game-item:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.recent-game-capsule {
+    width: 100%;
+    max-height: 80px;
+    height: auto;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 0.35rem;
+    display: block;
+}
+
+.recent-game-info {
+    text-align: center;
+}
+
+.recent-game-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #2c3e50;
+    margin-bottom: 0.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recent-game-time {
+    font-size: 0.7rem;
+    color: #6c757d;
+}
+
+/* No Games Played Widget */
+.no-games-played {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 0.75rem !important;
+    text-align: center;
+}
+
+.busy-gif {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.no-games-message {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #495057;
+    margin-top: 0.5rem;
+}
+
+/* Profile Comments */
+.profile-comment {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    transition: background-color 0.2s ease;
+}
+
+.profile-comment:last-child {
+    border-bottom: none;
+}
+
+.profile-comment:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    gap: 0.75rem;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: #2c3e50;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.comment-author:hover {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.comment-date {
+    font-size: 0.85rem;
+    flex-grow: 1;
+}
+
+.comment-body {
+    color: #495057;
+    line-height: 1.6;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.delete-comment-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    margin-left: auto;
+}
+
+#comment-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+#comment-form .btn {
+    margin-top: 0.5rem;
+}
+

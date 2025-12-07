@@ -4,67 +4,68 @@
 {block content}
     <div class="profile-header steamlike-header card-accent">
         <div class="cover" n:attr="style => isset($bannerUrl) && $bannerUrl ? 'background-image:url(' . $bannerUrl . '); background-size:cover; background-position:center;' : null"></div>
-        <div class="avatar-and-meta d-flex align-items-center">
-            <div class="d-flex align-items-center">
-                <div class="avatar avatar-preview">
-                    <img src="{$avatarUrl}" alt="avatar" class="avatar-img">
-                    <img src="{$avatarBorderUrl}" alt="avatar border" class="avatar-border-overlay">
+        <div class="avatar-and-meta">
+            <div class="avatar avatar-preview">
+                <img src="{$avatarUrl}" alt="avatar" class="avatar-img">
+                <img src="{$avatarBorderUrl}" alt="avatar border" class="avatar-border-overlay">
+            </div>
+            <div class="meta">
+                <h3 class="nickname">
+                    <span>{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
+                    {ifset $groups}
+                        {foreach $groups as $g}
+                            {if $g['sgid'] === 6}
+                                <img src="https://cdn3.emoji.gg/emojis/28948-staff.png" alt="Group 6" class="rank-icon" data-toggle="tooltip" title="Group 6">
+                                {breakIf true}
+                            {/if}
+                        {/foreach}
+                    {/ifset}
+                </h3>
+                <div class="subtext">
+                    <i class="fas fa-id-badge" data-toggle="tooltip" title="Database ID: {$profile['cldbid']}"></i>
+                    {ifset $profile["cluid"]}
+                        <i class="fas fa-fingerprint ml-2" data-toggle="tooltip" title="{$profile['cluid']}"></i>
+                    {/ifset}
+                    {if $socials}
+                        {foreach $socials as $s}
+                            <a href="{$s['url']}" target="_blank" rel="noopener" class="social-icon" data-toggle="tooltip" title="{$s['key']}">
+                                <i class="{$s['icon']}"></i>
+                            </a>
+                        {/foreach}
+                    {/if}
                 </div>
-                <div class="meta ml-3">
-                    <h3 class="nickname mb-1 d-flex align-items-center">
-                        <span>{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
-                        {ifset $groups}
-                            {foreach $groups as $g}
-                                {if $g['sgid'] === 6}
-                                    <img src="https://cdn3.emoji.gg/emojis/28948-staff.png" alt="Group 6" class="ml-2" style="height:24px;width:24px;object-fit:contain;vertical-align:middle;" data-toggle="tooltip" title="Group 6">
-                                    {breakIf true}
-                                {/if}
-                            {/foreach}
-                        {/ifset}
-                    </h3>
-                    <div class="subtext">
-                        <span><i class="fas fa-id-badge"></i> CLDBID: {$profile["cldbid"]}</span>
-                        {ifset $profile["cluid"]}
-                            <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
-                        {/ifset}
-                        {if $socials}
-                            <span class="ml-3">
-                                {foreach $socials as $s}
-                                    <a href="{$s['url']}" target="_blank" rel="noopener" class="ml-2" data-toggle="tooltip" title="{$s['key']}">
-                                        <i class="{$s['icon']}"></i>
-                                    </a>
-                                {/foreach}
-                            </span>
-                        {/if}
-                    </div>
-                    <div class="online-subtext mt-2">
-                        {if $isOnline}
-                            <span class="status-dot green"></span>
-                            <small>
-                                Online since
-                                {ifset $profile["online_since_text"]}
-                                    {$profile["online_since_text"]}
-                                {elseifset $profile["online_since_ms"]}
-                                    {round(($profile["online_since_ms"] / 1000) / 60)} minutes
-                                {else}
-                                    a moment
-                                {/ifset}
-                                {ifset $currentChannelName}
-                                    • talking on {ifset $currentChannelId}<a href="ts3server://web.reape.rs?cid={$currentChannelId}">{$currentChannelName}</a>{else}{$currentChannelName}{/ifset}
-                                {/ifset}
-                            </small>
-                        {else}
-                            <span class="status-dot gray"></span>
-                            <small>
-                                Offline{ifset $lastSeenText} • last seen {$lastSeenText}{/ifset}
-                            </small>
-                        {/if}
-                    </div>
+                <div class="online-subtext">
+                    {if $isOnline}
+                        <span class="status-dot green"></span>
+                        <small>
+                            Online since
+                            {ifset $profile["online_since_text"]}
+                                {$profile["online_since_text"]}
+                            {elseifset $profile["online_since_ms"]}
+                                {round(($profile["online_since_ms"] / 1000) / 60)} minutes
+                            {else}
+                                a moment
+                            {/ifset}
+                            {ifset $currentChannelName}
+                                • talking on {ifset $currentChannelId}<a href="ts3server://web.reape.rs?cid={$currentChannelId}">{$currentChannelName}</a>{else}{$currentChannelName}{/ifset}
+                            {/ifset}
+                        </small>
+                    {else}
+                        <span class="status-dot gray"></span>
+                        <small>
+                            Offline{ifset $lastSeenText} • last seen {$lastSeenText}{/ifset}
+                        </small>
+                    {/if}
                 </div>
             </div>
             {ifset $rankImageUrl}
-                <div class="ml-auto">
-                    <img src="{$rankImageUrl}" alt="Rank {$rankLevel}" style="height:48px;width:auto;">
+                <div class="rank-badge">
+                    <img src="{$rankImageUrl}" alt="Rank {$rankLevel}" 
+                         {ifset $totalOnlineHours}
+                         data-toggle="tooltip" 
+                         data-html="true"
+                         title="Total time: {$totalOnlineHours} hours<br>Connected days: {$totalOnlineDays} days {$totalOnlineRemainingHours} hours"
+                         {/ifset}>
                 </div>
             {/ifset}
         </div>
@@ -75,23 +76,80 @@
             <i class="fas fa-user"></i> Overview
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
+            <div class="profile-overview-grid">
+                <div class="overview-stats">
                     <p><strong>Country:</strong> {ifset $profile["country"]}
                         <img src="https://reape.rs/flags/{strtolower($profile['country'])}.png" alt="flag" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;"> {$profile["country"]}
                     {else}-{/ifset}</p>
                     <p><strong>Platform:</strong> {$profile["platform"] ?? '-'}</p>
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
                 </div>
-                <div class="col-md-6">
-                    <p><strong>Total connections:</strong> {ifset $profile["totalconnections"]}{$profile["totalconnections"]}{else}-{/ifset}</p>
-                    <p><strong>First connected:</strong> {$profile["first_connected_human"] ?? '-'}</p>
-                    <p><strong>Last online:</strong> {$profile["last_online_human"] ?? '-'}</p>
+                <div class="overview-description">
+                    <p><strong>Description</strong></p>
+                    <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
+                    {ifset $profile["first_connected_human"]}
+                        <div class="mt-3 text-muted" style="font-size:0.9rem;">
+                            <i class="fas fa-user-plus"></i> <strong>First joined:</strong> {$profile["first_connected_human"]}
+                        </div>
+                    {/ifset}
+                </div>
+                <div class="overview-discord">
+                    {ifset $discordId}
+                    <p><strong>Discord Status</strong></p>
+                    <div id="lanyard-widget" class="lanyard-widget" data-discord-id="{$discordId}">
+                        <div class="lanyard-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading Discord status...
+                        </div>
+                    </div>
+                    {else}
+                    <div class="widget-placeholder">
+                        <i class="fab fa-discord" style="font-size:2rem;color:#ccc;"></i>
+                        <p class="text-muted mb-0" style="font-size:0.85rem;">No Discord linked</p>
+                    </div>
+                    {/ifset}
+                </div>
+                <div class="overview-steam">
+                    {ifset $steamData}
+                    <p><strong>Steam Status</strong></p>
+                    <div class="steam-widget">
+                        <div class="steam-content">
+                            <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">
+                                <img src="{$steamData['avatarmedium']}" alt="{$steamData['personaname']}" class="steam-avatar">
+                            </a>
+                            <div class="steam-user-info">
+                                <div class="steam-username">
+                                    <a href="{$steamData['profileurl']}" target="_blank" rel="noopener">{$steamData['personaname']}</a>
+                                </div>
+                                {ifset $steamData['personastate']}
+                                    <div class="steam-info-item"><strong>Status:</strong> <span class="status-value {$steamData['personastate']|lower|replace:' ':'-'}">{$steamData['personastate']}</span></div>
+                                {/ifset}
+                                <div class="steam-info-item"><strong>SteamID64:</strong> {$steamData['steamid']}</div>
+                                {ifset $steamData['games_count']}
+                                    <div class="steam-info-item"><strong>Games:</strong> {$steamData['games_count']}</div>
+                                {/ifset}
+                                {ifset $steamData['cs2_playtime']}
+                                    <div class="steam-info-item"><strong>CS2:</strong> {$steamData['cs2_playtime']} hrs</div>
+                                {/ifset}
+                                {ifset $steamData['cs2_stats']}
+                                    <div class="steam-info-item"><strong>K/D:</strong> {$steamData['cs2_stats']['kd_ratio']} | <strong>Wins:</strong> {$steamData['cs2_stats']['wins']}</div>
+                                {/ifset}
+                            </div>
+                            {ifset $steamData['level']}
+                            <div class="steam-level-badge">
+                                <div class="steam-level-number">{$steamData['level']}</div>
+                                <div class="steam-level-text">Level</div>
+                            </div>
+                            {/ifset}
+                        </div>
+                    </div>
+                    {else}
+                    <div class="widget-placeholder">
+                        <i class="fab fa-steam" style="font-size:2rem;color:#ccc;"></i>
+                        <p class="text-muted mb-0" style="font-size:0.85rem;">No Steam linked</p>
+                    </div>
+                    {/ifset}
                 </div>
             </div>
-            <hr>
-            <p><strong>Description</strong></p>
-            <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
         </div>
     </div>
 
@@ -114,5 +172,192 @@
             {/if}
         </div>
     </div>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-comments"></i> Profile Comments ({count($comments)})
+        </div>
+        <div class="card-body">
+            {if $canComment}
+                <form id="comment-form" class="mb-4">
+                    <div class="form-group">
+                        <textarea class="form-control" id="comment-text" name="comment" rows="3" placeholder="Write a comment..." maxlength="1000" required></textarea>
+                        <small class="form-text text-muted">Maximum 1000 characters</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="comment-submit-btn">
+                        <i class="fas fa-paper-plane"></i> Post Comment
+                    </button>
+                </form>
+            {else}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> You must be logged in to post comments.
+                </div>
+            {/if}
+
+            <div id="comments-list">
+                {if $comments}
+                    {foreach $comments as $comment}
+                        <div class="profile-comment" data-comment-id="{$comment['id']}">
+                            <div class="comment-header">
+                                <a href="profile.php?cldbid={$comment['author_cldbid']}" class="comment-author">
+                                    <i class="fas fa-user-circle"></i> {$comment['author_nickname']}
+                                </a>
+                                <span class="comment-date text-muted">
+                                    <i class="far fa-clock"></i> <span data-relativetime="fuzzydate" data-timestamp="{$comment['created_at']}">{date('M j, Y g:i A', $comment['created_at'])}</span>
+                                </span>
+                                {if $currentUserCldbid === $comment['author_cldbid'] || $currentUserCldbid === 3}
+                                    <button class="btn btn-sm btn-danger delete-comment-btn" data-comment-id="{$comment['id']}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                {/if}
+                            </div>
+                            <div class="comment-body">
+                                {$comment['comment']|escape|noescape}
+                            </div>
+                        </div>
+                    {/foreach}
+                {else}
+                    <div class="text-muted text-center py-3" id="no-comments-message">
+                        <i class="fas fa-comment-slash"></i> No comments yet. Be the first to comment!
+                    </div>
+                {/if}
+            </div>
+        </div>
+    </div>
 {/block}
 
+{block footerbottom}
+{php $tplutils = Wruczek\TSWebsite\Utils\TemplateUtils::i()}
+{$tplutils::includeScript("js/lanyard.js", true)}
+
+<script>
+$(document).ready(function() {
+    var profileCldbid = {$profile['cldbid']};
+
+    // Post comment
+    $('#comment-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var $form = $(this);
+        var $submitBtn = $('#comment-submit-btn');
+        var $textarea = $('#comment-text');
+        var comment = $textarea.val().trim();
+        
+        if (!comment) {
+            alert('Please enter a comment');
+            return;
+        }
+        
+        $submitBtn.prop('disabled', true);
+        
+        $.ajax({
+            url: 'api/post-comment.php',
+            method: 'POST',
+            data: {
+                profile_cldbid: profileCldbid,
+                comment: comment
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.ok) {
+                    // Clear textarea
+                    $textarea.val('');
+                    
+                    // Remove no comments message if exists
+                    $('#no-comments-message').remove();
+                    
+                    // Add new comment to the top
+                    var commentHtml = '<div class="profile-comment" data-comment-id="' + response.comment.id + '">' +
+                        '<div class="comment-header">' +
+                        '<a href="profile.php?cldbid=' + response.comment.author_cldbid + '" class="comment-author">' +
+                        '<i class="fas fa-user-circle"></i> ' + escapeHtml(response.comment.author_nickname) +
+                        '</a>' +
+                        '<span class="comment-date text-muted">' +
+                        '<i class="far fa-clock"></i> just now' +
+                        '</span>' +
+                        '<button class="btn btn-sm btn-danger delete-comment-btn" data-comment-id="' + response.comment.id + '">' +
+                        '<i class="fas fa-trash"></i>' +
+                        '</button>' +
+                        '</div>' +
+                        '<div class="comment-body">' +
+                        response.comment.comment +
+                        '</div>' +
+                        '</div>';
+                    
+                    $('#comments-list').prepend(commentHtml);
+                    
+                    // Update count
+                    var currentCount = parseInt($('.card-header:contains("Profile Comments")').text().match(/\d+/)[0]);
+                    $('.card-header:contains("Profile Comments")').html('<i class="fas fa-comments"></i> Profile Comments (' + (currentCount + 1) + ')');
+                } else {
+                    alert('Error: ' + (response.error || 'Failed to post comment'));
+                }
+                $submitBtn.prop('disabled', false);
+            },
+            error: function() {
+                alert('Failed to post comment. Please try again.');
+                $submitBtn.prop('disabled', false);
+            }
+        });
+    });
+    
+    // Delete comment
+    $(document).on('click', '.delete-comment-btn', function() {
+        if (!confirm('Are you sure you want to delete this comment?')) {
+            return;
+        }
+        
+        var $btn = $(this);
+        var commentId = $btn.data('comment-id');
+        var $comment = $btn.closest('.profile-comment');
+        
+        $btn.prop('disabled', true);
+        
+        $.ajax({
+            url: 'api/delete-comment.php',
+            method: 'POST',
+            data: {
+                comment_id: commentId
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.ok) {
+                    $comment.fadeOut(300, function() {
+                        $(this).remove();
+                        
+                        // Update count
+                        var currentCount = parseInt($('.card-header:contains("Profile Comments")').text().match(/\d+/)[0]);
+                        $('.card-header:contains("Profile Comments")').html('<i class="fas fa-comments"></i> Profile Comments (' + (currentCount - 1) + ')');
+                        
+                        // Show no comments message if no comments left
+                        if ($('#comments-list .profile-comment').length === 0) {
+                            $('#comments-list').html('<div class="text-muted text-center py-3" id="no-comments-message">' +
+                                '<i class="fas fa-comment-slash"></i> No comments yet. Be the first to comment!' +
+                                '</div>');
+                        }
+                    });
+                } else {
+                    alert('Error: ' + (response.error || 'Failed to delete comment'));
+                    $btn.prop('disabled', false);
+                }
+            },
+            error: function() {
+                alert('Failed to delete comment. Please try again.');
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+    
+    function escapeHtml(text) {
+        var map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+});
+</script>
+{/block}

@@ -106,6 +106,7 @@ if ($tsInfo) {
     $profileData["created_ts"] = isset($tsInfo["client_created"]) ? (int) $tsInfo["client_created"] : null;
     $profileData["lastconnected_ts"] = isset($tsInfo["client_lastconnected"]) ? (int) $tsInfo["client_lastconnected"] : null;
     $profileData["totalconnections"] = isset($tsInfo["client_totalconnections"]) ? (int) $tsInfo["client_totalconnections"] : null;
+    $profileData["total_connection_time"] = isset($tsInfo["client_total_connection_time"]) ? (int) $tsInfo["client_total_connection_time"] : null;
 }
 
 if ($onlineClient) {
@@ -237,6 +238,164 @@ try {
 // Prepare data for template
 // Fetch DB-stored fields (e.g., avatar)
 $dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
+
+// Fetch Steam data if Steam ID is set
+$steamData = null;
+if ($dbProfile && !empty($dbProfile["steam_id"])) {
+    $steamId = trim((string) $dbProfile["steam_id"]);
+    $steamApiKey = Config::get("steam_api_key", "");
+    
+    if (!empty($steamApiKey)) {
+        try {
+            // Resolve vanity URL to SteamID64 if necessary
+            $steamId64 = $steamId;
+            if (!ctype_digit($steamId) || strlen($steamId) !== 17) {
+                // Try to resolve vanity URL
+                $vanityUrl = "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key=" . urlencode($steamApiKey) . "&vanityurl=" . urlencode($steamId);
+                $vanityResponse = @file_get_contents($vanityUrl);
+                if ($vanityResponse !== false) {
+                    $vanityData = json_decode($vanityResponse, true);
+                    if (isset($vanityData['response']['success']) && $vanityData['response']['success'] == 1) {
+                        $steamId64 = $vanityData['response']['steamid'];
+                    }
+                }
+            }
+            
+            // Fetch player summaries
+            $summariesUrl = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" . urlencode($steamApiKey) . "&steamids=" . urlencode($steamId64) . "&format=json";
+            $summariesResponse = @file_get_contents($summariesUrl);
+            
+            if ($summariesResponse !== false) {
+                $summariesData = json_decode($summariesResponse, true);
+                if (isset($summariesData['response']['players'][0])) {
+                    $player = $summariesData['response']['players'][0];
+                    
+                    // Map profile state
+                    $profileState = 'Private';
+                    if (isset($player['communityvisibilitystate'])) {
+                        $stateMap = [
+                            1 => 'Private',
+                            2 => 'Friends Only',
+                            3 => 'Public'
+                        ];
+                        $profileState = $stateMap[$player['communityvisibilitystate']] ?? 'Unknown';
+                    }
+                    
+                    // Map persona state (online status)
+                    $personaState = 'Offline';
+                    if (isset($player['personastate'])) {
+                        $personaStateMap = [
+                            0 => 'Offline',
+                            1 => 'Online',
+                            2 => 'Busy',
+                            3 => 'Away',
+                            4 => 'Snooze',
+                            5 => 'Looking to trade',
+                            6 => 'Looking to play'
+                        ];
+                        $personaState = $personaStateMap[$player['personastate']] ?? 'Offline';
+                    }
+                    
+                    $steamData = [
+                        'steamid' => $steamId64,
+                        'personaname' => $player['personaname'] ?? 'Unknown',
+                        'avatar' => $player['avatarfull'] ?? '',
+                        'avatarmedium' => $player['avatarmedium'] ?? '',
+                        'profileurl' => $player['profileurl'] ?? '',
+                        'customurl' => isset($player['profileurl']) ? basename($player['profileurl']) : null,
+                        'countrycode' => isset($player['loccountrycode']) ? strtolower($player['loccountrycode']) : null,
+                        'profilestate' => $profileState,
+                        'personastate' => $personaState,
+                        'timecreated' => isset($player['timecreated']) ? date('M j, Y', $player['timecreated']) : null,
+                    ];
+                    
+                    // Fetch player level from badges
+                    $badgesUrl = "https://api.steampowered.com/IPlayerService/GetBadges/v0001/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&format=json";
+                    $badgesResponse = @file_get_contents($badgesUrl);
+                    if ($badgesResponse !== false) {
+                        $badgesData = json_decode($badgesResponse, true);
+                        if (isset($badgesData['response']['player_level'])) {
+                            $steamData['level'] = $badgesData['response']['player_level'];
+                        }
+                    }
+                    
+                    // Fetch recently played games
+                    $recentGamesUrl = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&count=3&format=json";
+                    $recentGamesResponse = @file_get_contents($recentGamesUrl);
+                    if ($recentGamesResponse !== false) {
+                        $recentGamesData = json_decode($recentGamesResponse, true);
+                        if (isset($recentGamesData['response']['games']) && !empty($recentGamesData['response']['games'])) {
+                            $steamData['recent_games'] = [];
+                            foreach ($recentGamesData['response']['games'] as $game) {
+                                $steamData['recent_games'][] = [
+                                    'appid' => $game['appid'],
+                                    'name' => $game['name'],
+                                    'playtime_2weeks' => isset($game['playtime_2weeks']) ? round($game['playtime_2weeks'] / 60, 1) : 0,
+                                    'playtime_forever' => round($game['playtime_forever'] / 60, 1),
+                                    'img_icon_url' => $game['img_icon_url'] ?? '',
+                                    'capsule_url' => "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/" . $game['appid'] . "/header.jpg"
+                                ];
+                            }
+                        }
+                    }
+                    
+                    // Fetch owned games count
+                    $ownedGamesUrl = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&include_appinfo=1&format=json";
+                    $ownedGamesResponse = @file_get_contents($ownedGamesUrl);
+                    if ($ownedGamesResponse !== false) {
+                        $ownedGamesData = json_decode($ownedGamesResponse, true);
+                        if (isset($ownedGamesData['response']['game_count'])) {
+                            $steamData['games_count'] = $ownedGamesData['response']['game_count'];
+                        }
+                        
+                        // Check if user owns CS2 (AppID 730)
+                        if (isset($ownedGamesData['response']['games']) && is_array($ownedGamesData['response']['games'])) {
+                            foreach ($ownedGamesData['response']['games'] as $game) {
+                                if (isset($game['appid']) && $game['appid'] == 730) {
+                                    $steamData['cs2_playtime'] = isset($game['playtime_forever']) ? round($game['playtime_forever'] / 60, 1) : 0;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Fetch CS2 stats if user owns the game
+                    if (isset($steamData['cs2_playtime'])) {
+                        $cs2StatsUrl = "https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId64) . "&appid=730";
+                        $cs2StatsResponse = @file_get_contents($cs2StatsUrl);
+                        if ($cs2StatsResponse !== false) {
+                            $cs2StatsData = json_decode($cs2StatsResponse, true);
+                            if (isset($cs2StatsData['playerstats']['stats']) && is_array($cs2StatsData['playerstats']['stats'])) {
+                                $stats = [];
+                                foreach ($cs2StatsData['playerstats']['stats'] as $stat) {
+                                    $stats[$stat['name']] = $stat['value'];
+                                }
+                                
+                                // Extract key stats
+                                $steamData['cs2_stats'] = [
+                                    'kills' => $stats['total_kills'] ?? 0,
+                                    'deaths' => $stats['total_deaths'] ?? 0,
+                                    'wins' => $stats['total_wins'] ?? 0,
+                                    'mvps' => $stats['total_mvps'] ?? 0,
+                                ];
+                                
+                                // Calculate K/D ratio
+                                if (isset($steamData['cs2_stats']['deaths']) && $steamData['cs2_stats']['deaths'] > 0) {
+                                    $steamData['cs2_stats']['kd_ratio'] = round($steamData['cs2_stats']['kills'] / $steamData['cs2_stats']['deaths'], 2);
+                                } else {
+                                    $steamData['cs2_stats']['kd_ratio'] = $steamData['cs2_stats']['kills'];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Silently fail Steam API errors
+            $steamData = null;
+        }
+    }
+}
 
 // Resolve server group details
 $groupsDetailed = [];
@@ -404,6 +563,22 @@ foreach ($socials as $key => $url) {
     ];
 }
 
+// Extract Discord ID for Lanyard widget
+$discordId = null;
+if (isset($socials['discord']) && !empty($socials['discord'])) {
+    $discordValue = trim((string) $socials['discord']);
+    // Check if it's a numeric Discord ID
+    if (ctype_digit($discordValue)) {
+        $discordId = $discordValue;
+    }
+}
+
+// Extract recent games for sidebar
+$recentGamesForSidebar = [];
+if ($steamData !== null && isset($steamData['recent_games']) && is_array($steamData['recent_games']) && !empty($steamData['recent_games'])) {
+    $recentGamesForSidebar = $steamData['recent_games'];
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -419,7 +594,22 @@ $renderData = [
     "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
+    "discordId" => $discordId,
+    "steamData" => $steamData,
+    "steamRecentGames" => $recentGamesForSidebar,
 ];
+
+// Calculate total online time if available
+if (isset($profileData["total_connection_time"]) && $profileData["total_connection_time"] > 0) {
+    $totalSeconds = (int) $profileData["total_connection_time"];
+    $totalHours = round($totalSeconds / 3600, 1);
+    $totalDays = floor($totalSeconds / 86400);
+    $remainingHours = floor(($totalSeconds % 86400) / 3600);
+    
+    $renderData["totalOnlineHours"] = $totalHours;
+    $renderData["totalOnlineDays"] = $totalDays;
+    $renderData["totalOnlineRemainingHours"] = $remainingHours;
+}
 
 // Compute last seen text for offline users
 if (!$isOnline) {
@@ -469,6 +659,31 @@ if (isset($profileData["created_ts"]) && is_numeric($profileData["created_ts"]))
 if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
     $renderData["profile"]["last_online_human"] = date('jS F, Y, g:ia', (int) $profileData["lastconnected_ts"]);
 }
+
+// Fetch profile comments
+$comments = [];
+try {
+    $dbConfig = Config::i()->getDatabaseConfig();
+    $prefix = isset($dbConfig["prefix"]) ? $dbConfig["prefix"] : "";
+    $tableName = $prefix . "profile_comments";
+    
+    // Check if table exists
+    $existsStmt = $db->query("SHOW TABLES LIKE '" . addslashes($tableName) . "'");
+    $exists = $existsStmt && $existsStmt->fetchColumn();
+    
+    if ($exists) {
+        $comments = $db->select($tableName, "*", [
+            "profile_cldbid" => $cldbid,
+            "ORDER" => ["created_at" => "DESC"]
+        ]);
+    }
+} catch (\Exception $e) {
+    // Silently fail if comments table doesn't exist yet
+}
+
+$renderData["comments"] = $comments;
+$renderData["canComment"] = Auth::isLoggedIn();
+$renderData["currentUserCldbid"] = Auth::isLoggedIn() ? Auth::getCldbid() : null;
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);
 

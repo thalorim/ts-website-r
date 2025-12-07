@@ -131,6 +131,11 @@ class Assigner {
             } catch (\TeamSpeak3_Exception $e) {} // TODO log it to the admin panel?
         }
 
+        // Send Discord webhook for group changes
+        if (!empty($groupsToAdd) || !empty($groupsToRemove)) {
+            self::sendDiscordGroupWebhook($groupsToAdd, $groupsToRemove);
+        }
+
         return 0;
     }
 
@@ -204,6 +209,91 @@ class Assigner {
 
         $cacheKey = "last_use_" . Auth::getCldbid();
         self::getCache()->store($cacheKey, time(), $cooldownSeconds);
+    }
+
+    /**
+     * Sends Discord webhook notification for group changes
+     */
+    private static function sendDiscordGroupWebhook(array $groupsAdded, array $groupsRemoved): void {
+        $webhook = (string) Config::get("discord_login_webhook", "");
+        if ($webhook === "") {
+            return;
+        }
+
+        $cldbid = Auth::getCldbid();
+        $nickname = Auth::getNickname() ?: ("User #" . $cldbid);
+        $serverGroups = CacheManager::i()->getServerGroupList();
+        
+        $addedNames = [];
+        $removedNames = [];
+        $isRegistered = false;
+        
+        foreach ($groupsAdded as $sgid) {
+            if (isset($serverGroups[$sgid])) {
+                $addedNames[] = $serverGroups[$sgid]['name'];
+            }
+            if ($sgid === 9) {
+                $isRegistered = true;
+            }
+        }
+        
+        foreach ($groupsRemoved as $sgid) {
+            if (isset($serverGroups[$sgid])) {
+                $removedNames[] = $serverGroups[$sgid]['name'];
+            }
+        }
+
+        $timestamp = date('c');
+        $description = '**' . $nickname . '** modified their server groups.';
+        
+        if ($isRegistered) {
+            $description = '🎉 **' . $nickname . '** just registered and received the **Registered** group!';
+        }
+
+        $fields = [
+            ['name' => '👤 User', 'value' => $nickname, 'inline' => true],
+            ['name' => '🆔 CLDBID', 'value' => (string) $cldbid, 'inline' => true],
+        ];
+
+        if (!empty($addedNames)) {
+            $fields[] = ['name' => '➕ Groups Added', 'value' => implode(', ', $addedNames), 'inline' => false];
+        }
+
+        if (!empty($removedNames)) {
+            $fields[] = ['name' => '➖ Groups Removed', 'value' => implode(', ', $removedNames), 'inline' => false];
+        }
+
+        $embed = [
+            'title' => $isRegistered ? '🎊 New Registration' : '🛡️ Group Assignment',
+            'description' => $description,
+            'color' => $isRegistered ? 0xffc107 : 0x17a2b8, // Yellow for registration, Cyan for regular
+            'fields' => $fields,
+            'footer' => [
+                'text' => 'Group Assigner',
+                'icon_url' => 'https://cdn-icons-png.flaticon.com/512/1828/1828911.png'
+            ],
+            'timestamp' => $timestamp,
+        ];
+
+        $payload = json_encode([
+            'username' => 'TS-Website Groups',
+            'avatar_url' => 'https://cdn-icons-png.flaticon.com/512/1828/1828911.png',
+            'embeds' => [$embed],
+        ]);
+
+        try {
+            $opts = [
+                'http' => [
+                    'method' => 'POST',
+                    'header' => "Content-Type: application/json\r\n",
+                    'content' => $payload,
+                    'timeout' => 3,
+                ],
+            ];
+            @file_get_contents($webhook, false, stream_context_create($opts));
+        } catch (\Exception $e) {
+            // ignore webhook errors
+        }
     }
 
 }
