@@ -36,25 +36,33 @@
                 </div>
                 <div class="online-subtext">
                     {if $isOnline}
-                        <span class="status-dot green"></span>
-                        <small>
-                            Online since
-                            {ifset $profile["online_since_text"]}
-                                {$profile["online_since_text"]}
-                            {elseifset $profile["online_since_ms"]}
-                                {round(($profile["online_since_ms"] / 1000) / 60)} minutes
-                            {else}
-                                a moment
-                            {/ifset}
-                            {ifset $currentChannelName}
-                                • talking on {ifset $currentChannelId}<a href="ts3server://web.reape.rs?cid={$currentChannelId}">{$currentChannelName}</a>{else}{$currentChannelName}{/ifset}
-                            {/ifset}
-                        </small>
+                        <div class="status-line">
+                            <span class="status-dot green"></span>
+                            <small>
+                                Online since
+                                {ifset $profile["online_since_text"]}
+                                    {$profile["online_since_text"]}
+                                {elseifset $profile["online_since_ms"]}
+                                    {round(($profile["online_since_ms"] / 1000) / 60)} minutes
+                                {else}
+                                    a moment
+                                {/ifset}
+                            </small>
+                        </div>
+                        {ifset $currentChannelName}
+                            <div class="channel-line">
+                                <small>
+                                    <i class="fas fa-headphones"></i> {ifset $currentChannelId}<a href="ts3server://web.reape.rs?cid={$currentChannelId}">{$currentChannelName}</a>{else}{$currentChannelName}{/ifset}
+                                </small>
+                            </div>
+                        {/ifset}
                     {else}
-                        <span class="status-dot gray"></span>
-                        <small>
-                            Offline{ifset $lastSeenText} • last seen {$lastSeenText}{/ifset}
-                        </small>
+                        <div class="status-line">
+                            <span class="status-dot gray"></span>
+                            <small>
+                                Offline{ifset $lastSeenText} • last seen {$lastSeenText}{/ifset}
+                            </small>
+                        </div>
                     {/if}
                 </div>
             </div>

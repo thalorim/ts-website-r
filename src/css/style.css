@@ -504,8 +504,19 @@ table.dataTable > tbody > tr.child td.child {
 
 .steamlike-header .online-subtext {
     display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.steamlike-header .online-subtext .status-line,
+.steamlike-header .online-subtext .channel-line {
+    display: flex;
     align-items: center;
     gap: 0.25rem;
+}
+
+.steamlike-header .online-subtext .channel-line {
+    padding-left: 1.25rem;
 }
 
 @media (max-width: 767px) {
@@ -515,14 +526,36 @@ table.dataTable > tbody > tr.child td.child {
             "avatar"
             "meta"
             "rank";
-        justify-items: center;
-        text-align: center;
+        justify-items: start;
+        text-align: left;
     }
     
-    .steamlike-header .nickname,
-    .steamlike-header .subtext,
+    .steamlike-header .avatar {
+        justify-self: center;
+    }
+
+    .steamlike-header .meta {
+        width: 100%;
+    }
+
+    .steamlike-header .nickname {
+        text-align: left;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .steamlike-header .subtext {
+        justify-content: flex-start;
+    }
+
     .steamlike-header .online-subtext {
-        justify-content: center;
+        align-items: flex-start;
+    }
+
+    .steamlike-header .rank-badge {
+        justify-self: center;
     }
 }
 
