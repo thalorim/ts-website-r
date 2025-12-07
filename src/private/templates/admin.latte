@@ -9,6 +9,92 @@
     <div class="card-body">
         <p>Only user with CLDBID 3 can access this page.</p>
 
+        <!-- Database Settings Section -->
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> <strong>Database Settings</strong> - Changes will be written to the configuration file and require careful attention.
+        </div>
+
+        <form id="form-database" method="post" action="api/save-database-config.php" class="mb-4">
+            {$csrfField}
+            <h5><i class="fas fa-database"></i> Database Connection Settings</h5>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="db_type">Database Type</label>
+                        <select class="form-control" id="db_type" name="database_type" required>
+                            <option value="mysql" {if $dbConfig['database_type'] === 'mysql'}selected{/if}>MySQL / MariaDB</option>
+                            <option value="sqlite" {if $dbConfig['database_type'] === 'sqlite'}selected{/if}>SQLite</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="db_server">Server / Hostname</label>
+                        <input type="text" class="form-control" id="db_server" name="server" placeholder="127.0.0.1 or localhost" value="{$dbConfig['server'] ?? ''}" required>
+                        <small class="form-text text-muted">Use '127.0.0.1' for localhost</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="db_username">Username</label>
+                        <input type="text" class="form-control" id="db_username" name="username" placeholder="Database username" value="{$dbConfig['username'] ?? ''}" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="db_password">Password</label>
+                        <input type="password" class="form-control" id="db_password" name="password" placeholder="Database password" value="{$dbConfig['password'] ?? ''}">
+                        <small class="form-text text-muted">Leave blank to keep current password</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="db_name">Database Name</label>
+                        <input type="text" class="form-control" id="db_name" name="database_name" placeholder="Database name" value="{$dbConfig['database_name'] ?? ''}" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="db_prefix">Table Prefix</label>
+                        <input type="text" class="form-control" id="db_prefix" name="prefix" placeholder="tsw_" value="{$dbConfig['prefix'] ?? 'tsw_'}">
+                        <small class="form-text text-muted">Defaults to 'tsw_'</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="db_port">Port</label>
+                        <input type="number" class="form-control" id="db_port" name="port" placeholder="3306" value="{$dbConfig['port'] ?? 3306}">
+                        <small class="form-text text-muted">Default: 3306 for MySQL</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="db_charset">Charset</label>
+                        <input type="text" class="form-control" id="db_charset" name="charset" placeholder="utf8mb4" value="{$dbConfig['charset'] ?? 'utf8mb4'}">
+                        <small class="form-text text-muted">Recommended: utf8mb4</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group" role="group">
+                <button type="button" id="test-db-connection" class="btn btn-info"><i class="fas fa-plug"></i> Test Connection</button>
+                <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Database Config</button>
+            </div>
+            <div id="db-test-result" class="mt-2"></div>
+        </form>
+
+        <hr class="my-4">
+
         <form id="form-config" method="post" action="api/save-config.php" class="mb-4">
             {$csrfField}
             <h5>Assigner Config (JSON)</h5>
@@ -41,3 +127,6 @@
 </div>
 {/block}
 
+{block footerbottom}
+    {$tplutils::includeScript("js/admin.js", true)}
+{/block}
