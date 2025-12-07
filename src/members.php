@@ -11,11 +11,26 @@ require_once __DIR__ . "/private/php/load.php";
 
 $db = DatabaseUtils::i()->getDb();
 
-// Get configurable member groups from database, default to [6, 7]
-$memberGroups = Config::get("members_groups", [6, 7]);
+// Get configurable member groups from database, default to [532, 556, 542, 533]
+// Display order: 532, then 556, then 542, then 533
+$memberGroups = Config::get("members_groups", [532, 556, 542, 533]);
 if (!is_array($memberGroups) || empty($memberGroups)) {
-    $memberGroups = [6, 7];
+    $memberGroups = [532, 556, 542, 533];
 }
+
+// Define priority order for member groups (lower priority value = displayed first)
+$groupPriority = array_flip(array_values($memberGroups));
+
+// Helper function to get the best priority for a user based on their groups
+$getBestPriority = function($groups) use ($groupPriority) {
+    $priorities = [];
+    foreach ($groups as $gid) {
+        if (isset($groupPriority[$gid])) {
+            $priorities[] = $groupPriority[$gid];
+        }
+    }
+    return !empty($priorities) ? min($priorities) : PHP_INT_MAX;
+};
 
 // Build members from live TS server group membership (preferred), fallback to DB profiles
 $members = [];
@@ -60,8 +75,8 @@ if (TeamSpeakUtils::i()->checkTSConnection()) {
             foreach ($map as $dbid => $data) {
                 $groups = $data['groups'];
                 if (empty($groups)) continue;
-                // Category: lowest group ID in the list (for sorting)
-                $cat = min($groups);
+                // Category: best priority from user's groups (for sorting)
+                $cat = $getBestPriority($groups);
                 $nick = null;
                 $country = null;
                 $online = CacheManager::i()->getClient($dbid);
@@ -106,7 +121,7 @@ if (empty($members)) {
             // Check if user has any of the configured member groups
             $matchingGroups = array_intersect($ids, $memberGroups);
             if (empty($matchingGroups)) continue;
-            $cat = min($matchingGroups);
+            $cat = $getBestPriority(array_values($matchingGroups));
             $dbid = (int) $r["cldbid"];
             $nick = (string) ($r["nickname"] ?: ("User #" . $dbid));
             $country = isset($r['country']) ? (string) $r['country'] : null;
@@ -129,7 +144,7 @@ if (empty($members)) {
     } catch (\Exception $e) { /* ignore */ }
 }
 
-// Sort: by category (lowest group ID first), then by cldbid ascending
+// Sort: by category (priority order: 532, 556, 542, 533), then by cldbid ascending
 $members && usort($members, function ($a, $b) {
     if ($a["cat"] === $b["cat"]) {
         return $a["cldbid"] <=> $b["cldbid"];
