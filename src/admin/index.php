@@ -6,9 +6,16 @@ use Wruczek\TSWebsite\Utils\TemplateUtils;
 
 require_once __DIR__ . "/../private/php/load.php";
 
-if (!Auth::isLoggedIn() || Auth::getUid() !== "Jv/d1+pX7/q343RrIMPTTVpob+U=") {
+// Check if user is logged in and has admin privileges
+if (!Auth::isLoggedIn()) {
+    http_response_code(401);
+    TemplateUtils::i()->renderErrorTemplate("401", "Unauthorized", "Please log in to access the admin panel.");
+    exit;
+}
+
+if (!Auth::isAdmin()) {
     http_response_code(403);
-    TemplateUtils::i()->renderErrorTemplate("403", "Forbidden", "You do not have access to this page.");
+    TemplateUtils::i()->renderErrorTemplate("403", "Forbidden", "You do not have permission to access the admin panel.");
     exit;
 }
 
