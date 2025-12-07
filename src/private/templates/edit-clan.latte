@@ -26,6 +26,7 @@
             {/if}
 
             <form method="POST" enctype="multipart/form-data">
+                {$csrfField}
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
@@ -54,8 +55,8 @@
                         <div class="form-group">
                             <label for="clan_avatar">Upload New Clan Avatar (Optional)</label>
                             <input type="file" class="form-control-file" id="clan_avatar" name="clan_avatar" 
-                                   accept="image/png,image/jpeg,image/webp">
-                            <small class="form-text text-muted">Max 2MB. Formats: PNG, JPG, WEBP</small>
+                                   accept="image/png,image/jpeg,image/webp,image/gif">
+                            <small class="form-text text-muted">Max 2MB. Formats: PNG, JPG, WEBP, GIF</small>
                         </div>
                     </div>
                 </div>

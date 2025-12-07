@@ -146,5 +146,51 @@
             {/if}
         </div>
     </div>
+
+    {ifset $clanGroups}
+        {if count($clanGroups) > 0}
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-shield-alt"></i> Clan Groups
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {foreach $clanGroups as $clan}
+                            <div class="col-md-6 mb-3">
+                                <a href="clan.php?groupid={$clan['group_id']}" class="clan-group-card text-decoration-none">
+                                    <div class="card h-100 hover-shadow">
+                                        <div class="card-body d-flex align-items-center">
+                                            <img src="{$clan['clan_avatar']}" alt="{$clan['clan_name']}" 
+                                                 style="width:48px;height:48px;object-fit:cover;border-radius:8px;margin-right:1rem;">
+                                            <div>
+                                                <h6 class="mb-0">{$clan['clan_name']}</h6>
+                                                <small class="text-muted">Group ID: {$clan['group_id']}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        {/foreach}
+                    </div>
+                </div>
+            </div>
+            <style>
+                .clan-group-card .card {
+                    transition: transform 0.2s, box-shadow 0.2s;
+                    border: 1px solid rgba(0,0,0,0.125);
+                }
+                .clan-group-card .card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                }
+                .clan-group-card {
+                    color: inherit;
+                }
+                .clan-group-card:hover {
+                    text-decoration: none;
+                }
+            </style>
+        {/if}
+    {/ifset}
 {/block}
 

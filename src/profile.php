@@ -547,6 +547,36 @@ foreach ($socials as $key => $url) {
     ];
 }
 
+// Fetch clan groups that the user belongs to
+$userClanGroups = [];
+try {
+    // Get user's server group IDs
+    $userGroupIds = [];
+    if (!empty($profileData["servergroups"])) {
+        foreach (explode(',', (string) $profileData["servergroups"]) as $id) {
+            $id = (int) trim($id);
+            if ($id > 0) $userGroupIds[] = $id;
+        }
+    }
+    
+    if (!empty($userGroupIds)) {
+        // Fetch all clan groups from database
+        $allClanGroups = $db->select("clan_groups", "*");
+        foreach ($allClanGroups as $clanGroup) {
+            $groupId = (int) $clanGroup['group_id'];
+            if (in_array($groupId, $userGroupIds)) {
+                $userClanGroups[] = [
+                    'group_id' => $groupId,
+                    'clan_name' => $clanGroup['clan_name'] ?? "Clan Group {$groupId}",
+                    'clan_avatar' => $clanGroup['clan_avatar'] ?? 'img/icons/defaulticon-128.png',
+                ];
+            }
+        }
+    }
+} catch (\Exception $e) {
+    // ignore
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -557,6 +587,7 @@ $renderData = [
     "avatarBorderKey" => $avatarBorderKey,
     "bannerUrl" => $bannerUrl,
     "groups" => $groupsDetailed,
+    "clanGroups" => $userClanGroups,
     "socials" => $socialItems,
     "currentChannelName" => $currentChannelName,
     "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,

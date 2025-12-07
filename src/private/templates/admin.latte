@@ -50,5 +50,239 @@
         </form>
     </div>
 </div>
+
+<div class="card card-accent mb-3">
+    <div class="card-header bigger-title">
+        <i class="fas fa-shield-alt"></i> Clan Groups Management
+    </div>
+    <div class="card-body">
+        <p>Manage clan groups and their settings. Each clan group is linked to a TeamSpeak server group ID.</p>
+
+        <div id="clan-groups-list" class="mb-4">
+            <h5>Existing Clan Groups</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Group ID</th>
+                            <th>Clan Name</th>
+                            <th>Editor CLDBIDs</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clan-groups-tbody">
+                        <tr>
+                            <td colspan="4" class="text-center">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <hr>
+
+        <div id="clan-group-form">
+            <h5>Add/Edit Clan Group</h5>
+            <form id="form-clan-group">
+                {$csrfField}
+                <input type="hidden" id="clan-group-id" name="clan_group_id" value="">
+                
+                <div class="form-group">
+                    <label for="clan-group-sgid">TeamSpeak Server Group ID <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="clan-group-sgid" name="group_id" min="1" required 
+                           placeholder="e.g., 19">
+                    <small class="form-text text-muted">The TeamSpeak server group ID that this clan represents.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="clan-group-name">Clan Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="clan-group-name" name="clan_name" required 
+                           placeholder="e.g., Elite Warriors">
+                </div>
+
+                <div class="form-group">
+                    <label for="clan-group-editors">Editor CLDBIDs (comma-separated)</label>
+                    <input type="text" class="form-control" id="clan-group-editors" name="editor_cldbids" 
+                           placeholder="e.g., 3,7,15">
+                    <small class="form-text text-muted">Client Database IDs of users who can edit this clan page. Separate multiple IDs with commas.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="clan-group-description">Clan Description (Optional)</label>
+                    <textarea class="form-control" id="clan-group-description" name="clan_description" rows="4" 
+                              placeholder="HTML supported"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="btn-save-clan-group">
+                    <i class="fas fa-save"></i> Save Clan Group
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-reset-clan-form">
+                    <i class="fas fa-times"></i> Reset Form
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Clan Groups Management
+(function() {
+    const csrfToken = $('meta[name="csrf-token"]').attr("content");
+    
+    function loadClanGroups() {
+        $.ajax({
+            url: 'api/clan-groups.php',
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.ok && Array.isArray(response.data)) {
+                    renderClanGroups(response.data);
+                } else {
+                    $('#clan-groups-tbody').html('<tr><td colspan="4" class="text-center text-danger">Failed to load clan groups</td></tr>');
+                }
+            },
+            error: function() {
+                $('#clan-groups-tbody').html('<tr><td colspan="4" class="text-center text-danger">Error loading clan groups</td></tr>');
+            }
+        });
+    }
+    
+    function renderClanGroups(groups) {
+        if (groups.length === 0) {
+            $('#clan-groups-tbody').html('<tr><td colspan="4" class="text-center text-muted">No clan groups configured yet</td></tr>');
+            return;
+        }
+        
+        let html = '';
+        groups.forEach(function(group) {
+            html += '<tr>';
+            html += '<td>' + escapeHtml(group.group_id) + '</td>';
+            html += '<td>' + escapeHtml(group.clan_name || 'Unnamed') + '</td>';
+            html += '<td>' + escapeHtml(group.editor_cldbids || '-') + '</td>';
+            html += '<td>';
+            html += '<button class="btn btn-sm btn-info btn-edit-clan" data-id="' + group.id + '"><i class="fas fa-edit"></i> Edit</button> ';
+            html += '<button class="btn btn-sm btn-danger btn-delete-clan" data-id="' + group.id + '" data-name="' + escapeHtml(group.clan_name || 'Unnamed') + '"><i class="fas fa-trash"></i> Delete</button> ';
+            html += '<a href="../clan.php?groupid=' + group.group_id + '" class="btn btn-sm btn-secondary" target="_blank"><i class="fas fa-external-link-alt"></i> View</a>';
+            html += '</td>';
+            html += '</tr>';
+        });
+        $('#clan-groups-tbody').html(html);
+    }
+    
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+    
+    // Load clan groups on page load
+    loadClanGroups();
+    
+    // Save clan group form
+    $('#form-clan-group').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const id = $('#clan-group-id').val();
+        
+        $.ajax({
+            url: 'api/clan-groups.php',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function(response) {
+                if (response.ok) {
+                    alert(id ? 'Clan group updated successfully!' : 'Clan group created successfully!');
+                    $('#btn-reset-clan-form').click();
+                    loadClanGroups();
+                } else {
+                    alert('Error: ' + (response.error || 'Unknown error'));
+                }
+            },
+            error: function() {
+                alert('Failed to save clan group. Please try again.');
+            }
+        });
+    });
+    
+    // Reset form
+    $('#btn-reset-clan-form').on('click', function() {
+        $('#form-clan-group')[0].reset();
+        $('#clan-group-id').val('');
+        $('#btn-save-clan-group').html('<i class="fas fa-save"></i> Save Clan Group');
+    });
+    
+    // Edit clan group
+    $(document).on('click', '.btn-edit-clan', function() {
+        const id = $(this).data('id');
+        
+        $.ajax({
+            url: 'api/clan-groups.php?id=' + id,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.ok && response.data) {
+                    const group = response.data;
+                    $('#clan-group-id').val(group.id);
+                    $('#clan-group-sgid').val(group.group_id);
+                    $('#clan-group-name').val(group.clan_name);
+                    $('#clan-group-editors').val(group.editor_cldbids);
+                    $('#clan-group-description').val(group.clan_description);
+                    $('#btn-save-clan-group').html('<i class="fas fa-save"></i> Update Clan Group');
+                    
+                    // Scroll to form
+                    $('html, body').animate({
+                        scrollTop: $('#clan-group-form').offset().top - 100
+                    }, 500);
+                } else {
+                    alert('Error loading clan group details');
+                }
+            },
+            error: function() {
+                alert('Failed to load clan group');
+            }
+        });
+    });
+    
+    // Delete clan group
+    $(document).on('click', '.btn-delete-clan', function() {
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+        
+        if (!confirm('Are you sure you want to delete the clan group "' + name + '"? This cannot be undone.')) {
+            return;
+        }
+        
+        $.ajax({
+            url: 'api/clan-groups.php',
+            method: 'DELETE',
+            data: JSON.stringify({ id: id }),
+            contentType: 'application/json',
+            dataType: 'json',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            },
+            success: function(response) {
+                if (response.ok) {
+                    alert('Clan group deleted successfully!');
+                    loadClanGroups();
+                } else {
+                    alert('Error: ' + (response.error || 'Unknown error'));
+                }
+            },
+            error: function() {
+                alert('Failed to delete clan group');
+            }
+        });
+    });
+})();
+</script>
 {/block}
 
