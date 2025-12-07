@@ -1,6 +1,7 @@
 <?php
 
 use Wruczek\TSWebsite\CacheManager;
+use Wruczek\TSWebsite\Config;
 use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Utils\TeamSpeakUtils;
@@ -10,26 +11,34 @@ require_once __DIR__ . "/private/php/load.php";
 
 $db = DatabaseUtils::i()->getDb();
 
+// Get configurable member groups from database, default to [6, 7]
+$memberGroups = Config::get("members_groups", [6, 7]);
+if (!is_array($memberGroups) || empty($memberGroups)) {
+    $memberGroups = [6, 7];
+}
+
 // Build members from live TS server group membership (preferred), fallback to DB profiles
 $members = [];
 if (TeamSpeakUtils::i()->checkTSConnection()) {
     try {
         $node = TeamSpeakUtils::i()->getTSNodeServer();
-        $g6 = $node->serverGroupClientList(6) ?: [];
-        $g7 = $node->serverGroupClientList(7) ?: [];
-
-        $map = [];
-        foreach ($g6 as $c) {
-            $dbid = isset($c['cldbid']) ? (int) $c['cldbid'] : (isset($c['client_database_id']) ? (int) $c['client_database_id'] : null);
-            if (!$dbid) continue;
-            if (!isset($map[$dbid])) $map[$dbid] = ['has6' => false, 'has7' => false];
-            $map[$dbid]['has6'] = true;
+        // Dynamically fetch all configured member groups
+        $groupClients = [];
+        foreach ($memberGroups as $groupId) {
+            $groupClients[$groupId] = $node->serverGroupClientList((int)$groupId) ?: [];
         }
-        foreach ($g7 as $c) {
-            $dbid = isset($c['cldbid']) ? (int) $c['cldbid'] : (isset($c['client_database_id']) ? (int) $c['client_database_id'] : null);
-            if (!$dbid) continue;
-            if (!isset($map[$dbid])) $map[$dbid] = ['has6' => false, 'has7' => false];
-            $map[$dbid]['has7'] = true;
+
+        // Map each client to their groups
+        $map = [];
+        foreach ($groupClients as $groupId => $clients) {
+            foreach ($clients as $c) {
+                $dbid = isset($c['cldbid']) ? (int) $c['cldbid'] : (isset($c['client_database_id']) ? (int) $c['client_database_id'] : null);
+                if (!$dbid) continue;
+                if (!isset($map[$dbid])) {
+                    $map[$dbid] = ['groups' => []];
+                }
+                $map[$dbid]['groups'][] = (int)$groupId;
+            }
         }
 
         if (!empty($map)) {
@@ -48,12 +57,11 @@ if (TeamSpeakUtils::i()->checkTSConnection()) {
                 }
             } catch (\Exception $e) { /* ignore */ }
 
-            foreach ($map as $dbid => $flags) {
-                $has6 = (bool) $flags['has6'];
-                $has7 = (bool) $flags['has7'];
-                if (!$has6 && !$has7) continue;
-                // Category: 0 = group 6 (also includes 6&7), 1 = only group 7
-                $cat = $has6 ? 0 : 1;
+            foreach ($map as $dbid => $data) {
+                $groups = $data['groups'];
+                if (empty($groups)) continue;
+                // Category: lowest group ID in the list (for sorting)
+                $cat = min($groups);
                 $nick = null;
                 $country = null;
                 $online = CacheManager::i()->getClient($dbid);
@@ -95,10 +103,10 @@ if (empty($members)) {
             $sg = isset($r["servergroups"]) ? (string) $r["servergroups"] : "";
             $ids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(",", $sg)), function ($v) { return $v > 0; }));
             if (empty($ids)) continue;
-            $has6 = in_array(6, $ids, true);
-            $has7 = in_array(7, $ids, true);
-            if (!$has6 && !$has7) continue;
-            $cat = $has6 ? 0 : 1;
+            // Check if user has any of the configured member groups
+            $matchingGroups = array_intersect($ids, $memberGroups);
+            if (empty($matchingGroups)) continue;
+            $cat = min($matchingGroups);
             $dbid = (int) $r["cldbid"];
             $nick = (string) ($r["nickname"] ?: ("User #" . $dbid));
             $country = isset($r['country']) ? (string) $r['country'] : null;
@@ -121,7 +129,7 @@ if (empty($members)) {
     } catch (\Exception $e) { /* ignore */ }
 }
 
-// Sort: group 6 first, then group 7; within group by cldbid ascending
+// Sort: by category (lowest group ID first), then by cldbid ascending
 $members && usort($members, function ($a, $b) {
     if ($a["cat"] === $b["cat"]) {
         return $a["cldbid"] <=> $b["cldbid"];
@@ -137,7 +145,12 @@ $pageItems = array_slice($members, $start, $perPage);
 $hasMore = count($members) > ($start + $perPage);
 $nextPageUrl = $hasMore ? ("members.php?page=" . ($page + 1)) : null;
 
-// Enrich page items with rank icon (group id 9..18 highest icon)
+// Get configurable rank badge range from database, default to 9-18
+$rankBadgeRange = Config::get("rank_badge_range", ["min" => 9, "max" => 18]);
+$rankMin = isset($rankBadgeRange['min']) ? (int)$rankBadgeRange['min'] : 9;
+$rankMax = isset($rankBadgeRange['max']) ? (int)$rankBadgeRange['max'] : 18;
+
+// Enrich page items with rank icon (configurable group id range)
 try {
     $serverGroups = CacheManager::i()->getServerGroupList();
 } catch (\Exception $e) { $serverGroups = null; }
@@ -166,7 +179,9 @@ if (!empty($pageItems) && $serverGroups) {
             $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $profileSgById[$dbid])), function ($v) { return $v > 0; }));
         }
         if (!empty($sgids)) {
-            $rankGroups = array_values(array_filter($sgids, function ($g) { return $g >= 9 && $g <= 18; }));
+            $rankGroups = array_values(array_filter($sgids, function ($g) use ($rankMin, $rankMax) { 
+                return $g >= $rankMin && $g <= $rankMax; 
+            }));
             if (!empty($rankGroups)) {
                 $chosen = max($rankGroups);
                 if (isset($serverGroups[$chosen]) && !empty($serverGroups[$chosen]['iconid'])) {

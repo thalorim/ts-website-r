@@ -7,17 +7,28 @@
         <i class="fas fa-tools"></i> Admin Panel
     </div>
     <div class="card-body">
-        <p>Only user with CLDBID 3 can access this page.</p>
+        <p>Admin panel for database configuration and site management.</p>
 
         <form id="form-config" method="post" action="api/save-config.php" class="mb-4">
             {$csrfField}
             <h5>Assigner Config (JSON)</h5>
+            <p class="text-muted small">Configure the automatic group assignment rules.</p>
             <textarea class="form-control mb-2" name="assignerconfig" rows="10">{$assignerConfigJson|noescape}</textarea>
 
             <h5 class="mt-3">Admin Status Groups (JSON)</h5>
+            <p class="text-muted small">Array of server group IDs to display in the admin status sidebar.</p>
             <textarea class="form-control mb-2" name="adminstatus_groups" rows="6">{$adminStatusGroupsJson|noescape}</textarea>
 
+            <h5 class="mt-3">Members Page Groups (JSON)</h5>
+            <p class="text-muted small">Array of server group IDs to display on the members page. Example: [6, 7]</p>
+            <textarea class="form-control mb-2" name="members_groups" rows="3">{$membersGroupsJson|noescape}</textarea>
+
+            <h5 class="mt-3">Rank Badge Group ID Range (JSON)</h5>
+            <p class="text-muted small">Define which server group IDs are considered rank badges. Example: {"min": 9, "max": 18}</p>
+            <textarea class="form-control mb-2" name="rank_badge_range" rows="3">{$rankBadgeRangeJson|noescape}</textarea>
+
             <h5 class="mt-3">Discord Login Webhook URL</h5>
+            <p class="text-muted small">Discord webhook URL to send login notifications to.</p>
             <input type="url" class="form-control mb-2" name="discord_login_webhook" placeholder="https://discord.com/api/webhooks/..." value="{$config['discord_login_webhook'] ?? ''}">
 
             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Config</button>
