@@ -1041,7 +1041,7 @@ table.dataTable > tbody > tr.child td.child {
 
 /* Recent Games Sidebar Widget */
 .recent-game-item {
-    padding: 0.75rem;
+    padding: 0.5rem;
     border-bottom: 1px solid rgba(0,0,0,0.05);
     transition: background-color 0.2s ease;
 }
@@ -1056,9 +1056,11 @@ table.dataTable > tbody > tr.child td.child {
 
 .recent-game-capsule {
     width: 100%;
+    max-height: 80px;
     height: auto;
+    object-fit: cover;
     border-radius: 4px;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
     display: block;
 }
 
@@ -1068,16 +1070,16 @@ table.dataTable > tbody > tr.child td.child {
 
 .recent-game-name {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: #2c3e50;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .recent-game-time {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #6c757d;
 }
 
