@@ -11,8 +11,8 @@ require_once __DIR__ . "/private/php/load.php";
 
 $groupId = isset($_GET["groupid"]) ? (int) $_GET["groupid"] : 0;
 
-if ($groupId !== 19) {
-    TemplateUtils::i()->renderErrorTemplate("404", "Not Found", "Clan page not found for this group");
+if ($groupId <= 0) {
+    TemplateUtils::i()->renderErrorTemplate("404", "Not Found", "Invalid group ID");
     exit;
 }
 
@@ -33,12 +33,24 @@ try {
             `clan_name` VARCHAR(255) DEFAULT NULL,
             `clan_description` TEXT NULL,
             `clan_avatar` VARCHAR(255) DEFAULT NULL,
+            `editor_cldbids` TEXT NULL,
             `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uniq_group_id` (`group_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
         $db->query($createSql);
+    } else {
+        // Add editor_cldbids column if it doesn't exist
+        try {
+            $columnsStmt = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'editor_cldbids'");
+            $columnExists = $columnsStmt && $columnsStmt->fetchColumn();
+            if (!$columnExists) {
+                $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `editor_cldbids` TEXT NULL AFTER `clan_avatar`");
+            }
+        } catch (\Exception $e) {
+            // Non-fatal
+        }
     }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring clan_groups table", $e->getMessage());
@@ -48,21 +60,11 @@ try {
 // Fetch clan data
 $clanData = $db->get("clan_groups", "*", ["group_id" => $groupId]);
 if (!$clanData) {
-    // Initialize with defaults
-    $clanData = [
-        "group_id" => $groupId,
-        "clan_name" => "Clan Group 19",
-        "clan_description" => null,
-        "clan_avatar" => null,
-    ];
-    try {
-        $db->insert("clan_groups", $clanData);
-    } catch (\Exception $e) {
-        // Non-fatal
-    }
+    TemplateUtils::i()->renderErrorTemplate("404", "Not Found", "Clan page not found for this group. Please ask an admin to set it up first.");
+    exit;
 }
 
-$clanName = $clanData["clan_name"] ?? "Clan Group 19";
+$clanName = $clanData["clan_name"] ?? "Clan Group {$groupId}";
 $clanDescription = $clanData["clan_description"] ?? null;
 $clanAvatar = $clanData["clan_avatar"] ?? "img/icons/defaulticon-128.png";
 

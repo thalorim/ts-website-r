@@ -14,14 +14,8 @@ if (!Auth::isLoggedIn()) {
 
 $groupId = isset($_GET["groupid"]) ? (int) $_GET["groupid"] : 0;
 
-if ($groupId !== 19) {
-    TemplateUtils::i()->renderErrorTemplate("404", "Not Found", "Clan page not found for this group");
-    exit;
-}
-
-// Check if user has cldbid 3
-if (Auth::getCldbid() !== 3) {
-    TemplateUtils::i()->renderErrorTemplate("403", "Forbidden", "Only authorized users can edit this clan page.");
+if ($groupId <= 0) {
+    TemplateUtils::i()->renderErrorTemplate("404", "Not Found", "Invalid group ID");
     exit;
 }
 
@@ -42,15 +36,48 @@ try {
             `clan_name` VARCHAR(255) DEFAULT NULL,
             `clan_description` TEXT NULL,
             `clan_avatar` VARCHAR(255) DEFAULT NULL,
+            `editor_cldbids` TEXT NULL,
             `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uniq_group_id` (`group_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
         $db->query($createSql);
+    } else {
+        // Add editor_cldbids column if it doesn't exist
+        try {
+            $columnsStmt = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'editor_cldbids'");
+            $columnExists = $columnsStmt && $columnsStmt->fetchColumn();
+            if (!$columnExists) {
+                $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `editor_cldbids` TEXT NULL AFTER `clan_avatar`");
+            }
+        } catch (\Exception $e) {
+            // Non-fatal
+        }
     }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring clan_groups table", $e->getMessage());
+    exit;
+}
+
+// Check if this clan group exists in the database
+$clanGroupData = $db->get("clan_groups", "*", ["group_id" => $groupId]);
+if (!$clanGroupData) {
+    TemplateUtils::i()->renderErrorTemplate("404", "Not Found", "Clan page not found for this group. Please ask an admin to set it up first.");
+    exit;
+}
+
+// Check if user has permission to edit this clan page
+$userCldbid = Auth::getCldbid();
+$editorCldbids = [];
+if (!empty($clanGroupData['editor_cldbids'])) {
+    $editorCldbids = array_map('intval', array_filter(explode(',', $clanGroupData['editor_cldbids']), function($v) {
+        return trim($v) !== '';
+    }));
+}
+
+if (!in_array($userCldbid, $editorCldbids)) {
+    TemplateUtils::i()->renderErrorTemplate("403", "Forbidden", "You do not have permission to edit this clan page. Contact an admin if you need access.");
     exit;
 }
 
@@ -89,10 +116,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $allowed = [
                 'image/png' => 'png',
                 'image/jpeg' => 'jpg',
-                'image/webp' => 'webp'
+                'image/webp' => 'webp',
+                'image/gif' => 'gif'
             ];
             if (!isset($allowed[$mime])) {
-                throw new \Exception("Invalid image type. Allowed: PNG, JPG, WEBP");
+                throw new \Exception("Invalid image type. Allowed: PNG, JPG, WEBP, GIF");
             }
 
             $clansDir = __BASE_DIR . "/img/clans";
