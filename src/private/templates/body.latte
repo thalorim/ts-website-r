@@ -7,6 +7,7 @@ $navActiveIndex = isset($navActiveIndex) ? (int) $navActiveIndex : 0;
 }<!DOCTYPE html>
 <html n:attr="lang => $userlangcode">
 <head>
+    <base href="{php echo rtrim(dirname($_SERVER['SCRIPT_NAME']), '/admin') . '/'; }">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
