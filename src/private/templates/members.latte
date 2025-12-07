@@ -33,11 +33,15 @@
                                                 <i class="fas fa-user-plus"></i> First joined: <span data-relativetime="fuzzydate" data-timestamp="{$m['client_created']}">{date('M j, Y', $m['client_created'])}</span>
                                             </span>
                                         {/ifset}
-                                        {ifset $m['client_lastconnected']}
+                                        {if isset($m['is_online']) && $m['is_online']}
+                                            <span class="text-success">
+                                                <i class="fas fa-circle"></i> Currently online
+                                            </span>
+                                        {elseif isset($m['client_lastconnected'])}
                                             <span>
                                                 <i class="fas fa-clock"></i> Last active: <span data-relativetime="fuzzydate" data-timestamp="{$m['client_lastconnected']}">{date('M j, Y', $m['client_lastconnected'])}</span>
                                             </span>
-                                        {/ifset}
+                                        {/if}
                                     </div>
                                 </div>
                                 <a href="profile.php?cldbid={$m['cldbid']}" class="btn btn-sm btn-primary ml-2">View</a>
