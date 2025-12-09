@@ -23,9 +23,9 @@
                         {/ifset}
                     </h3>
                     <div class="subtext">
-                        <span><i class="fas fa-id-badge"></i> CLDBID: {$profile["cldbid"]}</span>
+                        <span><i class="fas fa-id-badge" data-toggle="tooltip" title="CLDBID: {$profile['cldbid']}"></i></span>
                         {ifset $profile["cluid"]}
-                            <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
+                            <span class="ml-2"><i class="fas fa-fingerprint" data-toggle="tooltip" title="{$profile['cluid']}"></i></span>
                         {/ifset}
                         {if $socials}
                             <span class="ml-3">
