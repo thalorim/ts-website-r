@@ -550,6 +550,20 @@ foreach ($socials as $key => $url) {
 $profileBgColor = ($dbProfile && !empty($dbProfile["profile_bg_color"])) ? $dbProfile["profile_bg_color"] : null;
 $nicknameStyle = ($dbProfile && !empty($dbProfile["nickname_style"])) ? $dbProfile["nickname_style"] : null;
 
+// Calculate darkened background color if custom color is set
+$avatarMetaBgStyle = null;
+if ($profileBgColor) {
+    // Apply darken effect: convert hex to RGB, then darken by 15%
+    $hex = ltrim($profileBgColor, '#');
+    $r = hexdec(substr($hex, 0, 2));
+    $g = hexdec(substr($hex, 2, 2));
+    $b = hexdec(substr($hex, 4, 2));
+    $r = (int)($r * 0.85);
+    $g = (int)($g * 0.85);
+    $b = (int)($b * 0.85);
+    $avatarMetaBgStyle = 'background: rgb(' . $r . ',' . $g . ',' . $b . ') !important;';
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -569,6 +583,7 @@ $renderData = [
     "discordUserId" => $discordUserId,
     "profileBgColor" => $profileBgColor,
     "nicknameStyle" => $nicknameStyle,
+    "avatarMetaBgStyle" => $avatarMetaBgStyle,
 ];
 
 // Compute last seen text for offline users
