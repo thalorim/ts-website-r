@@ -179,6 +179,19 @@ try {
 
         $db->query($createSql);
     }
+
+    // Ensure new customization columns exist
+    $colStmt5 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'profile_bg_color'");
+    $colExists5 = $colStmt5 && $colStmt5->fetchColumn();
+    if (!$colExists5) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `profile_bg_color` VARCHAR(7) NULL");
+    }
+
+    $colStmt6 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'nickname_style'");
+    $colExists6 = $colStmt6 && $colStmt6->fetchColumn();
+    if (!$colExists6) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `nickname_style` VARCHAR(20) NULL");
+    }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring profiles table", $e->getMessage());
     exit;

@@ -4,14 +4,14 @@
 {block content}
     <div class="profile-header steamlike-header card-accent">
         <div class="cover" n:attr="style => isset($bannerUrl) && $bannerUrl ? 'background-image:url(' . $bannerUrl . '); background-size:cover; background-position:center;' : null"></div>
-        <div class="avatar-and-meta d-flex align-items-center" n:attr="style => isset($profileBgColor) && $profileBgColor ? 'background: ' . $profileBgColor . ' !important;' : null">
+        <div class="avatar-and-meta d-flex align-items-center" n:style="$profileBgColor ? 'background: ' . $profileBgColor . ' !important;' : null">
             <div class="d-flex align-items-center">
                 <div class="avatar avatar-preview">
                     <img src="{$avatarUrl}" alt="avatar" class="avatar-img">
                     <img src="{$avatarBorderUrl}" alt="avatar border" class="avatar-border-overlay">
                 </div>
                 <div class="meta ml-3">
-                    <h3 class="nickname mb-1 d-flex align-items-center" n:class="$nicknameStyle ? 'nickname-' . $nicknameStyle : ''">
+                    <h3 class="nickname mb-1 d-flex align-items-center{if $nicknameStyle} nickname-{$nicknameStyle}{/if}">
                         <span>{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
                         {ifset $groups}
                             {foreach $groups as $g}
