@@ -3,8 +3,8 @@
 
 {block content}
     <div class="profile-header steamlike-header card-accent">
-        <div class="cover" n:attr="style => isset($bannerUrl) && $bannerUrl ? 'background-image:url(' . $bannerUrl . '); background-size:cover; background-position:center;' : null"></div>
-        <div class="avatar-and-meta d-flex align-items-center{if $profileBgColor}" style="background: {$profileBgColor} !important;{/if}">
+        <div class="cover"{if $bannerUrl} style="background-image:url({$bannerUrl}); background-size:cover; background-position:center;"{/if}></div>
+        <div class="avatar-and-meta d-flex align-items-center"{if $profileBgColor} style="background: {$profileBgColor} !important;"{/if}>
             <div class="d-flex align-items-center">
                 <div class="avatar avatar-preview">
                     <img src="{$avatarUrl}" alt="avatar" class="avatar-img">
