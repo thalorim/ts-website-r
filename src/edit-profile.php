@@ -56,16 +56,10 @@ try {
         $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `description` TEXT NULL AFTER `banner_url`");
     }
 
-    $colStmt5 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'profile_bg_color'");
-    $colExists5 = $colStmt5 && $colStmt5->fetchColumn();
-    if (!$colExists5) {
-        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `profile_bg_color` VARCHAR(7) NULL AFTER `description`");
-    }
-
     $colStmt6 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'nickname_style'");
     $colExists6 = $colStmt6 && $colStmt6->fetchColumn();
     if (!$colExists6) {
-        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `nickname_style` VARCHAR(20) NULL AFTER `profile_bg_color`");
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `nickname_style` VARCHAR(20) NULL AFTER `description`");
     }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring avatar column", $e->getMessage());
@@ -185,16 +179,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $updateData["description"] = $desc !== "" ? $desc : null;
         }
 
-        // Handle profile background color (optional)
-        if (isset($_POST["profile_bg_color"])) {
-            $bgColor = trim((string) $_POST["profile_bg_color"]);
-            if ($bgColor !== "" && preg_match('/^#[0-9A-Fa-f]{6}$/', $bgColor)) {
-                $updateData["profile_bg_color"] = $bgColor;
-            } else {
-                $updateData["profile_bg_color"] = null;
-            }
-        }
-
         // Handle nickname style (optional)
         if (isset($_POST["nickname_style"])) {
             $nicknameStyle = trim((string) $_POST["nickname_style"]);
@@ -222,12 +206,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 // Fetch current data to display in form
-$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description","profile_bg_color","nickname_style"], ["cldbid" => $requestedCldbid]);
+$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description","nickname_style"], ["cldbid" => $requestedCldbid]);
 $currentAvatar = $current && isset($current["avatar_url"]) && $current["avatar_url"] ? $current["avatar_url"] : "img/icons/defaulticon-128.png";
 $currentAvatarBorder = AvatarBorderUtils::normalize($current["avatar_border"] ?? null);
 $currentAvatarBorderUrl = AvatarBorderUtils::getUrl($currentAvatarBorder);
 $currentDescription = $current && isset($current["description"]) ? $current["description"] : null;
-$currentBgColor = $current && isset($current["profile_bg_color"]) ? $current["profile_bg_color"] : null;
 $currentNicknameStyle = $current && isset($current["nickname_style"]) ? $current["nickname_style"] : null;
 $currentSocials = [];
 if ($current && !empty($current["socials_json"])) {
@@ -246,7 +229,6 @@ TemplateUtils::i()->renderTemplate("edit-profile", [
     "currentAvatarBorderUrl" => $currentAvatarBorderUrl,
     "borderOptions" => AvatarBorderUtils::getOptions(),
     "currentDescription" => $currentDescription,
-    "currentBgColor" => $currentBgColor,
     "currentNicknameStyle" => $currentNicknameStyle,
     "currentSocials" => $currentSocials,
     "message" => $message,

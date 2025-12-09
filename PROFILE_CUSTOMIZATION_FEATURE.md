@@ -1,18 +1,11 @@
 # Profile Customization Feature
 
 ## Overview
-This document describes the new profile customization features that allow users to modify their profile appearance.
+This document describes the nickname display style customization feature that allows users to modify how their TeamSpeak nickname appears on their profile.
 
 ## Features Implemented
 
-### 1. Background Color Customization
-- **Location**: Edit Profile page
-- **Feature**: RGB color picker for `.steamlike-header .avatar-and-meta` background
-- **Effect**: Selected color is applied directly to the background
-- **Default**: `#1b2838` (original Steam-like blue-gray)
-- **Storage**: Database column `profile_bg_color` (VARCHAR 7)
-
-### 2. Nickname Display Style
+### Nickname Display Style
 - **Location**: Edit Profile page
 - **Feature**: Four style options for `.steamlike-header .nickname`
 - **Styles**:
@@ -72,10 +65,9 @@ This document describes the new profile customization features that allow users 
 ## Database Schema Changes
 
 ### Table: `profiles`
-Two new columns added:
+One new column added:
 
 ```sql
-ALTER TABLE `profiles` ADD COLUMN `profile_bg_color` VARCHAR(7) NULL;
 ALTER TABLE `profiles` ADD COLUMN `nickname_style` VARCHAR(20) NULL;
 ```
 
@@ -83,12 +75,8 @@ ALTER TABLE `profiles` ADD COLUMN `nickname_style` VARCHAR(20) NULL;
 
 ### For Users:
 1. Navigate to Edit Profile page
-2. Scroll to "Profile Customization" section
-3. **Background Color**:
-   - Click the color picker or enter a hex code
-   - Color will be applied directly to the avatar area
-   - Click "Reset" to restore default
-4. **Nickname Style**:
+2. Scroll to "Nickname Display Style" section
+3. **Nickname Style**:
    - Select one of the 4 style options
    - Preview is shown in each option
 5. Click "Save" to apply changes
@@ -96,11 +84,9 @@ ALTER TABLE `profiles` ADD COLUMN `nickname_style` VARCHAR(20) NULL;
 
 ## Technical Notes
 
-- Background color is applied directly without any modifications
 - Nickname styles use CSS classes applied conditionally
-- All customizations are optional and stored per user
-- Default behavior is maintained when no customization is set
-- Color picker synchronizes between visual and text inputs via JavaScript
+- Customization is optional and stored per user
+- Default behavior is maintained when no style is selected
 - External GIF URLs are used for sparkle effects (ensure they remain accessible)
 
 ## Browser Compatibility

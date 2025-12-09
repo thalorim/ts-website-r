@@ -109,18 +109,9 @@
                     <textarea id="description" name="description" class="form-control" rows="4" placeholder="Tell others something about you...">{$currentDescription ?? ''}</textarea>
                 </div>
                 <hr>
-                <h5 class="mb-3"><i class="fas fa-palette"></i> Profile Customization</h5>
+                <h5 class="mb-3"><i class="fas fa-palette"></i> Nickname Display Style</h5>
                 <div class="form-group">
-                    <label for="profile_bg_color"><i class="fas fa-fill-drip"></i> Background Color (for avatar area)</label>
-                    <div class="d-flex align-items-center">
-                        <input type="color" id="profile_bg_color" name="profile_bg_color" class="form-control mr-2" style="width: 80px; height: 40px;" value="{$currentBgColor ?? '#1b2838'}">
-                        <input type="text" id="profile_bg_color_hex" class="form-control" style="width: 120px;" value="{$currentBgColor ?? '#1b2838'}" pattern="^#[0-9A-Fa-f]{{6}}$" placeholder="#1b2838">
-                        <button type="button" class="btn btn-secondary ml-2" id="reset_bg_color">Reset</button>
-                    </div>
-                    <small class="form-text text-muted">Choose a background color for the avatar area.</small>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-text-height"></i> Nickname Display Style</label>
+                    <label><i class="fas fa-text-height"></i> Choose a style for your nickname</label>
                     <div class="nickname-style-options">
                         <label class="nickname-style-option">
                             <input type="radio" name="nickname_style" value="none" {if !$currentNicknameStyle || $currentNicknameStyle === 'none'}checked{/if}>
@@ -154,27 +145,6 @@
                 </div>
                 <button class="btn btn-primary" type="submit"><i class="fas fa-upload"></i> Save</button>
             </form>
-            <script>
-                // Sync color picker with hex input
-                const colorPicker = document.getElementById('profile_bg_color');
-                const hexInput = document.getElementById('profile_bg_color_hex');
-                const resetBtn = document.getElementById('reset_bg_color');
-
-                colorPicker.addEventListener('input', function() {
-                    hexInput.value = this.value.toUpperCase();
-                });
-
-                hexInput.addEventListener('input', function() {
-                    if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
-                        colorPicker.value = this.value;
-                    }
-                });
-
-                resetBtn.addEventListener('click', function() {
-                    colorPicker.value = '#1b2838';
-                    hexInput.value = '#1b2838';
-                });
-            </script>
         </div>
     </div>
 {/block}
