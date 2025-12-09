@@ -365,7 +365,7 @@ try {
 }
 
 // Prepare data for template
-// Fetch DB-stored fields (e.g., avatar)
+// Fetch DB-stored fields (e.g., avatar, customization options)
 $dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
 
 // Resolve server group details
@@ -547,6 +547,9 @@ foreach ($socials as $key => $url) {
     ];
 }
 
+$profileBgColor = ($dbProfile && !empty($dbProfile["profile_bg_color"])) ? $dbProfile["profile_bg_color"] : null;
+$nicknameStyle = ($dbProfile && !empty($dbProfile["nickname_style"])) ? $dbProfile["nickname_style"] : null;
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -564,6 +567,8 @@ $renderData = [
     "rankLevel" => $rankLevel,
     "discordPresence" => $discordPresence,
     "discordUserId" => $discordUserId,
+    "profileBgColor" => $profileBgColor,
+    "nicknameStyle" => $nicknameStyle,
 ];
 
 // Compute last seen text for offline users
