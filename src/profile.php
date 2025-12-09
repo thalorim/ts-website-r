@@ -179,6 +179,17 @@ try {
 
         $db->query($createSql);
     }
+
+    // Ensure nickname_style column exists
+    try {
+        $colStmt6 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'nickname_style'");
+        $colExists6 = $colStmt6 && $colStmt6->fetchColumn();
+        if (!$colExists6) {
+            $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `nickname_style` VARCHAR(20) NULL");
+        }
+    } catch (\Exception $e) {
+        // Column might already exist or table might not be accessible
+    }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring profiles table", $e->getMessage());
     exit;
@@ -365,7 +376,7 @@ try {
 }
 
 // Prepare data for template
-// Fetch DB-stored fields (e.g., avatar)
+// Fetch DB-stored fields (e.g., avatar, customization options)
 $dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
 
 // Resolve server group details
@@ -547,6 +558,8 @@ foreach ($socials as $key => $url) {
     ];
 }
 
+$nicknameStyle = ($dbProfile && isset($dbProfile["nickname_style"]) && !empty($dbProfile["nickname_style"])) ? $dbProfile["nickname_style"] : null;
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
@@ -564,6 +577,7 @@ $renderData = [
     "rankLevel" => $rankLevel,
     "discordPresence" => $discordPresence,
     "discordUserId" => $discordUserId,
+    "nicknameStyle" => $nicknameStyle,
 ];
 
 // Compute last seen text for offline users

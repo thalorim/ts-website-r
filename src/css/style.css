@@ -676,3 +676,105 @@ table.dataTable > tbody > tr.child td.child {
         margin-top: 0.5rem;
     }
 }
+
+/* Nickname style effects */
+.steamlike-header .nickname.nickname-style1 span {
+    background: url(https://reape.rs/sparkle.gif);
+    background-size: cover;
+    color: #ffffff;
+    font-weight: 600;
+    -webkit-animation: apollochange 20s infinite alternate;
+    animation: apollochange 20s infinite alternate;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.steamlike-header .nickname.nickname-style2 span {
+    color: white;
+    text-shadow: 0px 2px 2px #03c8ff;
+}
+
+.steamlike-header .nickname.nickname-style3 span {
+    background: url('https://i.ibb.co/qjs2j2X/clip-transparent-sparkle-gif-4.gif');
+    background-size: cover;
+    color: #FFFFFF;
+    text-shadow: 0px 2px 2px #cee9f5;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+@keyframes apollochange {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+@-webkit-keyframes apollochange {
+    0% { -webkit-filter: hue-rotate(0deg); }
+    100% { -webkit-filter: hue-rotate(360deg); }
+}
+
+/* Edit profile customization styles */
+.nickname-style-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.nickname-style-option {
+    cursor: pointer;
+    margin: 0;
+}
+
+.nickname-style-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.nickname-style-preview {
+    border: 2px solid #ced4da;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    text-align: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nickname-style-option:hover .nickname-style-preview {
+    border-color: #80bdff;
+}
+
+.nickname-style-option input[type="radio"]:checked + .nickname-style-preview {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.2);
+    background-color: #e7f3ff;
+}
+
+.nickname-style-preview .preview-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.nickname-preview-style1 {
+    background: url(https://reape.rs/sparkle.gif);
+    color: #ffffff;
+    -webkit-animation: apollochange 20s infinite alternate;
+    animation: apollochange 20s infinite alternate;
+}
+
+.nickname-preview-style2 {
+    color: #000;
+    text-shadow: 0px 2px 2px #03c8ff;
+}
+
+.nickname-preview-style3 {
+    background: transparent url('https://i.ibb.co/qjs2j2X/clip-transparent-sparkle-gif-4.gif');
+    color: #000;
+    text-shadow: 0px 2px 2px #03c8ff;
+}
