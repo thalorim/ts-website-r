@@ -8,7 +8,7 @@ This document describes the new profile customization features that allow users 
 ### 1. Background Color Customization
 - **Location**: Edit Profile page
 - **Feature**: RGB color picker for `.steamlike-header .avatar-and-meta` background
-- **Effect**: Selected color automatically gets a 15% darken effect applied
+- **Effect**: Selected color is applied directly to the background
 - **Default**: `#1b2838` (original Steam-like blue-gray)
 - **Storage**: Database column `profile_bg_color` (VARCHAR 7)
 
@@ -56,8 +56,7 @@ This document describes the new profile customization features that allow users 
    - Added JavaScript for color picker synchronization
 
 4. **`/workspace/src/private/templates/profile.latte`**
-   - Added PHP logic to calculate darkened background color
-   - Applied custom background color to `.avatar-and-meta` if set
+   - Applied custom background color directly to `.avatar-and-meta` if set
    - Applied nickname style class to `.nickname` element
 
 ### Styling (CSS)
@@ -87,7 +86,7 @@ ALTER TABLE `profiles` ADD COLUMN `nickname_style` VARCHAR(20) NULL;
 2. Scroll to "Profile Customization" section
 3. **Background Color**:
    - Click the color picker or enter a hex code
-   - Color will be automatically darkened when applied
+   - Color will be applied directly to the avatar area
    - Click "Reset" to restore default
 4. **Nickname Style**:
    - Select one of the 4 style options
@@ -97,7 +96,7 @@ ALTER TABLE `profiles` ADD COLUMN `nickname_style` VARCHAR(20) NULL;
 
 ## Technical Notes
 
-- Background color darkening is calculated server-side by reducing RGB values by 15%
+- Background color is applied directly without any modifications
 - Nickname styles use CSS classes applied conditionally
 - All customizations are optional and stored per user
 - Default behavior is maintained when no customization is set
