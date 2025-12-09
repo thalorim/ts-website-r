@@ -181,16 +181,24 @@ try {
     }
 
     // Ensure new customization columns exist
-    $colStmt5 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'profile_bg_color'");
-    $colExists5 = $colStmt5 && $colStmt5->fetchColumn();
-    if (!$colExists5) {
-        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `profile_bg_color` VARCHAR(7) NULL");
+    try {
+        $colStmt5 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'profile_bg_color'");
+        $colExists5 = $colStmt5 && $colStmt5->fetchColumn();
+        if (!$colExists5) {
+            $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `profile_bg_color` VARCHAR(7) NULL");
+        }
+    } catch (\Exception $e) {
+        // Column might already exist or table might not be accessible
     }
 
-    $colStmt6 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'nickname_style'");
-    $colExists6 = $colStmt6 && $colStmt6->fetchColumn();
-    if (!$colExists6) {
-        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `nickname_style` VARCHAR(20) NULL");
+    try {
+        $colStmt6 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'nickname_style'");
+        $colExists6 = $colStmt6 && $colStmt6->fetchColumn();
+        if (!$colExists6) {
+            $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `nickname_style` VARCHAR(20) NULL");
+        }
+    } catch (\Exception $e) {
+        // Column might already exist or table might not be accessible
     }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring profiles table", $e->getMessage());
@@ -560,8 +568,8 @@ foreach ($socials as $key => $url) {
     ];
 }
 
-$profileBgColor = ($dbProfile && !empty($dbProfile["profile_bg_color"])) ? $dbProfile["profile_bg_color"] : null;
-$nicknameStyle = ($dbProfile && !empty($dbProfile["nickname_style"])) ? $dbProfile["nickname_style"] : null;
+$profileBgColor = ($dbProfile && isset($dbProfile["profile_bg_color"]) && !empty($dbProfile["profile_bg_color"])) ? $dbProfile["profile_bg_color"] : null;
+$nicknameStyle = ($dbProfile && isset($dbProfile["nickname_style"]) && !empty($dbProfile["nickname_style"])) ? $dbProfile["nickname_style"] : null;
 
 $renderData = [
     "title" => "Profile",
