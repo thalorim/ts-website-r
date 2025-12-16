@@ -174,12 +174,19 @@ class ChannelDescriptionUpdater {
             if (is_array($info)) {
                 foreach ($info as $k => $row) {
                     if (!is_array($row)) continue;
+                    // Support both legacy keys (dbid/channel/steamid) and new keys (cldbid/channel_id/steamid64)
+                    $channelId = (int) ($row["channel_id"] ?? ($row["channel"] ?? 0));
+                    $cldbid = (int) ($row["cldbid"] ?? ($row["dbid"] ?? 0));
+                    $steamId64 = isset($row["steamid64"])
+                        ? (string) $row["steamid64"]
+                        : (isset($row["steamid"]) ? (string) $row["steamid"] : "");
+
                     $targets[] = [
                         "label" => (string) $k,
                         "title" => "Description:",
-                        "channel_id" => (int) ($row["channel"] ?? 0),
-                        "cldbid" => (int) ($row["dbid"] ?? 0),
-                        "steamid64" => isset($row["steamid"]) ? (string) $row["steamid"] : "",
+                        "channel_id" => $channelId,
+                        "cldbid" => $cldbid,
+                        "steamid64" => $steamId64,
                         "show_updated_at" => true,
                     ];
                 }

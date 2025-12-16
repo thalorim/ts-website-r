@@ -48,5 +48,21 @@ return [
         //     'show_updated_at' => true,
         // ],
     ],
+
+    // Legacy-style config (supported) — uses cldbid/steamid64/channel_id as requested:
+    // 'function' => [
+    //     'clientstatus' => [
+    //         'enable' => true,
+    //         'aalgroup' => [6, 30],
+    //         'steamstatus' => true,
+    //         'steamapi' => '',
+    //         'info' => [
+    //             1 => ['cldbid' => 2, 'channel_id' => 184, 'steamid64' => '76561198101162681'],
+    //         ],
+    //         'channelname' => "[cspacer]◥◣━[RANG]┃[NICK]┃[STATUS]━◢◤",
+    //         'interval' => ['days' => 0, 'hours' => 0, 'minutes' => 0, 'seconds' => 10],
+    //         'interval2' => ['days' => 0, 'hours' => 0, 'minutes' => 2, 'seconds' => 0],
+    //     ],
+    // ],
 ];
 
