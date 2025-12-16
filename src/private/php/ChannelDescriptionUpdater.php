@@ -28,10 +28,17 @@ class ChannelDescriptionUpdater {
      * @return array result summary
      */
     public function updateAll(): array {
-        $targets = Config::get("channel_description_updater_targets", []);
-        if (!is_array($targets)) {
-            $targets = [];
+        $cfg = $this->getClientStatusConfig();
+        if (!($cfg["enable"] ?? true)) {
+            return [
+                "success" => true,
+                "skipped" => true,
+                "reason" => "clientstatus disabled",
+            ];
         }
+
+        $targets = $cfg["targets"] ?? [];
+        if (!is_array($targets)) $targets = [];
 
         if (!TeamSpeakUtils::i()->checkTSConnection()) {
             return [
@@ -43,6 +50,24 @@ class ChannelDescriptionUpdater {
 
         $server = TeamSpeakUtils::i()->getTSNodeServer();
         $results = [];
+
+        // Interval controls (optional): allow calling often but only update periodically.
+        $now = time();
+        $nameInterval = (int) ($cfg["channelname_interval_seconds"] ?? 0);
+        $descInterval = (int) ($cfg["description_interval_seconds"] ?? 0);
+
+        $canUpdateNames = true;
+        $canUpdateDescriptions = true;
+
+        if ($nameInterval > 0) {
+            $last = (int) $this->cache->retrieve("last_run_channelname");
+            $canUpdateNames = ($last <= 0) || (($now - $last) >= $nameInterval);
+        }
+
+        if ($descInterval > 0) {
+            $last = (int) $this->cache->retrieve("last_run_description");
+            $canUpdateDescriptions = ($last <= 0) || (($now - $last) >= $descInterval);
+        }
 
         foreach ($targets as $idx => $target) {
             $cid = (int) ($target["channel_id"] ?? 0);
@@ -66,16 +91,32 @@ class ChannelDescriptionUpdater {
 
                 $description = $this->renderDescriptionBb($tsData, $steamData, $target);
 
-                // Update channel description
                 $channel = $server->channelGetById($cid);
-                $channel->modify([
-                    "channel_description" => $description
-                ]);
+
+                $modify = [];
+
+                // Optionally update channel name using template
+                if ($canUpdateNames) {
+                    $channelNameTpl = (string) ($cfg["channelname_template"] ?? "");
+                    if ($channelNameTpl !== "") {
+                        $modify["channel_name"] = $this->renderChannelName($channelNameTpl, $tsData, $cfg, $server);
+                    }
+                }
+
+                // Update channel description
+                if ($canUpdateDescriptions) {
+                    $modify["channel_description"] = $description;
+                }
+
+                if (!empty($modify)) {
+                    $channel->modify($modify);
+                }
 
                 $results[] = [
                     "label" => $label,
                     "channel_id" => $cid,
                     "success" => true,
+                    "updated" => array_keys($modify),
                 ];
             } catch (\Exception $e) {
                 $results[] = [
@@ -95,10 +136,86 @@ class ChannelDescriptionUpdater {
             }
         }
 
+        if ($ok) {
+            if ($canUpdateNames) {
+                $this->cache->store("last_run_channelname", $now, 60 * 60 * 24 * 7);
+            }
+            if ($canUpdateDescriptions) {
+                $this->cache->store("last_run_description", $now, 60 * 60 * 24 * 7);
+            }
+        }
+
         return [
             "success" => $ok,
             "results" => $results,
             "updated_at" => time(),
+            "intervals" => [
+                "channelname_seconds" => $nameInterval,
+                "description_seconds" => $descInterval,
+                "did_update_channelnames" => $canUpdateNames,
+                "did_update_descriptions" => $canUpdateDescriptions,
+            ],
+        ];
+    }
+
+    /**
+     * Supports both:
+     * - New-style keys: channel_description_updater_targets / steam_api_key / cache_channel_description_updater_steam
+     * - Legacy-style structure like:
+     *   $config['function']['clientstatus'] = [ 'enable'=>true, 'steamapi'=>..., 'info'=>[ ... ], 'channelname'=>..., 'interval'=>..., 'interval2'=>... ]
+     */
+    private function getClientStatusConfig(): array {
+        $fn = Config::get("function", []);
+        if (is_array($fn) && isset($fn["clientstatus"]) && is_array($fn["clientstatus"])) {
+            $cs = $fn["clientstatus"];
+
+            $targets = [];
+            $info = $cs["info"] ?? [];
+            if (is_array($info)) {
+                foreach ($info as $k => $row) {
+                    if (!is_array($row)) continue;
+                    $targets[] = [
+                        "label" => (string) $k,
+                        "title" => "Description:",
+                        "channel_id" => (int) ($row["channel"] ?? 0),
+                        "cldbid" => (int) ($row["dbid"] ?? 0),
+                        "steamid64" => isset($row["steamid"]) ? (string) $row["steamid"] : "",
+                        "show_updated_at" => true,
+                    ];
+                }
+            }
+
+            // Prefer legacy steam API key if provided
+            if (isset($cs["steamapi"]) && is_string($cs["steamapi"]) && $cs["steamapi"] !== "") {
+                // local overrides take precedence, so we only read key here in getSteamUserData via Config::get.
+                // If user stores it under function.clientstatus.steamapi, we will use it directly there.
+            }
+
+            return [
+                "enable" => (bool) ($cs["enable"] ?? true),
+                "targets" => $targets,
+                "aalgroup" => is_array($cs["aalgroup"] ?? null) ? $cs["aalgroup"] : [],
+                "steamstatus" => (bool) ($cs["steamstatus"] ?? true),
+                "steamapi" => (string) ($cs["steamapi"] ?? ""),
+                "channelname_template" => (string) ($cs["channelname"] ?? ""),
+                "channelname_interval_seconds" => $this->intervalToSeconds($cs["interval"] ?? null),
+                "description_interval_seconds" => $this->intervalToSeconds($cs["interval2"] ?? null),
+            ];
+        }
+
+        // New-style config
+        $targets = Config::get("channel_description_updater_targets", []);
+        if (!is_array($targets)) $targets = [];
+
+        return [
+            "enable" => true,
+            "targets" => $targets,
+            "aalgroup" => [],
+            "steamstatus" => true,
+            "steamapi" => (string) Config::get("steam_api_key", ""),
+            "channelname_template" => "",
+            "channelname_interval_seconds" => 0,
+            "description_interval_seconds" => 0,
         ];
     }
 
@@ -108,6 +225,7 @@ class ChannelDescriptionUpdater {
         $activeForSeconds = null;
         $connections = null;
         $lastSeenTs = null;
+        $serverGroups = [];
 
         // Always try to read DB info for stable fields (connections, last seen, default nickname)
         try {
@@ -117,6 +235,10 @@ class ChannelDescriptionUpdater {
             $lastConnected = $this->toScalar($dbInfo["client_lastconnected"] ?? null);
             if (is_numeric($lastConnected)) {
                 $lastSeenTs = (int) $lastConnected;
+            }
+            $sg = $this->toScalar($dbInfo["client_servergroups"] ?? "");
+            if (is_string($sg) && $sg !== "") {
+                $serverGroups = array_filter(array_map("intval", explode(",", $sg)));
             }
         } catch (\Exception $e) {
             // ignore; still can show online info if connected
@@ -139,6 +261,11 @@ class ChannelDescriptionUpdater {
             if ($connections === null) {
                 $connections = (int) ($this->toScalar($info["client_totalconnections"] ?? 0));
             }
+
+            $sg = $this->toScalar($info["client_servergroups"] ?? "");
+            if (is_string($sg) && $sg !== "") {
+                $serverGroups = array_filter(array_map("intval", explode(",", $sg)));
+            }
         } catch (\Exception $e) {
             // offline or cannot fetch live info
         }
@@ -150,6 +277,7 @@ class ChannelDescriptionUpdater {
             "active_for_seconds" => $activeForSeconds,
             "connections" => $connections,
             "last_seen_ts" => $lastSeenTs,
+            "servergroups" => $serverGroups,
         ];
     }
 
@@ -159,7 +287,14 @@ class ChannelDescriptionUpdater {
             return null;
         }
 
-        $key = (string) Config::get("steam_api_key", "");
+        // Support legacy key location: function.clientstatus.steamapi
+        $fn = Config::get("function", []);
+        $legacyKey = "";
+        if (is_array($fn) && isset($fn["clientstatus"]["steamapi"])) {
+            $legacyKey = (string) $fn["clientstatus"]["steamapi"];
+        }
+
+        $key = $legacyKey !== "" ? $legacyKey : (string) Config::get("steam_api_key", "");
         if ($key === "") {
             return [
                 "steamid" => $steamId64,
@@ -210,6 +345,83 @@ class ChannelDescriptionUpdater {
                 "visibility" => (int) ($p["communityvisibilitystate"] ?? 0),
             ];
         }, (int) Config::get("cache_channel_description_updater_steam", 60));
+    }
+
+    private function renderChannelName(string $template, array $ts, array $cfg, $server): string {
+        $nick = (string) ($ts["nickname"] ?? "");
+        $status = ($ts["online"] ?? false) ? "ONLINE" : "OFFLINE";
+        $rank = $this->getRankName($ts, $cfg, $server);
+
+        $name = str_replace(
+            ["[RANG]", "[NICK]", "[STATUS]"],
+            [$rank, $nick, $status],
+            $template
+        );
+
+        // TeamSpeak channel name cannot contain newlines; keep it safe
+        $name = str_replace(["\r", "\n"], " ", $name);
+
+        // Avoid BBCode-breaking brackets in replacements (template includes [cspacer] etc; keep those)
+        // We only sanitize inserted values:
+        $name = str_replace($rank, $this->sanitizeChannelNameValue($rank), $name);
+        $name = str_replace($nick, $this->sanitizeChannelNameValue($nick), $name);
+
+        return trim($name);
+    }
+
+    private function sanitizeChannelNameValue(string $value): string {
+        // Don’t allow special bracketed tags inside replacements
+        return str_replace(["[", "]", "\r", "\n"], ["(", ")", " ", " "], $value);
+    }
+
+    private function getRankName(array $ts, array $cfg, $server): string {
+        $wanted = $cfg["aalgroup"] ?? [];
+        if (!is_array($wanted)) $wanted = [];
+        $sg = $ts["servergroups"] ?? [];
+        if (!is_array($sg)) $sg = [];
+
+        // Pick first matching group in configured order
+        $match = null;
+        foreach ($wanted as $gid) {
+            $gid = (int) $gid;
+            if ($gid > 0 && in_array($gid, $sg, true)) {
+                $match = $gid;
+                break;
+            }
+        }
+
+        if ($match === null) {
+            return "";
+        }
+
+        // Prefer cached server group list (fast), fallback to query
+        try {
+            $list = CacheManager::i()->getServerGroupList();
+            if (is_array($list) && isset($list[$match]["name"])) {
+                return (string) $this->toScalar($list[$match]["name"]);
+            }
+        } catch (\Exception $e) { /* ignore */ }
+
+        try {
+            $g = $server->serverGroupGetById($match);
+            $info = $g->getInfo(true);
+            if (isset($info["name"])) {
+                return (string) $this->toScalar($info["name"]);
+            }
+        } catch (\Exception $e) { /* ignore */ }
+
+        return (string) $match;
+    }
+
+    private function intervalToSeconds($interval): int {
+        if (!is_array($interval)) return 0;
+        $days = (int) ($interval["days"] ?? 0);
+        $hours = (int) ($interval["hours"] ?? 0);
+        $minutes = (int) ($interval["minutes"] ?? 0);
+        $seconds = (int) ($interval["seconds"] ?? 0);
+
+        $total = $seconds + ($minutes * 60) + ($hours * 3600) + ($days * 86400);
+        return max(0, $total);
     }
 
     private function renderDescriptionBb(array $ts, ?array $steam, array $target): string {
