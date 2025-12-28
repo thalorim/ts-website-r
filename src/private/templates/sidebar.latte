@@ -90,8 +90,8 @@
     </div>
 {/ifset}
 
-{ifset $topCountries}
-    {if !empty($topCountries)}
+{* User Origin Statistics - Only shown on Members page *}
+{if isset($topCountries) && !empty($topCountries) && $navActiveIndex === 6}
     <div class="card card-accent">
         <div class="card-header">
             <i class="fas fa-globe"></i> User Origin Statistics
@@ -113,5 +113,4 @@
             </div>
         </div>
     </div>
-    {/if}
-{/ifset}
+{/if}
