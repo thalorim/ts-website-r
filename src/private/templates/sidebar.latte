@@ -89,3 +89,15 @@
         </div>
     </div>
 {/ifset}
+
+{* User Origin Statistics - Only shown on Members page *}
+{if isset($topCountries) && !empty($topCountries) && $navActiveIndex === 6}
+    <div class="card card-accent">
+        <div class="card-header">
+            <i class="fas fa-globe"></i> User Origin Statistics
+        </div>
+        <div class="card-body">
+            <div id="countryPieChart" style="width: 100%; height: 250px;"></div>
+        </div>
+    </div>
+{/if}

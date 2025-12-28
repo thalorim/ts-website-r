@@ -1,0 +1,269 @@
+{extends "body.latte"}
+{var $title = 'Statistics'}
+{var $navActiveIndex = 7}
+
+{block content}
+    {* Overview Stats Cards *}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card card-accent">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{$totalStats['totalUsers']}</h2>
+                    <small class="text-muted">Total Users</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-accent">
+                <div class="card-body text-center">
+                    <h2 class="mb-0 text-success">{$totalStats['onlineUsers']}</h2>
+                    <small class="text-muted">Online Users</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-accent">
+                <div class="card-body text-center">
+                    <h2 class="mb-0 text-secondary">{$totalStats['offlineUsers']}</h2>
+                    <small class="text-muted">Offline Users</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-accent">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{$totalStats['countriesCount']}</h2>
+                    <small class="text-muted">Countries</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {* User Growth Chart *}
+    <div class="card card-accent mb-4">
+        <div class="card-header bigger-title">
+            <i class="fas fa-chart-line"></i> User Growth (Last 12 Months)
+        </div>
+        <div class="card-body">
+            <div id="growthChart" style="width: 100%; height: 300px;"></div>
+        </div>
+    </div>
+
+    {* Online vs Offline Donut Chart *}
+    <div class="card card-accent mb-4">
+        <div class="card-header bigger-title">
+            <i class="fas fa-chart-pie"></i> Online vs Offline Users
+        </div>
+        <div class="card-body">
+            <div id="onlineOfflineChart" style="width: 100%; height: 300px;"></div>
+        </div>
+    </div>
+
+    {* Top Countries Bar Chart *}
+    <div class="card card-accent mb-4">
+        <div class="card-header bigger-title">
+            <i class="fas fa-globe"></i> Top 10 Countries
+        </div>
+        <div class="card-body">
+            <div id="countryChart" style="width: 100%; height: 400px;"></div>
+        </div>
+    </div>
+
+    {* Server Groups Distribution *}
+    <div class="card card-accent mb-4">
+        <div class="card-header bigger-title">
+            <i class="fas fa-users-cog"></i> Top 10 Server Groups
+        </div>
+        <div class="card-body">
+            <div id="groupChart" style="width: 100%; height: 400px;"></div>
+        </div>
+    </div>
+{/block}
+
+{block footerbottom}
+<script src="https://ts.tazz.me/assets/js/apexcharts-4.4.0.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof ApexCharts === 'undefined') {
+        console.error('ApexCharts not loaded');
+        return;
+    }
+
+    // User Growth Chart (Area Chart)
+    var growthChart = new ApexCharts(document.querySelector("#growthChart"), {
+        series: [{
+            name: 'Total Users',
+            data: {$growthValues|noescape}
+        }],
+        chart: {
+            type: 'area',
+            height: 300,
+            fontFamily: 'inherit',
+            toolbar: { show: false }
+        },
+        colors: ['#5b8ff7'],
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 2 },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.7,
+                opacityTo: 0.3,
+                stops: [0, 90, 100]
+            }
+        },
+        xaxis: {
+            categories: {$growthLabels|noescape},
+            labels: { rotate: -45, rotateAlways: true }
+        },
+        yaxis: {
+            title: { text: 'Users' }
+        },
+        tooltip: {
+            y: { formatter: function(value) { return value + ' users'; } }
+        },
+        grid: {
+            borderColor: '#e7e7e7',
+            strokeDashArray: 5
+        }
+    });
+    growthChart.render();
+
+    // Online vs Offline Donut Chart
+    var onlineOfflineChart = new ApexCharts(document.querySelector("#onlineOfflineChart"), {
+        series: {$onlineOfflineValues|noescape},
+        chart: {
+            type: 'donut',
+            height: 300,
+            fontFamily: 'inherit'
+        },
+        labels: {$onlineOfflineLabels|noescape},
+        colors: ['#28a745', '#6c757d'],
+        dataLabels: {
+            enabled: true,
+            formatter: function(val, opts) {
+                return opts.w.config.labels[opts.seriesIndex];
+            }
+        },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '65%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true,
+                            label: 'Total Users',
+                            fontSize: '16px',
+                            formatter: function (w) {
+                                return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        legend: {
+            position: 'bottom',
+            fontSize: '14px'
+        },
+        tooltip: {
+            y: {
+                formatter: function(value, opts) {
+                    var label = opts.w.config.labels[opts.seriesIndex];
+                    return label + ': ' + value + ' users';
+                },
+                title: { formatter: function() { return ''; } }
+            }
+        },
+        stroke: { width: 2, colors: ['#fff'] }
+    });
+    onlineOfflineChart.render();
+
+    // Top Countries Bar Chart
+    var countryChart = new ApexCharts(document.querySelector("#countryChart"), {
+        series: [{
+            name: 'Users',
+            data: {$countryValues|noescape}
+        }],
+        chart: {
+            type: 'bar',
+            height: 400,
+            fontFamily: 'inherit',
+            toolbar: { show: false }
+        },
+        colors: ['#5b8ff7'],
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                borderRadius: 4,
+                dataLabels: { position: 'top' }
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            offsetX: 30,
+            style: { fontSize: '12px', colors: ['#333'] }
+        },
+        xaxis: {
+            categories: {$countryLabels|noescape},
+            title: { text: 'Number of Users' }
+        },
+        yaxis: {
+            title: { text: 'Country Code' }
+        },
+        tooltip: {
+            y: { formatter: function(value) { return value + ' users'; } }
+        },
+        grid: {
+            borderColor: '#e7e7e7',
+            strokeDashArray: 5
+        }
+    });
+    countryChart.render();
+
+    // Server Groups Bar Chart
+    var groupChart = new ApexCharts(document.querySelector("#groupChart"), {
+        series: [{
+            name: 'Members',
+            data: {$groupValues|noescape}
+        }],
+        chart: {
+            type: 'bar',
+            height: 400,
+            fontFamily: 'inherit',
+            toolbar: { show: false }
+        },
+        colors: ['#ff6384'],
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                borderRadius: 4,
+                dataLabels: { position: 'top' }
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            offsetX: 30,
+            style: { fontSize: '12px', colors: ['#333'] }
+        },
+        xaxis: {
+            categories: {$groupLabels|noescape},
+            title: { text: 'Number of Members' }
+        },
+        yaxis: {
+            title: { text: 'Server Group' }
+        },
+        tooltip: {
+            y: { formatter: function(value) { return value + ' members'; } }
+        },
+        grid: {
+            borderColor: '#e7e7e7',
+            strokeDashArray: 5
+        }
+    });
+    groupChart.render();
+});
+</script>
+{/block}
