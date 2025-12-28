@@ -129,6 +129,20 @@ $members && usort($members, function ($a, $b) {
     return $a["cat"] <=> $b["cat"];
 });
 
+// Calculate top 3 countries for pie chart
+$countryStats = [];
+foreach ($members as $m) {
+    if (!empty($m['country'])) {
+        $country = strtoupper((string) $m['country']);
+        if (!isset($countryStats[$country])) {
+            $countryStats[$country] = 0;
+        }
+        $countryStats[$country]++;
+    }
+}
+arsort($countryStats);
+$topCountries = array_slice($countryStats, 0, 3, true);
+
 // Pagination
 $page = isset($_GET["page"]) ? max(1, (int) $_GET["page"]) : 1;
 $perPage = 10;
@@ -185,5 +199,6 @@ TemplateUtils::i()->renderTemplate("members", [
     "hasMore" => $hasMore,
     "nextPageUrl" => $nextPageUrl,
     "page" => $page,
+    "topCountries" => $topCountries,
 ]);
 

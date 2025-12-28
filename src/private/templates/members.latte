@@ -3,6 +3,30 @@
 {var $navActiveIndex = 6}
 
 {block content}
+    {if !empty($topCountries)}
+    <div class="card card-accent mb-4">
+        <div class="card-header bigger-title">
+            <i class="fas fa-globe"></i> User Origin Statistics
+        </div>
+        <div class="card-body">
+            <div style="max-width: 400px; margin: 0 auto;">
+                <canvas id="countryChart"></canvas>
+            </div>
+            <div class="mt-3">
+                <h6 class="text-center">Top 3 Countries:</h6>
+                <ul class="list-unstyled text-center">
+                    {foreach $topCountries as $countryCode => $count}
+                        <li class="mb-2">
+                            <img src="https://reape.rs/flags/{strtolower($countryCode)}.png" alt="flag" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;margin-right:.5rem;">
+                            <strong>{$countryCode}:</strong> {$count} {if $count == 1}user{else}users{/if}
+                        </li>
+                    {/foreach}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {/if}
+    
     <div class="card card-accent">
         <div class="card-header bigger-title d-flex justify-content-between align-items-center">
             <span>
@@ -45,5 +69,67 @@
     </div>
 {/block}
 
-{block footerbottom}{/block}
+{block footerbottom}
+    {if !empty($topCountries)}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('countryChart');
+            if (ctx) {
+                const data = {
+                    labels: {json_encode(array_keys($topCountries))},
+                    datasets: [{
+                        label: 'Users by Country',
+                        data: {json_encode(array_values($topCountries))},
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(255, 206, 86, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 206, 86, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                };
+                
+                const config = {
+                    type: 'pie',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return label + ': ' + value + ' users (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+                
+                new Chart(ctx, config);
+            }
+        });
+    </script>
+    {/if}
+{/block}
 
