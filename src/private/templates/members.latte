@@ -4,9 +4,14 @@
 
 {if isset($topCountries) && !empty($topCountries)}
     <script type="text/javascript">
-        window.countriesData = [
+        window.countriesLabels = [
             {foreach $topCountries as $code => $count}
-                ['{$code}', {$count}]{sep},{/sep}
+                '{$code}'{sep},{/sep}
+            {/foreach}
+        ];
+        window.countriesValues = [
+            {foreach $topCountries as $code => $count}
+                {$count}{sep},{/sep}
             {/foreach}
         ];
     </script>
@@ -77,44 +82,59 @@
 
 {block footerbottom}
     {if isset($topCountries) && !empty($topCountries)}
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://ts.tazz.me/assets/js/apexcharts-4.4.0.min.js"></script>
     <script type="text/javascript">
-        google.charts.load('current', {'packages':['corechart']});
-        google.charts.setOnLoadCallback(drawCountryChart);
-        
-        function drawCountryChart() {
-            if (!window.countriesData) return;
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!window.countriesLabels || !window.countriesValues) return;
             
-            var chartData = [['Country', 'Users']];
-            for (var i = 0; i < window.countriesData.length; i++) {
-                chartData.push(window.countriesData[i]);
-            }
-            
-            var data = google.visualization.arrayToDataTable(chartData);
+            var chartElement = document.querySelector("#countryPieChart");
+            if (!chartElement) return;
 
             var options = {
-                legend: 'none',
-                pieSliceText: 'label',
-                pieStartAngle: 100,
-                pieHole: 0.4,
-                slices: {
-                    0: {color: '#5b8ff7', offset: 0.05},
-                    1: {color: '#71a3ff'},
-                    2: {color: '#8ab4ff'},
-                    3: {color: '#a3c5ff'},
-                    4: {color: '#bcd6ff'}
+                series: window.countriesValues,
+                chart: {
+                    type: 'donut',
+                    height: 200,
+                    fontFamily: 'inherit'
                 },
-                backgroundColor: 'transparent',
-                chartArea: {left: 10, top: 10, width: '90%', height: '85%'},
+                labels: window.countriesLabels,
+                colors: ['#5b8ff7', '#71a3ff', '#8ab4ff', '#a3c5ff', '#bcd6ff'],
+                dataLabels: {
+                    enabled: true,
+                    formatter: function(val, opts) {
+                        return opts.w.config.labels[opts.seriesIndex];
+                    }
+                },
+                plotOptions: {
+                    pie: {
+                        startAngle: 100,
+                        donut: {
+                            size: '60%',
+                            labels: {
+                                show: false
+                            }
+                        }
+                    }
+                },
+                legend: {
+                    show: false
+                },
                 tooltip: {
-                    text: 'percentage',
-                    showColorCode: true
+                    y: {
+                        formatter: function(value) {
+                            return value + ' users';
+                        }
+                    }
+                },
+                stroke: {
+                    width: 2,
+                    colors: ['#fff']
                 }
             };
 
-            var chart = new google.visualization.PieChart(document.getElementById('countryPieChart'));
-            chart.draw(data, options);
-        }
+            var chart = new ApexCharts(chartElement, options);
+            chart.render();
+        });
     </script>
     {/if}
 {/block}
