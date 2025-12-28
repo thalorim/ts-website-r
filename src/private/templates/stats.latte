@@ -182,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
     onlineOfflineChart.render();
 
     // Top Countries Bar Chart with Flags
+    var countryLabels = {$countryLabels|noescape};
     var countryChart = new ApexCharts(document.querySelector("#countryChart"), {
         series: [{
             name: 'Users',
@@ -191,7 +192,22 @@ document.addEventListener('DOMContentLoaded', function() {
             type: 'bar',
             height: 400,
             fontFamily: 'inherit',
-            toolbar: { show: false }
+            toolbar: { show: false },
+            events: {
+                mounted: function(chartContext, config) {
+                    // Add flag icons after chart renders
+                    var yAxisLabels = document.querySelectorAll('#countryChart .apexcharts-yaxis-label');
+                    yAxisLabels.forEach(function(label, idx) {
+                        if (idx < countryLabels.length) {
+                            var countryCode = countryLabels[idx].toLowerCase();
+                            var flagSpan = document.createElement('span');
+                            flagSpan.className = 'famfamfam-flags ' + countryCode;
+                            flagSpan.style.marginRight = '6px';
+                            label.insertBefore(flagSpan, label.firstChild);
+                        }
+                    });
+                }
+            }
         },
         colors: ['#5b8ff7'],
         plotOptions: {
@@ -204,21 +220,11 @@ document.addEventListener('DOMContentLoaded', function() {
         dataLabels: {
             enabled: true,
             offsetX: 30,
-            style: { fontSize: '12px', colors: ['#333'] },
-            formatter: function(val, opts) {
-                var countryCode = opts.w.config.xaxis.categories[opts.dataPointIndex];
-                return countryCode + ': ' + val;
-            }
+            style: { fontSize: '12px', colors: ['#333'] }
         },
         xaxis: {
-            categories: {$countryLabels|noescape},
-            title: { text: 'Number of Users' },
-            labels: {
-                formatter: function(value) {
-                    var countryCode = value.toLowerCase();
-                    return '<span class="famfamfam-flags ' + countryCode + '" style="margin-right: 6px;"></span>' + value.toUpperCase();
-                }
-            }
+            categories: countryLabels,
+            title: { text: 'Number of Users' }
         },
         yaxis: {
             title: { text: 'Country' },
@@ -233,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var countryCode = w.config.xaxis.categories[dataPointIndex];
                 var value = series[seriesIndex][dataPointIndex];
                 return '<div style="padding: 8px 12px; background: rgba(0,0,0,0.85); color: white; border-radius: 4px;">' +
-                    '<span class="famfamfam-flags ' + countryCode.toLowerCase() + '" style="margin-right: 6px;"></span>' +
+                    '<span class="famfamfam-flags ' + countryCode.toLowerCase() + '" style="margin-right: 6px; display: inline-block;"></span>' +
                     '<strong>' + countryCode + '</strong>: ' + value + ' users' +
                     '</div>';
             }
@@ -247,6 +253,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Server Groups Bar Chart with Icons
     var groupData = {$groupData|noescape};
+    var groupLabelsFormatted = groupData.map(function(g) {
+        return g.name + ' (ID: ' + g.id + ')';
+    });
+    
     var groupChart = new ApexCharts(document.querySelector("#groupChart"), {
         series: [{
             name: 'Members',
@@ -256,7 +266,24 @@ document.addEventListener('DOMContentLoaded', function() {
             type: 'bar',
             height: 400,
             fontFamily: 'inherit',
-            toolbar: { show: false }
+            toolbar: { show: false },
+            events: {
+                mounted: function(chartContext, config) {
+                    // Add group icons after chart renders
+                    var yAxisLabels = document.querySelectorAll('#groupChart .apexcharts-yaxis-label');
+                    yAxisLabels.forEach(function(label, idx) {
+                        if (idx < groupData.length && groupData[idx].iconid) {
+                            var img = document.createElement('img');
+                            img.src = '/api/geticon.php?iconid=' + groupData[idx].iconid;
+                            img.style.width = '16px';
+                            img.style.height = '16px';
+                            img.style.marginRight = '6px';
+                            img.style.verticalAlign = 'middle';
+                            label.insertBefore(img, label.firstChild);
+                        }
+                    });
+                }
+            }
         },
         colors: ['#ff6384'],
         plotOptions: {
@@ -272,23 +299,8 @@ document.addEventListener('DOMContentLoaded', function() {
             style: { fontSize: '12px', colors: ['#333'] }
         },
         xaxis: {
-            categories: {$groupLabels|noescape},
-            title: { text: 'Number of Members' },
-            labels: {
-                formatter: function(value, opts) {
-                    var idx = opts.dataPointIndex !== undefined ? opts.dataPointIndex : 
-                              (opts.seriesIndex !== undefined && opts.w ? opts.w.globals.labels.indexOf(value) : -1);
-                    if (idx >= 0 && idx < groupData.length) {
-                        var group = groupData[idx];
-                        var iconHtml = '';
-                        if (group.iconid) {
-                            iconHtml = '<img src="/api/geticon.php?iconid=' + group.iconid + '" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;" />';
-                        }
-                        return iconHtml + group.name + ' (ID: ' + group.id + ')';
-                    }
-                    return value;
-                }
-            }
+            categories: groupLabelsFormatted,
+            title: { text: 'Number of Members' }
         },
         yaxis: {
             title: { text: 'Server Group' },
