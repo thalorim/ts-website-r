@@ -66,16 +66,20 @@
 {/block}
 
 {block footerbottom}
-{ifset $chartScript}
+{if isset($chartLabels) && isset($chartValues)}
 <script src="https://ts.tazz.me/assets/js/apexcharts-4.4.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Chart script loaded');
-    console.log('Labels:', window.countriesLabels);
-    console.log('Values:', window.countriesValues);
     
-    if (!window.countriesLabels || !window.countriesValues) {
-        console.log('No data available');
+    var chartLabels = {$chartLabels|noescape};
+    var chartValues = {$chartValues|noescape};
+    
+    console.log('Labels:', chartLabels);
+    console.log('Values:', chartValues);
+    
+    if (!chartLabels || !chartValues || chartLabels.length === 0 || chartValues.length === 0) {
+        console.log('No data available for chart');
         return;
     }
     
@@ -88,13 +92,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     var options = {
-        series: window.countriesValues,
+        series: chartValues,
         chart: { 
             type: 'donut', 
             height: 200, 
             fontFamily: 'inherit' 
         },
-        labels: window.countriesLabels,
+        labels: chartLabels,
         colors: ['#5b8ff7', '#71a3ff', '#8ab4ff', '#a3c5ff', '#bcd6ff'],
         dataLabels: { 
             enabled: true, 
@@ -137,5 +141,5 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Chart rendered successfully');
 });
 </script>
-{/ifset}
+{/if}
 {/block}
