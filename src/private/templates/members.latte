@@ -2,6 +2,16 @@
 {var $title = 'Members list'}
 {var $navActiveIndex = 6}
 
+{if isset($topCountries) && !empty($topCountries)}
+    <script type="text/javascript">
+        window.countriesData = [
+            {foreach $topCountries as $code => $count}
+                ['{$code}', {$count}]{sep},{/sep}
+            {/foreach}
+        ];
+    </script>
+{/if}
+
 {block content}
     <div class="card card-accent">
         <div class="card-header bigger-title d-flex justify-content-between align-items-center">
@@ -66,44 +76,45 @@
 {/block}
 
 {block footerbottom}
-    {ifset $chartDataJson}
-        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-        <script type="text/javascript">
-            google.charts.load('current', {packages:["corechart"]});
-            google.charts.setOnLoadCallback(drawCountryChart);
+    {if isset($topCountries) && !empty($topCountries)}
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(drawCountryChart);
+        
+        function drawCountryChart() {
+            if (!window.countriesData) return;
             
-            function drawCountryChart() {
-                var chartDiv = document.getElementById('countryPieChart');
-                if (!chartDiv) return;
-                
-                var chartData = {$chartDataJson|noescape};
-                chartData.unshift(['Country', 'Users']);
-                
-                var data = google.visualization.arrayToDataTable(chartData);
-
-                var options = {
-                    legend: 'none',
-                    pieSliceText: 'label',
-                    pieStartAngle: 100,
-                    pieHole: 0.4,
-                    slices: {
-                        0: {color: '#5b8ff7', offset: 0.05},
-                        1: {color: '#71a3ff'},
-                        2: {color: '#8ab4ff'},
-                        3: {color: '#a3c5ff'},
-                        4: {color: '#bcd6ff'}
-                    },
-                    backgroundColor: 'transparent',
-                    chartArea: {left: 10, top: 10, width: '90%', height: '85%'},
-                    tooltip: {
-                        text: 'percentage',
-                        showColorCode: true
-                    }
-                };
-
-                var chart = new google.visualization.PieChart(chartDiv);
-                chart.draw(data, options);
+            var chartData = [['Country', 'Users']];
+            for (var i = 0; i < window.countriesData.length; i++) {
+                chartData.push(window.countriesData[i]);
             }
-        </script>
-    {/ifset}
+            
+            var data = google.visualization.arrayToDataTable(chartData);
+
+            var options = {
+                legend: 'none',
+                pieSliceText: 'label',
+                pieStartAngle: 100,
+                pieHole: 0.4,
+                slices: {
+                    0: {color: '#5b8ff7', offset: 0.05},
+                    1: {color: '#71a3ff'},
+                    2: {color: '#8ab4ff'},
+                    3: {color: '#a3c5ff'},
+                    4: {color: '#bcd6ff'}
+                },
+                backgroundColor: 'transparent',
+                chartArea: {left: 10, top: 10, width: '90%', height: '85%'},
+                tooltip: {
+                    text: 'percentage',
+                    showColorCode: true
+                }
+            };
+
+            var chart = new google.visualization.PieChart(document.getElementById('countryPieChart'));
+            chart.draw(data, options);
+        }
+    </script>
+    {/if}
 {/block}
