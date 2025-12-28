@@ -11,11 +11,11 @@ require_once __DIR__ . "/private/php/load.php";
 
 $db = DatabaseUtils::i()->getDb();
 
-// Get configurable member groups from database, default to [532, 556, 542, 533]
-// Display order: 532, then 556, then 542, then 533
-$memberGroups = Config::get("members_groups", [532, 556, 542, 533]);
+// Get configurable member groups from database
+// Display order: 532, 556, 543, 533, then 1005 down to 996
+$memberGroups = Config::get("members_groups", [532, 556, 543, 533, 1005, 1004, 1003, 1002, 1001, 1000, 999, 998, 997, 996]);
 if (!is_array($memberGroups) || empty($memberGroups)) {
-    $memberGroups = [532, 556, 542, 533];
+    $memberGroups = [532, 556, 543, 533, 1005, 1004, 1003, 1002, 1001, 1000, 999, 998, 997, 996];
 }
 
 // Define priority order for member groups (lower priority value = displayed first)
@@ -173,7 +173,7 @@ if (empty($members)) {
     } catch (\Exception $e) { /* ignore */ }
 }
 
-// Sort: by category (priority order: 532, 556, 542, 533), then by cldbid ascending
+// Sort: by category (priority order: 532, 556, 543, 533, 1005-996), then by cldbid ascending
 $members && usort($members, function ($a, $b) {
     if ($a["cat"] === $b["cat"]) {
         return $a["cldbid"] <=> $b["cldbid"];
@@ -181,50 +181,28 @@ $members && usort($members, function ($a, $b) {
     return $a["cat"] <=> $b["cat"];
 });
 
-// Calculate top 5 countries for pie chart
-$countryStats = [];
-foreach ($members as $m) {
-    if (!empty($m['country'])) {
-        $country = strtoupper((string) $m['country']);
-        if (!isset($countryStats[$country])) {
-            $countryStats[$country] = 0;
-        }
-        $countryStats[$country]++;
-    }
-}
-arsort($countryStats);
-$topCountries = array_slice($countryStats, 0, 5, true);
-
-// Pagination
-$page = isset($_GET["page"]) ? max(1, (int) $_GET["page"]) : 1;
-$perPage = 10;
-$start = ($page - 1) * $perPage;
-$pageItems = array_slice($members, $start, $perPage);
-$hasMore = count($members) > ($start + $perPage);
-$nextPageUrl = $hasMore ? ("members.php?page=" . ($page + 1)) : null;
-
-// Get configurable rank badge range from database, default to 9-18
+// Get configurable rank badge range from database, default to 996-1005
 $rankBadgeRange = Config::get("rank_badge_range", ["min" => 996, "max" => 1005]);
 $rankMin = isset($rankBadgeRange['min']) ? (int)$rankBadgeRange['min'] : 996;
 $rankMax = isset($rankBadgeRange['max']) ? (int)$rankBadgeRange['max'] : 1005;
 
-// Enrich page items with rank icon (configurable group id range)
+// Enrich all members with rank icon and server groups (configurable group id range)
 try {
     $serverGroups = CacheManager::i()->getServerGroupList();
 } catch (\Exception $e) { $serverGroups = null; }
 
-if (!empty($pageItems) && $serverGroups) {
-    $idsOnPage = array_map(function ($m) { return (int) $m['cldbid']; }, $pageItems);
+if (!empty($members) && $serverGroups) {
+    $allIds = array_map(function ($m) { return (int) $m['cldbid']; }, $members);
     $profileSgById = [];
     try {
-        $rows = $db->select('profiles', ['cldbid', 'servergroups'], ['cldbid' => $idsOnPage]);
+        $rows = $db->select('profiles', ['cldbid', 'servergroups'], ['cldbid' => $allIds]);
         foreach ($rows as $r) { $profileSgById[(int)$r['cldbid']] = (string) $r['servergroups']; }
     } catch (\Exception $e) { /* ignore */ }
 
     $tsOk = TeamSpeakUtils::i()->checkTSConnection();
     $node = $tsOk ? TeamSpeakUtils::i()->getTSNodeServer() : null;
 
-    foreach ($pageItems as &$m) {
+    foreach ($members as &$m) {
         $dbid = (int) $m['cldbid'];
         $sgids = [];
         if ($tsOk) {
@@ -236,6 +214,11 @@ if (!empty($pageItems) && $serverGroups) {
         if (empty($sgids) && isset($profileSgById[$dbid]) && $profileSgById[$dbid] !== '') {
             $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $profileSgById[$dbid])), function ($v) { return $v > 0; }));
         }
+        
+        // Store all server groups for display
+        $m['servergroups'] = $sgids;
+        
+        // Find rank icon from groups in range 996-1005
         if (!empty($sgids)) {
             $rankGroups = array_values(array_filter($sgids, function ($g) use ($rankMin, $rankMax) { 
                 return $g >= $rankMin && $g <= $rankMax; 
@@ -244,6 +227,7 @@ if (!empty($pageItems) && $serverGroups) {
                 $chosen = max($rankGroups);
                 if (isset($serverGroups[$chosen]) && !empty($serverGroups[$chosen]['iconid'])) {
                     $m['rank_iconid'] = (int) $serverGroups[$chosen]['iconid'];
+                    $m['rank_group_name'] = isset($serverGroups[$chosen]['name']) ? (string) $serverGroups[$chosen]['name'] : null;
                 }
             }
         }
@@ -251,24 +235,9 @@ if (!empty($pageItems) && $serverGroups) {
     unset($m);
 }
 
-// Prepare chart data as JSON (ensure valid JSON even if empty)
-$chartLabelsJson = '[]';
-$chartValuesJson = '[]';
-if (!empty($topCountries)) {
-    $chartLabels = array_keys($topCountries);
-    $chartValues = array_values($topCountries);
-    $chartLabelsJson = json_encode($chartLabels);
-    $chartValuesJson = json_encode($chartValues);
-}
-
 TemplateUtils::i()->renderTemplate("members", [
     "title" => "Members list",
     "navActiveIndex" => 6,
-    "members" => $pageItems,
-    "hasMore" => $hasMore,
-    "nextPageUrl" => $nextPageUrl,
-    "page" => $page,
-    "topCountries" => $topCountries,
-    "chartLabelsJson" => $chartLabelsJson,
-    "chartValuesJson" => $chartValuesJson,
+    "members" => $members,
+    "serverGroups" => $serverGroups
 ]);
