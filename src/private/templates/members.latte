@@ -66,34 +66,35 @@
 {/block}
 
 {block footerbottom}
-{ifset $topCountries}
-{if !empty($topCountries)}
 <script src="https://ts.tazz.me/assets/js/apexcharts-4.4.0.min.js"></script>
 <script>
-console.log('Chart block loaded');
+console.log('Chart script loading - members page');
+console.log('chartLabels variable:', '{$chartLabels|noescape}');
+console.log('chartValues variable:', '{$chartValues|noescape}');
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Chart DOMContentLoaded');
+    console.log('DOMContentLoaded fired');
     
     var chartLabels = {$chartLabels|noescape};
     var chartValues = {$chartValues|noescape};
     
-    console.log('Labels:', chartLabels);
-    console.log('Values:', chartValues);
+    console.log('Parsed Labels:', chartLabels);
+    console.log('Parsed Values:', chartValues);
     
     if (!chartLabels || !chartValues || chartLabels.length === 0 || chartValues.length === 0) {
-        console.log('No data available for chart');
+        console.log('No data - Labels:', chartLabels, 'Values:', chartValues);
         return;
     }
     
     var chartElement = document.querySelector("#countryPieChart");
-    console.log('Chart element:', chartElement);
+    console.log('Chart element found:', chartElement);
     
     if (!chartElement) {
-        console.log('Chart element #countryPieChart not found!');
+        console.log('ERROR: Chart element #countryPieChart not found!');
         return;
     }
     
-    console.log('Creating ApexCharts...');
+    console.log('Initializing ApexCharts...');
     
     var options = {
         series: chartValues,
@@ -137,17 +138,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    console.log('Options:', options);
+    console.log('Chart options:', options);
     
     try {
+        if (typeof ApexCharts === 'undefined') {
+            console.error('ApexCharts library not loaded!');
+            return;
+        }
         var chart = new ApexCharts(chartElement, options);
         chart.render();
-        console.log('Chart rendered successfully!');
+        console.log('✓ Chart rendered successfully!');
     } catch(e) {
-        console.error('Error rendering chart:', e);
+        console.error('ERROR rendering chart:', e);
     }
 });
 </script>
-{/if}
-{/ifset}
 {/block}
