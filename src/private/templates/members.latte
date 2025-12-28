@@ -66,45 +66,33 @@
 {/block}
 
 {block footerbottom}
-    {if isset($topCountries) && !empty($topCountries)}
+    {ifset $chartDataJson}
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
         <script type="text/javascript">
-            google.charts.load('current', {literal}{'packages':['corechart']}{/literal});
+            google.charts.load('current', {'packages':['corechart']});
             google.charts.setOnLoadCallback(drawCountryChart);
             
             function drawCountryChart() {
                 var chartDiv = document.getElementById('countryPieChart');
-                if (!chartDiv) {
-                    console.log('Chart div not found');
-                    return;
-                }
+                if (!chartDiv) return;
                 
-                var chartData = [
-                    ['Country', 'Users']
-                ];
-                
-                {php}
-                $idx = 0;
-                foreach ($topCountries as $code => $count) {
-                    echo "chartData.push(['" . addslashes($code) . "', " . intval($count) . "]);\n";
-                    $idx++;
-                }
-                {/php}
+                var chartData = {$chartDataJson|noescape};
+                chartData.unshift(['Country', 'Users']);
                 
                 var data = google.visualization.arrayToDataTable(chartData);
 
                 var options = {
                     pieSliceText: 'label',
                     slices: {
-                        0: {literal}{color: '#5b8ff7', offset: 0.1}{/literal},   
-                        1: {literal}{color: '#71a3ff'}{/literal},
-                        2: {literal}{color: '#8ab4ff'}{/literal},
-                        3: {literal}{color: '#a3c5ff'}{/literal},
-                        4: {literal}{color: '#bcd6ff'}{/literal}
+                        0: {color: '#5b8ff7', offset: 0.1},
+                        1: {color: '#71a3ff'},
+                        2: {color: '#8ab4ff'},
+                        3: {color: '#a3c5ff'},
+                        4: {color: '#bcd6ff'}
                     },
                     backgroundColor: 'transparent',
-                    chartArea: {literal}{left: 10, top: 10, width: '90%', height: '85%'}{/literal},
-                    legend: {literal}{position: 'none'}{/literal},
+                    chartArea: {left: 10, top: 10, width: '90%', height: '85%'},
+                    legend: {position: 'none'},
                     pieHole: 0,
                     tooltip: {
                         text: 'percentage',
@@ -114,9 +102,7 @@
 
                 var chart = new google.visualization.PieChart(chartDiv);
                 chart.draw(data, options);
-                
-                console.log('Google Charts pie chart initialized successfully');
             }
         </script>
-    {/if}
+    {/ifset}
 {/block}

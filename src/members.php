@@ -251,6 +251,16 @@ if (!empty($pageItems) && $serverGroups) {
     unset($m);
 }
 
+// Prepare chart data for JavaScript
+$chartDataJson = null;
+if (!empty($topCountries)) {
+    $chartData = [];
+    foreach ($topCountries as $code => $count) {
+        $chartData[] = [(string)$code, (int)$count];
+    }
+    $chartDataJson = json_encode($chartData);
+}
+
 TemplateUtils::i()->renderTemplate("members", [
     "title" => "Members list",
     "navActiveIndex" => 6,
@@ -259,4 +269,5 @@ TemplateUtils::i()->renderTemplate("members", [
     "nextPageUrl" => $nextPageUrl,
     "page" => $page,
     "topCountries" => $topCountries,
+    "chartDataJson" => $chartDataJson,
 ]);
