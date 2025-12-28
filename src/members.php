@@ -251,12 +251,14 @@ if (!empty($pageItems) && $serverGroups) {
     unset($m);
 }
 
-// Prepare chart data as JSON
-$chartLabels = [];
-$chartValues = [];
+// Prepare chart data as JSON (ensure valid JSON even if empty)
+$chartLabelsJson = '[]';
+$chartValuesJson = '[]';
 if (!empty($topCountries)) {
     $chartLabels = array_keys($topCountries);
     $chartValues = array_values($topCountries);
+    $chartLabelsJson = json_encode($chartLabels);
+    $chartValuesJson = json_encode($chartValues);
 }
 
 TemplateUtils::i()->renderTemplate("members", [
@@ -267,6 +269,6 @@ TemplateUtils::i()->renderTemplate("members", [
     "nextPageUrl" => $nextPageUrl,
     "page" => $page,
     "topCountries" => $topCountries,
-    "chartLabels" => json_encode($chartLabels),
-    "chartValues" => json_encode($chartValues),
+    "chartLabelsJson" => $chartLabelsJson,
+    "chartValuesJson" => $chartValuesJson,
 ]);
