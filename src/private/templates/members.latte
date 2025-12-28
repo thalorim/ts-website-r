@@ -67,80 +67,49 @@
 
 {block footerbottom}
     {if isset($topCountries) && !empty($topCountries)}
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
-        <script>
-            (function() {
-                function initChart() {
-                    const ctx = document.getElementById('countryChart');
-                    if (!ctx) {
-                        console.log('Chart canvas not found');
-                        return;
-                    }
-                    
-                    if (typeof Chart === 'undefined') {
-                        console.log('Chart.js not loaded yet, retrying...');
-                        setTimeout(initChart, 100);
-                        return;
-                    }
-                    
-                    const data = {
-                        labels: {json_encode(array_keys($topCountries))},
-                        datasets: [{
-                            label: 'Users by Country',
-                            data: {json_encode(array_values($topCountries))},
-                            backgroundColor: [
-                                'rgba(54, 162, 235, 0.8)',
-                                'rgba(255, 99, 132, 0.8)',
-                                'rgba(255, 206, 86, 0.8)',
-                                'rgba(75, 192, 192, 0.8)',
-                                'rgba(153, 102, 255, 0.8)'
-                            ],
-                            borderColor: [
-                                'rgba(54, 162, 235, 1)',
-                                'rgba(255, 99, 132, 1)',
-                                'rgba(255, 206, 86, 1)',
-                                'rgba(75, 192, 192, 1)',
-                                'rgba(153, 102, 255, 1)'
-                            ],
-                            borderWidth: 2
-                        }]
-                    };
-                    
-                    const config = {
-                        type: 'pie',
-                        data: data,
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            plugins: {
-                                legend: {
-                                    display: false
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            const label = context.label || '';
-                                            const value = context.parsed || 0;
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = ((value / total) * 100).toFixed(1);
-                                            return label + ': ' + value + ' users (' + percentage + '%)';
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    
-                    new Chart(ctx, config);
-                    console.log('Chart initialized successfully');
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script type="text/javascript">
+            google.charts.load('current', {'packages':['corechart']});
+            google.charts.setOnLoadCallback(drawCountryChart);
+            
+            function drawCountryChart() {
+                var chartDiv = document.getElementById('countryPieChart');
+                if (!chartDiv) {
+                    console.log('Chart div not found');
+                    return;
                 }
                 
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', initChart);
-                } else {
-                    initChart();
-                }
-            })();
+                var data = google.visualization.arrayToDataTable([
+                    ['Country', 'Users'],
+                    {foreach $topCountries as $code => $count}
+                        ['{$code}', {$count}]{sep},{/sep}
+                    {/foreach}
+                ]);
+
+                var options = {
+                    pieSliceText: 'label',
+                    slices: {
+                        0: {color: '#5b8ff7', offset: 0.1},   
+                        1: {color: '#71a3ff'},
+                        2: {color: '#8ab4ff'},
+                        3: {color: '#a3c5ff'},
+                        4: {color: '#bcd6ff'}
+                    },
+                    backgroundColor: 'transparent',
+                    chartArea: {left: 10, top: 10, width: '90%', height: '85%'},
+                    legend: {position: 'none'},
+                    pieHole: 0,
+                    tooltip: {
+                        text: 'percentage',
+                        showColorCode: true
+                    }
+                };
+
+                var chart = new google.visualization.PieChart(chartDiv);
+                chart.draw(data, options);
+                
+                console.log('Google Charts pie chart initialized successfully');
+            }
         </script>
     {/if}
 {/block}

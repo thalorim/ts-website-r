@@ -97,10 +97,8 @@
             <i class="fas fa-globe"></i> User Origin Statistics
         </div>
         <div class="card-body">
-            <div style="margin-bottom: 1rem; max-width: 180px; margin-left: auto; margin-right: auto;">
-                <canvas id="countryChart"></canvas>
-            </div>
-            <div class="country-stats">
+            <div id="countryPieChart" style="width: 100%; min-height: 200px;"></div>
+            <div class="country-stats mt-2">
                 {var $countryList = array_keys($topCountries)}
                 {var $countryValues = array_values($topCountries)}
                 
