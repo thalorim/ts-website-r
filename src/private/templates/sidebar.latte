@@ -97,19 +97,69 @@
             <i class="fas fa-globe"></i> User Origin Statistics
         </div>
         <div class="card-body">
-            <div style="margin-bottom: 1rem;">
+            <div style="margin-bottom: 1rem; max-width: 180px; margin-left: auto; margin-right: auto;">
                 <canvas id="countryChart"></canvas>
             </div>
             <div class="country-stats">
-                {foreach $topCountries as $countryCode => $count}
-                    <p class="mb-2">
-                        <span>
-                            <img src="https://reape.rs/flags/{strtolower($countryCode)}.png" alt="{$countryCode}" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;margin-right:.25rem;">
-                            <strong>{$countryCode}</strong>
-                        </span>
-                        <span class="badge badge-secondary">{$count} {if $count == 1}user{else}users{/if}</span>
-                    </p>
-                {/foreach}
+                {var $countryList = array_keys($topCountries)}
+                {var $countryValues = array_values($topCountries)}
+                
+                {* 1st place - Full width *}
+                {if isset($countryList[0])}
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                <img src="https://reape.rs/flags/{strtolower($countryList[0])}.png" alt="{$countryList[0]}" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;margin-right:.25rem;">
+                                <strong>{$countryList[0]}</strong>
+                            </span>
+                            <span class="badge badge-secondary">{$countryValues[0]}</span>
+                        </div>
+                    </div>
+                {/if}
+                
+                {* 2nd and 3rd place - Side by side *}
+                <div class="row mb-2">
+                    {if isset($countryList[1])}
+                        <div class="col-6 pr-1">
+                            <div class="text-center small">
+                                <div><img src="https://reape.rs/flags/{strtolower($countryList[1])}.png" alt="{$countryList[1]}" style="height:11px;width:16px;border-radius:1px;object-fit:cover;"></div>
+                                <div><strong>{$countryList[1]}</strong></div>
+                                <div><span class="badge badge-secondary badge-sm">{$countryValues[1]}</span></div>
+                            </div>
+                        </div>
+                    {/if}
+                    {if isset($countryList[2])}
+                        <div class="col-6 pl-1">
+                            <div class="text-center small">
+                                <div><img src="https://reape.rs/flags/{strtolower($countryList[2])}.png" alt="{$countryList[2]}" style="height:11px;width:16px;border-radius:1px;object-fit:cover;"></div>
+                                <div><strong>{$countryList[2]}</strong></div>
+                                <div><span class="badge badge-secondary badge-sm">{$countryValues[2]}</span></div>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
+                
+                {* 4th and 5th place - Side by side *}
+                <div class="row">
+                    {if isset($countryList[3])}
+                        <div class="col-6 pr-1">
+                            <div class="text-center small">
+                                <div><img src="https://reape.rs/flags/{strtolower($countryList[3])}.png" alt="{$countryList[3]}" style="height:11px;width:16px;border-radius:1px;object-fit:cover;"></div>
+                                <div><strong>{$countryList[3]}</strong></div>
+                                <div><span class="badge badge-secondary badge-sm">{$countryValues[3]}</span></div>
+                            </div>
+                        </div>
+                    {/if}
+                    {if isset($countryList[4])}
+                        <div class="col-6 pl-1">
+                            <div class="text-center small">
+                                <div><img src="https://reape.rs/flags/{strtolower($countryList[4])}.png" alt="{$countryList[4]}" style="height:11px;width:16px;border-radius:1px;object-fit:cover;"></div>
+                                <div><strong>{$countryList[4]}</strong></div>
+                                <div><span class="badge badge-secondary badge-sm">{$countryValues[4]}</span></div>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
             </div>
         </div>
     </div>
