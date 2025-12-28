@@ -259,7 +259,7 @@ if (!empty($topCountries)) {
     $labelsJs = json_encode($labels);
     $valuesJs = json_encode($values);
     
-    $chartScript = "<script>window.countriesLabels=" . $labelsJs . ";window.countriesValues=" . $valuesJs . ";</script>";
+    $chartScript = "<script>console.log('Setting chart data');window.countriesLabels=" . $labelsJs . ";window.countriesValues=" . $valuesJs . ";console.log('Data set:', window.countriesLabels, window.countriesValues);</script>";
 }
 
 TemplateUtils::i()->renderTemplate("members", [
