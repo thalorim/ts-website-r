@@ -34,7 +34,14 @@ $getBestPriority = function($groups) use ($groupPriority) {
 
 // Build members from live TS server group membership (preferred), fallback to DB profiles
 $members = [];
-if (TeamSpeakUtils::i()->checkTSConnection()) {
+$tsConnected = false;
+try {
+    $tsConnected = TeamSpeakUtils::i()->checkTSConnection();
+} catch (\Exception $e) {
+    $tsConnected = false;
+}
+
+if ($tsConnected) {
     try {
         $node = TeamSpeakUtils::i()->getTSNodeServer();
         // Dynamically fetch all configured member groups
@@ -199,13 +206,22 @@ if (!empty($members) && $serverGroups) {
         foreach ($rows as $r) { $profileSgById[(int)$r['cldbid']] = (string) $r['servergroups']; }
     } catch (\Exception $e) { /* ignore */ }
 
-    $tsOk = TeamSpeakUtils::i()->checkTSConnection();
-    $node = $tsOk ? TeamSpeakUtils::i()->getTSNodeServer() : null;
+    $tsOk = false;
+    $node = null;
+    try {
+        $tsOk = TeamSpeakUtils::i()->checkTSConnection();
+        if ($tsOk) {
+            $node = TeamSpeakUtils::i()->getTSNodeServer();
+        }
+    } catch (\Exception $e) {
+        $tsOk = false;
+        $node = null;
+    }
 
     foreach ($members as &$m) {
         $dbid = (int) $m['cldbid'];
         $sgids = [];
-        if ($tsOk) {
+        if ($tsOk && $node) {
             try {
                 $byDb = $node->clientGetServerGroupsByDbid($dbid);
                 if (is_array($byDb)) { $sgids = array_keys($byDb); }
