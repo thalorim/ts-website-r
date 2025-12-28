@@ -89,3 +89,29 @@
         </div>
     </div>
 {/ifset}
+
+{ifset $topCountries}
+    {if !empty($topCountries)}
+    <div class="card card-accent">
+        <div class="card-header">
+            <i class="fas fa-globe"></i> User Origin Statistics
+        </div>
+        <div class="card-body">
+            <div style="margin-bottom: 1rem;">
+                <canvas id="countryChart"></canvas>
+            </div>
+            <div class="country-stats">
+                {foreach $topCountries as $countryCode => $count}
+                    <p class="mb-2">
+                        <span>
+                            <img src="https://reape.rs/flags/{strtolower($countryCode)}.png" alt="{$countryCode}" style="height:11px;width:16px;border-radius:1px;vertical-align:middle;object-fit:cover;margin-right:.25rem;">
+                            <strong>{$countryCode}</strong>
+                        </span>
+                        <span class="badge badge-secondary">{$count} {if $count == 1}user{else}users{/if}</span>
+                    </p>
+                {/foreach}
+            </div>
+        </div>
+    </div>
+    {/if}
+{/ifset}

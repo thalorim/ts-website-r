@@ -181,7 +181,7 @@ $members && usort($members, function ($a, $b) {
     return $a["cat"] <=> $b["cat"];
 });
 
-// Calculate top 3 countries for pie chart
+// Calculate top 5 countries for pie chart
 $countryStats = [];
 foreach ($members as $m) {
     if (!empty($m['country'])) {
@@ -193,7 +193,7 @@ foreach ($members as $m) {
     }
 }
 arsort($countryStats);
-$topCountries = array_slice($countryStats, 0, 3, true);
+$topCountries = array_slice($countryStats, 0, 5, true);
 
 // Pagination
 $page = isset($_GET["page"]) ? max(1, (int) $_GET["page"]) : 1;
