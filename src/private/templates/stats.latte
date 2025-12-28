@@ -83,6 +83,20 @@
 {block footerbottom}
 <script src="https://ts.tazz.me/assets/js/apexcharts-4.4.0.min.js"></script>
 <script>
+// Chart data from server
+var chartData = {
+    growthValues: {$growthValues|noescape},
+    growthLabels: {$growthLabels|noescape},
+    onlineOfflineValues: {$onlineOfflineValues|noescape},
+    onlineOfflineLabels: {$onlineOfflineLabels|noescape},
+    countryValues: {$countryValues|noescape},
+    countryLabels: {$countryLabels|noescape},
+    groupValues: {$groupValues|noescape},
+    groupLabels: {$groupLabels|noescape}
+};
+</script>
+{syntax off}
+<script>
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof ApexCharts === 'undefined') {
         console.error('ApexCharts not loaded');
@@ -93,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var growthChart = new ApexCharts(document.querySelector("#growthChart"), {
         series: [{
             name: 'Total Users',
-            data: {$growthValues|noescape}
+            data: chartData.growthValues
         }],
         chart: {
             type: 'area',
@@ -101,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fontFamily: 'inherit',
             toolbar: { show: false }
         },
-        colors: ['#5b8ff7'],
+        colors: ['#1f4b6e'],
         dataLabels: { enabled: false },
         stroke: { curve: 'smooth', width: 2 },
         fill: {
@@ -109,22 +123,44 @@ document.addEventListener('DOMContentLoaded', function() {
             gradient: {
                 shadeIntensity: 1,
                 opacityFrom: 0.7,
-                opacityTo: 0.3,
+                opacityTo: 0.2,
                 stops: [0, 90, 100]
             }
         },
         xaxis: {
-            categories: {$growthLabels|noescape},
-            labels: { rotate: -45, rotateAlways: true }
+            categories: chartData.growthLabels,
+            labels: { 
+                rotate: -45, 
+                rotateAlways: true,
+                style: { colors: '#c7c7c7' }
+            }
         },
         yaxis: {
-            title: { text: 'Users' }
+            title: { 
+                text: 'Users',
+                style: { color: '#c7c7c7' }
+            },
+            labels: {
+                style: { colors: '#c7c7c7' }
+            }
         },
         tooltip: {
-            y: { formatter: function(value) { return value + ' users'; } }
+            theme: 'dark',
+            style: {
+                fontSize: '14px',
+                fontFamily: 'inherit'
+            },
+            custom: function(opts) {
+                var month = opts.w.config.xaxis.categories[opts.dataPointIndex];
+                var value = opts.series[opts.seriesIndex][opts.dataPointIndex];
+                return '<div style="padding: 12px 16px; background: #1d1d1d; border: 1px solid #2a475e; border-radius: 6px; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">' +
+                    '<div style="font-size: 13px; color: #c7c7c7; margin-bottom: 4px;">' + month + '</div>' +
+                    '<div style="font-size: 16px; font-weight: bold; color: #fff;">' + value + ' users</div>' +
+                    '</div>';
+            }
         },
         grid: {
-            borderColor: '#e7e7e7',
+            borderColor: '#2a2a2a',
             strokeDashArray: 5
         }
     });
@@ -132,18 +168,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Online vs Offline Donut Chart
     var onlineOfflineChart = new ApexCharts(document.querySelector("#onlineOfflineChart"), {
-        series: {$onlineOfflineValues|noescape},
+        series: chartData.onlineOfflineValues,
         chart: {
             type: 'donut',
             height: 300,
             fontFamily: 'inherit'
         },
-        labels: {$onlineOfflineLabels|noescape},
-        colors: ['#28a745', '#6c757d'],
+        labels: chartData.onlineOfflineLabels,
+        colors: ['#1f4b6e', '#2a475e'],
         dataLabels: {
             enabled: true,
             formatter: function(val, opts) {
                 return opts.w.config.labels[opts.seriesIndex];
+            },
+            style: {
+                fontSize: '14px',
+                colors: ['#fff']
             }
         },
         plotOptions: {
@@ -156,9 +196,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             show: true,
                             label: 'Total Users',
                             fontSize: '16px',
+                            color: '#c7c7c7',
                             formatter: function (w) {
                                 return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
                             }
+                        },
+                        value: {
+                            color: '#fff',
+                            fontSize: '24px'
+                        },
+                        name: {
+                            color: '#c7c7c7'
                         }
                     }
                 }
@@ -166,18 +214,28 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         legend: {
             position: 'bottom',
-            fontSize: '14px'
-        },
-        tooltip: {
-            y: {
-                formatter: function(value, opts) {
-                    var label = opts.w.config.labels[opts.seriesIndex];
-                    return label + ': ' + value + ' users';
-                },
-                title: { formatter: function() { return ''; } }
+            fontSize: '14px',
+            labels: {
+                colors: '#c7c7c7'
             }
         },
-        stroke: { width: 2, colors: ['#fff'] }
+        tooltip: {
+            theme: 'dark',
+            style: {
+                fontSize: '14px',
+                fontFamily: 'inherit'
+            },
+            custom: function(opts) {
+                var label = opts.w.config.labels[opts.seriesIndex];
+                var value = opts.series[opts.seriesIndex];
+                return '<div style="padding: 12px 16px; background: #1d1d1d; border: 1px solid #2a475e; border-radius: 6px; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">' +
+                    '<div style="font-size: 13px; color: #c7c7c7; margin-bottom: 4px;">Status</div>' +
+                    '<div style="font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 4px;">' + label + '</div>' +
+                    '<div style="font-size: 14px; color: #1f4b6e;">' + value + ' users</div>' +
+                    '</div>';
+            }
+        },
+        stroke: { width: 2, colors: ['#171717'] }
     });
     onlineOfflineChart.render();
 
@@ -185,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var countryChart = new ApexCharts(document.querySelector("#countryChart"), {
         series: [{
             name: 'Users',
-            data: {$countryValues|noescape}
+            data: chartData.countryValues
         }],
         chart: {
             type: 'bar',
@@ -193,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fontFamily: 'inherit',
             toolbar: { show: false }
         },
-        colors: ['#5b8ff7'],
+        colors: ['#1f4b6e'],
         plotOptions: {
             bar: {
                 horizontal: true,
@@ -204,20 +262,45 @@ document.addEventListener('DOMContentLoaded', function() {
         dataLabels: {
             enabled: true,
             offsetX: 30,
-            style: { fontSize: '12px', colors: ['#333'] }
+            style: { fontSize: '12px', colors: ['#c7c7c7'] }
         },
         xaxis: {
-            categories: {$countryLabels|noescape},
-            title: { text: 'Number of Users' }
+            categories: chartData.countryLabels,
+            title: { 
+                text: 'Number of Users',
+                style: { color: '#c7c7c7' }
+            },
+            labels: {
+                style: { colors: '#c7c7c7' }
+            }
         },
         yaxis: {
-            title: { text: 'Country Code' }
+            title: { 
+                text: 'Country',
+                style: { color: '#c7c7c7' }
+            },
+            labels: {
+                style: { colors: '#c7c7c7' }
+            }
         },
         tooltip: {
-            y: { formatter: function(value) { return value + ' users'; } }
+            theme: 'dark',
+            style: {
+                fontSize: '14px',
+                fontFamily: 'inherit'
+            },
+            custom: function(opts) {
+                var country = opts.w.config.xaxis.categories[opts.dataPointIndex];
+                var value = opts.series[opts.seriesIndex][opts.dataPointIndex];
+                return '<div style="padding: 12px 16px; background: #1d1d1d; border: 1px solid #2a475e; border-radius: 6px; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">' +
+                    '<div style="font-size: 13px; color: #c7c7c7; margin-bottom: 4px;">Country</div>' +
+                    '<div style="font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 4px;">' + country + '</div>' +
+                    '<div style="font-size: 14px; color: #1f4b6e;">' + value + ' users</div>' +
+                    '</div>';
+            }
         },
         grid: {
-            borderColor: '#e7e7e7',
+            borderColor: '#2a2a2a',
             strokeDashArray: 5
         }
     });
@@ -227,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var groupChart = new ApexCharts(document.querySelector("#groupChart"), {
         series: [{
             name: 'Members',
-            data: {$groupValues|noescape}
+            data: chartData.groupValues
         }],
         chart: {
             type: 'bar',
@@ -235,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fontFamily: 'inherit',
             toolbar: { show: false }
         },
-        colors: ['#ff6384'],
+        colors: ['#2a475e'],
         plotOptions: {
             bar: {
                 horizontal: true,
@@ -246,24 +329,50 @@ document.addEventListener('DOMContentLoaded', function() {
         dataLabels: {
             enabled: true,
             offsetX: 30,
-            style: { fontSize: '12px', colors: ['#333'] }
+            style: { fontSize: '12px', colors: ['#c7c7c7'] }
         },
         xaxis: {
-            categories: {$groupLabels|noescape},
-            title: { text: 'Number of Members' }
+            categories: chartData.groupLabels,
+            title: { 
+                text: 'Number of Members',
+                style: { color: '#c7c7c7' }
+            },
+            labels: {
+                style: { colors: '#c7c7c7' }
+            }
         },
         yaxis: {
-            title: { text: 'Server Group' }
+            title: { 
+                text: 'Server Group',
+                style: { color: '#c7c7c7' }
+            },
+            labels: {
+                style: { colors: '#c7c7c7' }
+            }
         },
         tooltip: {
-            y: { formatter: function(value) { return value + ' members'; } }
+            theme: 'dark',
+            style: {
+                fontSize: '14px',
+                fontFamily: 'inherit'
+            },
+            custom: function(opts) {
+                var group = opts.w.config.xaxis.categories[opts.dataPointIndex];
+                var value = opts.series[opts.seriesIndex][opts.dataPointIndex];
+                return '<div style="padding: 12px 16px; background: #1d1d1d; border: 1px solid #2a475e; border-radius: 6px; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">' +
+                    '<div style="font-size: 13px; color: #c7c7c7; margin-bottom: 4px;">Server Group</div>' +
+                    '<div style="font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 4px;">' + group + '</div>' +
+                    '<div style="font-size: 14px; color: #2a475e;">' + value + ' members</div>' +
+                    '</div>';
+            }
         },
         grid: {
-            borderColor: '#e7e7e7',
+            borderColor: '#2a2a2a',
             strokeDashArray: 5
         }
     });
     groupChart.render();
 });
 </script>
+{/syntax}
 {/block}
