@@ -251,15 +251,12 @@ if (!empty($pageItems) && $serverGroups) {
     unset($m);
 }
 
-// Prepare chart JavaScript
-$chartScript = '';
+// Prepare chart data as JSON
+$chartLabels = [];
+$chartValues = [];
 if (!empty($topCountries)) {
-    $labels = array_keys($topCountries);
-    $values = array_values($topCountries);
-    $labelsJs = json_encode($labels);
-    $valuesJs = json_encode($values);
-    
-    $chartScript = "<script>console.log('Setting chart data');window.countriesLabels=" . $labelsJs . ";window.countriesValues=" . $valuesJs . ";console.log('Data set:', window.countriesLabels, window.countriesValues);</script>";
+    $chartLabels = array_keys($topCountries);
+    $chartValues = array_values($topCountries);
 }
 
 TemplateUtils::i()->renderTemplate("members", [
@@ -270,5 +267,6 @@ TemplateUtils::i()->renderTemplate("members", [
     "nextPageUrl" => $nextPageUrl,
     "page" => $page,
     "topCountries" => $topCountries,
-    "chartScript" => $chartScript,
+    "chartLabels" => json_encode($chartLabels),
+    "chartValues" => json_encode($chartValues),
 ]);
