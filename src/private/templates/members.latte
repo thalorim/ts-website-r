@@ -66,11 +66,13 @@
 {/block}
 
 {block footerbottom}
-{if isset($chartLabels) && isset($chartValues)}
+{ifset $topCountries}
+{if !empty($topCountries)}
 <script src="https://ts.tazz.me/assets/js/apexcharts-4.4.0.min.js"></script>
 <script>
+console.log('Chart block loaded');
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Chart script loaded');
+    console.log('Chart DOMContentLoaded');
     
     var chartLabels = {$chartLabels|noescape};
     var chartValues = {$chartValues|noescape};
@@ -87,9 +89,11 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Chart element:', chartElement);
     
     if (!chartElement) {
-        console.log('Chart element not found!');
+        console.log('Chart element #countryPieChart not found!');
         return;
     }
+    
+    console.log('Creating ApexCharts...');
     
     var options = {
         series: chartValues,
@@ -133,13 +137,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    console.log('Creating chart with options:', options);
+    console.log('Options:', options);
     
-    var chart = new ApexCharts(chartElement, options);
-    chart.render();
-    
-    console.log('Chart rendered successfully');
+    try {
+        var chart = new ApexCharts(chartElement, options);
+        chart.render();
+        console.log('Chart rendered successfully!');
+    } catch(e) {
+        console.error('Error rendering chart:', e);
+    }
 });
 </script>
 {/if}
+{/ifset}
 {/block}
