@@ -251,6 +251,17 @@ if (!empty($pageItems) && $serverGroups) {
     unset($m);
 }
 
+// Prepare chart JavaScript
+$chartScript = '';
+if (!empty($topCountries)) {
+    $labels = array_keys($topCountries);
+    $values = array_values($topCountries);
+    $labelsJs = json_encode($labels);
+    $valuesJs = json_encode($values);
+    
+    $chartScript = "<script>window.countriesLabels=" . $labelsJs . ";window.countriesValues=" . $valuesJs . ";</script>";
+}
+
 TemplateUtils::i()->renderTemplate("members", [
     "title" => "Members list",
     "navActiveIndex" => 6,
@@ -259,4 +270,5 @@ TemplateUtils::i()->renderTemplate("members", [
     "nextPageUrl" => $nextPageUrl,
     "page" => $page,
     "topCountries" => $topCountries,
+    "chartScript" => $chartScript,
 ]);
