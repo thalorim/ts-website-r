@@ -68,88 +68,51 @@
 {block footerbottom}
 <script src="https://ts.tazz.me/assets/js/apexcharts-4.4.0.min.js"></script>
 <script>
-console.log('Chart script loading - members page');
-console.log('chartLabels variable:', '{$chartLabels|noescape}');
-console.log('chartValues variable:', '{$chartValues|noescape}');
-
+console.log('Chart script loading');
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOMContentLoaded fired');
     
     var chartLabels = {$chartLabels|noescape};
     var chartValues = {$chartValues|noescape};
     
-    console.log('Parsed Labels:', chartLabels);
-    console.log('Parsed Values:', chartValues);
+    console.log('Labels:', chartLabels);
+    console.log('Values:', chartValues);
     
     if (!chartLabels || !chartValues || chartLabels.length === 0 || chartValues.length === 0) {
-        console.log('No data - Labels:', chartLabels, 'Values:', chartValues);
+        console.log('No chart data available');
         return;
     }
     
     var chartElement = document.querySelector("#countryPieChart");
-    console.log('Chart element found:', chartElement);
-    
     if (!chartElement) {
-        console.log('ERROR: Chart element #countryPieChart not found!');
+        console.log('Chart element not found');
         return;
     }
     
-    console.log('Initializing ApexCharts...');
-    
-    var options = {
-        series: chartValues,
-        chart: { 
-            type: 'donut', 
-            height: 200, 
-            fontFamily: 'inherit' 
-        },
-        labels: chartLabels,
-        colors: ['#5b8ff7', '#71a3ff', '#8ab4ff', '#a3c5ff', '#bcd6ff'],
-        dataLabels: { 
-            enabled: true, 
-            formatter: function(val, opts) { 
-                return opts.w.config.labels[opts.seriesIndex]; 
-            } 
-        },
-        plotOptions: { 
-            pie: { 
-                startAngle: 100, 
-                donut: { 
-                    size: '60%', 
-                    labels: { 
-                        show: false 
-                    } 
-                } 
-            } 
-        },
-        legend: { 
-            show: false 
-        },
-        tooltip: { 
-            y: { 
-                formatter: function(value) { 
-                    return value + ' users'; 
-                } 
-            } 
-        },
-        stroke: { 
-            width: 2, 
-            colors: ['#fff'] 
-        }
-    };
-    
-    console.log('Chart options:', options);
+    console.log('Creating chart');
     
     try {
         if (typeof ApexCharts === 'undefined') {
-            console.error('ApexCharts library not loaded!');
+            console.error('ApexCharts not loaded');
             return;
         }
-        var chart = new ApexCharts(chartElement, options);
+        
+        var chart = new ApexCharts(chartElement, {
+            series: chartValues,
+            chart: { type: 'donut', height: 200, fontFamily: 'inherit' },
+            labels: chartLabels,
+            colors: ['#5b8ff7', '#71a3ff', '#8ab4ff', '#a3c5ff', '#bcd6ff'],
+            dataLabels: { enabled: true, formatter: function(val, opts) { return opts.w.config.labels[opts.seriesIndex]; } },
+            plotOptions: { pie: { startAngle: 100, donut: { size: '60%', labels: { show: false } } } },
+            legend: { show: false },
+            tooltip: { y: { formatter: function(value) { return value + ' users'; } } },
+            stroke: { width: 2, colors: ['#fff'] }
+        });
+        
         chart.render();
-        console.log('✓ Chart rendered successfully!');
+        console.log('Chart rendered');
     } catch(e) {
-        console.error('ERROR rendering chart:', e);
+        console.error('Chart error:', e);
     }
 });
 </script>
