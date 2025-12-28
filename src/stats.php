@@ -9,7 +9,7 @@ require_once __DIR__ . "/private/php/load.php";
 
 $db = DatabaseUtils::i()->getDb();
 
-// Get server groups for icon display
+// Get server groups for name display
 $serverGroupsData = [];
 try {
     $serverGroups = CacheManager::i()->getServerGroupList();
@@ -50,6 +50,24 @@ try {
         }
     }
 } catch (\Exception $e) { /* ignore */ }
+
+// Country code to name mapping (common countries)
+$countryNames = [
+    'US' => 'United States', 'GB' => 'United Kingdom', 'DE' => 'Germany', 'FR' => 'France',
+    'IT' => 'Italy', 'ES' => 'Spain', 'NL' => 'Netherlands', 'BE' => 'Belgium',
+    'PL' => 'Poland', 'RU' => 'Russia', 'UA' => 'Ukraine', 'RO' => 'Romania',
+    'CZ' => 'Czech Republic', 'SE' => 'Sweden', 'NO' => 'Norway', 'DK' => 'Denmark',
+    'FI' => 'Finland', 'AT' => 'Austria', 'CH' => 'Switzerland', 'PT' => 'Portugal',
+    'GR' => 'Greece', 'HU' => 'Hungary', 'BG' => 'Bulgaria', 'SK' => 'Slovakia',
+    'HR' => 'Croatia', 'SI' => 'Slovenia', 'LT' => 'Lithuania', 'LV' => 'Latvia',
+    'EE' => 'Estonia', 'IE' => 'Ireland', 'CA' => 'Canada', 'AU' => 'Australia',
+    'NZ' => 'New Zealand', 'JP' => 'Japan', 'CN' => 'China', 'KR' => 'South Korea',
+    'IN' => 'India', 'BR' => 'Brazil', 'MX' => 'Mexico', 'AR' => 'Argentina',
+    'CL' => 'Chile', 'CO' => 'Colombia', 'PE' => 'Peru', 'ZA' => 'South Africa',
+    'TR' => 'Turkey', 'IL' => 'Israel', 'SA' => 'Saudi Arabia', 'AE' => 'UAE',
+    'SG' => 'Singapore', 'MY' => 'Malaysia', 'TH' => 'Thailand', 'ID' => 'Indonesia',
+    'PH' => 'Philippines', 'VN' => 'Vietnam'
+];
 
 // Country Statistics - Top 10 countries
 $countryStats = [];
@@ -99,28 +117,26 @@ $totalStats = [
     'groupsCount' => count($groupStats)
 ];
 
-// Prepare chart data as JSON
-$countryLabels = json_encode(array_keys($topCountries));
+// Prepare chart data as JSON - convert country codes to names
+$countryLabelsArray = [];
+foreach (array_keys($topCountries) as $code) {
+    $countryLabelsArray[] = isset($countryNames[$code]) ? $countryNames[$code] : $code;
+}
+$countryLabels = json_encode($countryLabelsArray);
 $countryValues = json_encode(array_values($topCountries));
 
-// Prepare group data with icon information
-$topGroupsDetailed = [];
+// Prepare group data - convert group IDs to group names
+$groupLabelsArray = [];
 foreach (array_keys($topGroups) as $gid) {
-    $groupInfo = [
-        'id' => $gid,
-        'name' => "Group " . $gid,
-        'iconid' => null
-    ];
     if (isset($serverGroupsData[$gid])) {
-        $groupInfo['name'] = $serverGroupsData[$gid]['name'];
-        $groupInfo['iconid'] = isset($serverGroupsData[$gid]['iconid']) ? (int) $serverGroupsData[$gid]['iconid'] : null;
+        $groupLabelsArray[] = $serverGroupsData[$gid]['name'];
+    } else {
+        $groupLabelsArray[] = "Group " . $gid;
     }
-    $topGroupsDetailed[] = $groupInfo;
 }
 
-$groupLabels = json_encode(array_map(function($g) { return $g['name']; }, $topGroupsDetailed));
+$groupLabels = json_encode($groupLabelsArray);
 $groupValues = json_encode(array_values($topGroups));
-$groupData = json_encode($topGroupsDetailed);
 
 $onlineOfflineLabels = json_encode(array_keys($onlineOfflineData));
 $onlineOfflineValues = json_encode(array_values($onlineOfflineData));
@@ -153,7 +169,6 @@ TemplateUtils::i()->renderTemplate("stats", [
     "countryValues" => $countryValues,
     "groupLabels" => $groupLabels,
     "groupValues" => $groupValues,
-    "groupData" => $groupData,
     "onlineOfflineLabels" => $onlineOfflineLabels,
     "onlineOfflineValues" => $onlineOfflineValues,
     "growthLabels" => $growthLabels,
