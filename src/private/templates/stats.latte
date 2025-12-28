@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     onlineOfflineChart.render();
 
-    // Top Countries Bar Chart
+    // Top Countries Bar Chart with Flags
     var countryChart = new ApexCharts(document.querySelector("#countryChart"), {
         series: [{
             name: 'Users',
@@ -204,17 +204,39 @@ document.addEventListener('DOMContentLoaded', function() {
         dataLabels: {
             enabled: true,
             offsetX: 30,
-            style: { fontSize: '12px', colors: ['#333'] }
+            style: { fontSize: '12px', colors: ['#333'] },
+            formatter: function(val, opts) {
+                var countryCode = opts.w.config.xaxis.categories[opts.dataPointIndex];
+                return countryCode + ': ' + val;
+            }
         },
         xaxis: {
             categories: {$countryLabels|noescape},
-            title: { text: 'Number of Users' }
+            title: { text: 'Number of Users' },
+            labels: {
+                formatter: function(value) {
+                    var countryCode = value.toLowerCase();
+                    return '<span class="famfamfam-flags ' + countryCode + '" style="margin-right: 6px;"></span>' + value.toUpperCase();
+                }
+            }
         },
         yaxis: {
-            title: { text: 'Country Code' }
+            title: { text: 'Country' },
+            labels: {
+                style: {
+                    fontSize: '14px'
+                }
+            }
         },
         tooltip: {
-            y: { formatter: function(value) { return value + ' users'; } }
+            custom: function({series, seriesIndex, dataPointIndex, w}) {
+                var countryCode = w.config.xaxis.categories[dataPointIndex];
+                var value = series[seriesIndex][dataPointIndex];
+                return '<div style="padding: 8px 12px; background: rgba(0,0,0,0.85); color: white; border-radius: 4px;">' +
+                    '<span class="famfamfam-flags ' + countryCode.toLowerCase() + '" style="margin-right: 6px;"></span>' +
+                    '<strong>' + countryCode + '</strong>: ' + value + ' users' +
+                    '</div>';
+            }
         },
         grid: {
             borderColor: '#e7e7e7',
@@ -223,7 +245,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     countryChart.render();
 
-    // Server Groups Bar Chart
+    // Server Groups Bar Chart with Icons
+    var groupData = {$groupData|noescape};
     var groupChart = new ApexCharts(document.querySelector("#groupChart"), {
         series: [{
             name: 'Members',
@@ -250,13 +273,44 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         xaxis: {
             categories: {$groupLabels|noescape},
-            title: { text: 'Number of Members' }
+            title: { text: 'Number of Members' },
+            labels: {
+                formatter: function(value, opts) {
+                    var idx = opts.dataPointIndex !== undefined ? opts.dataPointIndex : 
+                              (opts.seriesIndex !== undefined && opts.w ? opts.w.globals.labels.indexOf(value) : -1);
+                    if (idx >= 0 && idx < groupData.length) {
+                        var group = groupData[idx];
+                        var iconHtml = '';
+                        if (group.iconid) {
+                            iconHtml = '<img src="/api/geticon.php?iconid=' + group.iconid + '" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;" />';
+                        }
+                        return iconHtml + group.name + ' (ID: ' + group.id + ')';
+                    }
+                    return value;
+                }
+            }
         },
         yaxis: {
-            title: { text: 'Server Group' }
+            title: { text: 'Server Group' },
+            labels: {
+                style: {
+                    fontSize: '13px'
+                }
+            }
         },
         tooltip: {
-            y: { formatter: function(value) { return value + ' members'; } }
+            custom: function({series, seriesIndex, dataPointIndex, w}) {
+                var group = groupData[dataPointIndex];
+                var value = series[seriesIndex][dataPointIndex];
+                var iconHtml = '';
+                if (group.iconid) {
+                    iconHtml = '<img src="/api/geticon.php?iconid=' + group.iconid + '" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;" />';
+                }
+                return '<div style="padding: 8px 12px; background: rgba(0,0,0,0.85); color: white; border-radius: 4px;">' +
+                    iconHtml +
+                    '<strong>' + group.name + '</strong> (ID: ' + group.id + '): ' + value + ' members' +
+                    '</div>';
+            }
         },
         grid: {
             borderColor: '#e7e7e7',

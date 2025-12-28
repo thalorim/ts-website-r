@@ -9,6 +9,15 @@ require_once __DIR__ . "/private/php/load.php";
 
 $db = DatabaseUtils::i()->getDb();
 
+// Get server groups for icon display
+$serverGroupsData = [];
+try {
+    $serverGroups = CacheManager::i()->getServerGroupList();
+    if ($serverGroups) {
+        $serverGroupsData = $serverGroups;
+    }
+} catch (\Exception $e) { /* ignore */ }
+
 // Get all members from profiles
 $allMembers = [];
 try {
@@ -94,8 +103,24 @@ $totalStats = [
 $countryLabels = json_encode(array_keys($topCountries));
 $countryValues = json_encode(array_values($topCountries));
 
-$groupLabels = json_encode(array_map(function($g) { return "Group " . $g; }, array_keys($topGroups)));
+// Prepare group data with icon information
+$topGroupsDetailed = [];
+foreach (array_keys($topGroups) as $gid) {
+    $groupInfo = [
+        'id' => $gid,
+        'name' => "Group " . $gid,
+        'iconid' => null
+    ];
+    if (isset($serverGroupsData[$gid])) {
+        $groupInfo['name'] = $serverGroupsData[$gid]['name'];
+        $groupInfo['iconid'] = isset($serverGroupsData[$gid]['iconid']) ? (int) $serverGroupsData[$gid]['iconid'] : null;
+    }
+    $topGroupsDetailed[] = $groupInfo;
+}
+
+$groupLabels = json_encode(array_map(function($g) { return $g['name']; }, $topGroupsDetailed));
 $groupValues = json_encode(array_values($topGroups));
+$groupData = json_encode($topGroupsDetailed);
 
 $onlineOfflineLabels = json_encode(array_keys($onlineOfflineData));
 $onlineOfflineValues = json_encode(array_values($onlineOfflineData));
@@ -128,6 +153,7 @@ TemplateUtils::i()->renderTemplate("stats", [
     "countryValues" => $countryValues,
     "groupLabels" => $groupLabels,
     "groupValues" => $groupValues,
+    "groupData" => $groupData,
     "onlineOfflineLabels" => $onlineOfflineLabels,
     "onlineOfflineValues" => $onlineOfflineValues,
     "growthLabels" => $growthLabels,
