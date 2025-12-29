@@ -149,8 +149,15 @@ if ($onlineClient) {
                 $parts[] = $seconds . " second" . ($seconds !== 1 ? "s" : "");
                 $profileData["online_since_text"] = implode(" ", $parts);
             }
-            if (isset($live["client_totalconnections"])) {
+            // Get detailed client info including totalconnections, created, lastconnected
+            if (isset($live["client_totalconnections"]) && is_numeric($live["client_totalconnections"])) {
                 $profileData["totalconnections"] = (int) $live["client_totalconnections"]; // live value preferred when online
+            }
+            if (isset($live["client_created"]) && is_numeric($live["client_created"])) {
+                $profileData["created_ts"] = (int) $live["client_created"]; // override with live data
+            }
+            if (isset($live["client_lastconnected"]) && is_numeric($live["client_lastconnected"])) {
+                $profileData["lastconnected_ts"] = (int) $live["client_lastconnected"]; // override with live data
             }
             // Bandwidth last minute totals (bytes) -> compute per-second and human readable
             if (isset($live["connection_bandwidth_sent_last_minute_total"])) {
@@ -233,25 +240,29 @@ if (!$isOnline) {
     }
 }
 
+// Fetch DB-stored fields FIRST before we update database
+$dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
+
 // Persist to DB (upsert) - do not overwrite existing values with NULLs
 // This updates the database with the latest data every time a profile is viewed
 // ensuring that data like totalconnections, created_ts, lastconnected_ts persist when user goes offline
-try {
-    if ($db->has("profiles", ["cldbid" => $cldbid])) {
-        $updateData = array_filter($profileData, function ($v) { return $v !== null; });
-        if (!empty($updateData)) {
-            $db->update("profiles", $updateData, ["cldbid" => $cldbid]);
+// Only save if we have new data (user is online or we got fresh TS data)
+if ($isOnline || $tsInfo) {
+    try {
+        if ($dbProfile) {
+            $updateData = array_filter($profileData, function ($v) { return $v !== null; });
+            if (!empty($updateData)) {
+                $db->update("profiles", $updateData, ["cldbid" => $cldbid]);
+            }
+        } else {
+            $db->insert("profiles", $profileData);
         }
-    } else {
-        $db->insert("profiles", $profileData);
+    } catch (\Exception $e) {
+        // Non-fatal for rendering
     }
-} catch (\Exception $e) {
-    // Non-fatal for rendering
 }
 
 // Prepare data for template
-// Fetch DB-stored fields (e.g., avatar)
-$dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
 
 // Resolve server group details
 $groupsDetailed = [];
@@ -335,8 +346,8 @@ if ((empty($profileData["servergroups"]) || $profileData["servergroups"] === nul
 // Preserve timestamps and total connections always (even when offline)
 $preserveNumericKeys = ["created_ts", "lastconnected_ts", "totalconnections"];
 foreach ($preserveNumericKeys as $k) {
-    if (!isset($profileData[$k]) || $profileData[$k] === null) {
-        if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null) {
+    if (!isset($profileData[$k]) || $profileData[$k] === null || $profileData[$k] === '') {
+        if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null && $dbProfile[$k] !== '') {
             $profileData[$k] = is_numeric($dbProfile[$k]) ? (int) $dbProfile[$k] : $dbProfile[$k];
         }
     }
