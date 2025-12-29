@@ -192,9 +192,9 @@ if (!is_array($members)) {
         } catch (\Exception $e) { /* ignore */ }
     }
     
-    // Store in cache for 5 minutes (300 seconds)
+    // Store in cache for 1 minute (60 seconds) to ensure fresher data
     try {
-        $membersCache->store($cacheKey, $members, 300);
+        $membersCache->store($cacheKey, $members, 60);
     } catch (\Exception $e) { /* ignore cache errors */ }
 }
 
@@ -219,9 +219,17 @@ try {
 if (!empty($members) && $serverGroups) {
     $allIds = array_map(function ($m) { return (int) $m['cldbid']; }, $members);
     
+    // Check TeamSpeak connection status for live group fetching
+    $tsConnectedNow = false;
+    try {
+        $tsConnectedNow = TeamSpeakUtils::i()->checkTSConnection();
+    } catch (\Exception $e) {
+        $tsConnectedNow = false;
+    }
+    
     // Get server groups from live TeamSpeak server if connected, otherwise fall back to database profiles
     $liveServerGroupsById = [];
-    if ($tsConnected) {
+    if ($tsConnectedNow) {
         try {
             $node = TeamSpeakUtils::i()->getTSNodeServer();
             // Fetch live server groups for each member from TeamSpeak
@@ -252,6 +260,8 @@ if (!empty($members) && $serverGroups) {
         } catch (\Exception $e) { /* ignore */ }
     }
 
+    // Filter members: when using live data, remove users who no longer have any configured member groups
+    $filteredMembers = [];
     foreach ($members as &$m) {
         $dbid = (int) $m['cldbid'];
         $sgids = [];
@@ -259,6 +269,13 @@ if (!empty($members) && $serverGroups) {
         // Prefer live TeamSpeak data over cached/database data
         if (!empty($liveServerGroupsById[$dbid])) {
             $sgids = $liveServerGroupsById[$dbid];
+            
+            // Check if user still has any of the configured member groups
+            $hasConfiguredGroup = !empty(array_intersect($sgids, $memberGroups));
+            if (!$hasConfiguredGroup) {
+                // User no longer in any configured member groups, skip them
+                continue;
+            }
         } elseif (isset($profileSgById[$dbid]) && $profileSgById[$dbid] !== '') {
             // Fallback to database profile if live data not available
             $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $profileSgById[$dbid])), function ($v) { return $v > 0; }));
@@ -280,8 +297,14 @@ if (!empty($members) && $serverGroups) {
                 }
             }
         }
+        
+        // Add to filtered list
+        $filteredMembers[] = $m;
     }
     unset($m);
+    
+    // Use filtered members list (removes users no longer in configured groups when using live data)
+    $members = $filteredMembers;
 }
 
 TemplateUtils::i()->renderTemplate("members", [
