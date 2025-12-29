@@ -118,6 +118,17 @@ if ($onlineClient) {
     // Enhance with current channel and online since
     $profileData["cid"] = isset($onlineClient["cid"]) ? (int) $onlineClient["cid"] : null;
     $profileData["clid"] = isset($onlineClient["clid"]) ? (int) $onlineClient["clid"] : null;
+    
+    // Get live timestamps from online client (same as viewer hover data)
+    if (isset($onlineClient["client_created"]) && is_numeric($onlineClient["client_created"])) {
+        $profileData["created_ts"] = (int) $onlineClient["client_created"];
+    }
+    if (isset($onlineClient["client_lastconnected"]) && is_numeric($onlineClient["client_lastconnected"])) {
+        $profileData["lastconnected_ts"] = (int) $onlineClient["client_lastconnected"];
+    }
+    if (isset($onlineClient["client_totalconnections"]) && is_numeric($onlineClient["client_totalconnections"])) {
+        $profileData["totalconnections"] = (int) $onlineClient["client_totalconnections"];
+    }
 
     // Try to get more live info to compute "online since" timestamp
     try {
@@ -463,15 +474,16 @@ if (!$isOnline) {
 }
 
 // Compute human-readable first connected and last online date strings for Overview
+// Use the same format as viewer hover: DD/MM/YYYY HH:MM:SS
 if (isset($profileData["created_ts"]) && is_numeric($profileData["created_ts"])) {
-    $renderData["profile"]["first_connected_human"] = date('jS F, Y', (int) $profileData["created_ts"]);
+    $renderData["profile"]["first_connected_human"] = date('d/m/Y H:i:s', (int) $profileData["created_ts"]);
 }
 
 // Last online: show "Now" when online, or date/time when offline
 if ($isOnline) {
     $renderData["profile"]["last_online_human"] = "Now";
 } else if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
-    $renderData["profile"]["last_online_human"] = date('jS F, Y, g:ia', (int) $profileData["lastconnected_ts"]);
+    $renderData["profile"]["last_online_human"] = date('d/m/Y H:i:s', (int) $profileData["lastconnected_ts"]);
 }
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);
