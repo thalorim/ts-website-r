@@ -564,3 +564,149 @@ table.dataTable > tbody > tr.child td.child {
     70% { box-shadow: 0 0 0 8px rgba(0,0,0,0); }
     100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
 }
+
+/* Nickname Display Styles */
+
+/* Style 2 inspired - Popular color gradients */
+.nickname-style-gradient-fire {
+    background: linear-gradient(90deg, #ff0000 0%, #ff7700 50%, #ffaa00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.nickname-style-gradient-ocean {
+    background: linear-gradient(90deg, #0077be 0%, #00a8e8 50%, #00d4ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.nickname-style-gradient-sunset {
+    background: linear-gradient(90deg, #6a0dad 0%, #b829e8 50%, #ff1493 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.nickname-style-gradient-gold {
+    background: linear-gradient(90deg, #b8860b 0%, #ffd700 50%, #ffed4e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.nickname-style-gradient-purple {
+    background: linear-gradient(90deg, #4b0082 0%, #8a2be2 50%, #9370db 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.nickname-style-gradient-rainbow {
+    background: linear-gradient(90deg, #ff0000 0%, #ff7700 14%, #ffdd00 28%, #00ff00 42%, #0088ff 57%, #4b0082 71%, #9400d3 85%, #ff0080 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+/* Animated sparkle with giphy background */
+.nickname-style-animated-sparkle {
+    background: url(https://media.giphy.com/media/3otO6NFBIAFg2vPZuM/giphy.gif);
+    color: #fff;
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    font-weight: 800 !important;
+}
+
+/* Cyan crystal with gif background */
+.nickname-style-cyan-crystal {
+    color: #70d7ea;
+    background: url(https://i.ibb.co/HgjQ6sM/udGakie.gif);
+    background-size: cover;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    filter: drop-shadow(0px 4px 5px #000);
+}
+
+/* Green glow style with animation */
+.nickname-style-green-glow {
+    position: relative;
+    font-weight: bold;
+    text-shadow: 0 0 2px #ffffff, 0 0 2px #ffffff, 0 0 7px #F00, 0 0 7px #F00, 0 0 8px #F00, 0 0 9px #F00, 0 0 10px #F00;
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: border-box, border-box, text;
+    background-image: url(data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7), url(data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7), linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(110, 255, 73, 1) 35%, rgba(56, 255, 0, 1) 100%);
+    background-size: 6em, 4em, 25em;
+    animation: style3anim 3s linear infinite;
+}
+
+@keyframes style3anim {
+    0% {
+        background-position: 0 0, 0 0, 0 0;
+    }
+    100% {
+        background-position: 6em 0, 4em 0, 25em 0;
+    }
+}
+
+/* Style selector in edit profile */
+.nickname-style-options {
+    display: flex;
+    flex-wrap: wrap;
+    margin: -0.5rem;
+}
+
+.nickname-style-option {
+    flex: 1 1 200px;
+    max-width: 280px;
+    margin: 0.5rem;
+    position: relative;
+    cursor: pointer;
+}
+
+.nickname-style-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.nickname-style-option__body {
+    border: 1px solid #ced4da;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    height: 100%;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nickname-style-option:hover .nickname-style-option__body {
+    border-color: #80bdff;
+}
+
+.nickname-style-option input[type="radio"]:checked + .nickname-style-option__body {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.2);
+}
+
+.nickname-style-preview {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    min-height: 2rem;
+    display: flex;
+    align-items: center;
+}

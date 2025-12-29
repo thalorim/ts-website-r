@@ -2,6 +2,7 @@
 
 use Wruczek\TSWebsite\CacheManager;
 use Wruczek\TSWebsite\Utils\AvatarBorderUtils;
+use Wruczek\TSWebsite\Utils\NicknameStyleUtils;
 use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Config;
@@ -305,6 +306,8 @@ $avatarUrl = ($dbProfile && !empty($dbProfile["avatar_url"])) ? $dbProfile["avat
 $bannerUrl = ($dbProfile && !empty($dbProfile["banner_url"])) ? $dbProfile["banner_url"] : null;
 $avatarBorderKey = $dbProfile && isset($dbProfile["avatar_border"]) ? AvatarBorderUtils::normalize($dbProfile["avatar_border"]) : AvatarBorderUtils::getDefaultKey();
 $avatarBorderUrl = AvatarBorderUtils::getUrl($avatarBorderKey);
+$nicknameStyleKey = $dbProfile && isset($dbProfile["nickname_display_style"]) ? NicknameStyleUtils::normalize($dbProfile["nickname_display_style"]) : NicknameStyleUtils::getDefaultKey();
+$nicknameStyleClass = NicknameStyleUtils::getClass($nicknameStyleKey);
 // Prefer user-saved description if present
 if ($dbProfile && !empty($dbProfile["description"])) {
     $profileData["description"] = (string) $dbProfile["description"];
@@ -419,6 +422,7 @@ $renderData = [
     "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
+    "nicknameStyleClass" => $nicknameStyleClass,
 ];
 
 // Compute last seen text for offline users
