@@ -2,6 +2,7 @@
 
 use Wruczek\TSWebsite\Auth;
 use Wruczek\TSWebsite\Utils\AvatarBorderUtils;
+use Wruczek\TSWebsite\Utils\NicknameStyleUtils;
 use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Config;
@@ -54,6 +55,12 @@ try {
     $colExists4 = $colStmt4 && $colStmt4->fetchColumn();
     if (!$colExists4) {
         $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `description` TEXT NULL AFTER `banner_url`");
+    }
+
+    $colStmt5 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'nickname_display_style'");
+    $colExists5 = $colStmt5 && $colStmt5->fetchColumn();
+    if (!$colExists5) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `nickname_display_style` VARCHAR(64) NULL AFTER `description`");
     }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring avatar column", $e->getMessage());
@@ -176,6 +183,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $selectedBorder = isset($_POST["avatar_border"]) ? trim((string) $_POST["avatar_border"]) : null;
         $updateData["avatar_border"] = AvatarBorderUtils::normalize($selectedBorder);
 
+        $selectedNicknameStyle = isset($_POST["nickname_display_style"]) ? trim((string) $_POST["nickname_display_style"]) : null;
+        $updateData["nickname_display_style"] = NicknameStyleUtils::normalize($selectedNicknameStyle);
+
         // Persist changes
         if ($db->has("profiles", ["cldbid" => $requestedCldbid])) {
             $db->update("profiles", $updateData, ["cldbid" => $requestedCldbid]);
@@ -190,11 +200,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 // Fetch current data to display in form
-$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description"], ["cldbid" => $requestedCldbid]);
+$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description","nickname_display_style"], ["cldbid" => $requestedCldbid]);
 $currentAvatar = $current && isset($current["avatar_url"]) && $current["avatar_url"] ? $current["avatar_url"] : "img/icons/defaulticon-128.png";
 $currentAvatarBorder = AvatarBorderUtils::normalize($current["avatar_border"] ?? null);
 $currentAvatarBorderUrl = AvatarBorderUtils::getUrl($currentAvatarBorder);
 $currentDescription = $current && isset($current["description"]) ? $current["description"] : null;
+$currentNicknameStyle = NicknameStyleUtils::normalize($current["nickname_display_style"] ?? null);
 $currentSocials = [];
 if ($current && !empty($current["socials_json"])) {
     $decoded = json_decode((string) $current["socials_json"], true);
@@ -213,6 +224,8 @@ TemplateUtils::i()->renderTemplate("edit-profile", [
     "borderOptions" => AvatarBorderUtils::getOptions(),
     "currentDescription" => $currentDescription,
     "currentSocials" => $currentSocials,
+    "currentNicknameStyle" => $currentNicknameStyle,
+    "nicknameStyleOptions" => NicknameStyleUtils::getOptions(),
     "message" => $message,
     "error" => $error,
 ]);

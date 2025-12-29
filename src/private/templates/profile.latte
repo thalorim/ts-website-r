@@ -12,7 +12,7 @@
                 </div>
                 <div class="meta ml-3">
                     <h3 class="nickname mb-1 d-flex align-items-center">
-                        <span>{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
+                        <span class="{$nicknameStyleClass}">{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
                         {ifset $groups}
                             {foreach $groups as $g}
                                 {if $g['sgid'] === 6}
