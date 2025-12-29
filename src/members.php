@@ -219,36 +219,49 @@ try {
 if (!empty($members) && $serverGroups) {
     $allIds = array_map(function ($m) { return (int) $m['cldbid']; }, $members);
     
-    // Get server groups from database profiles (already contains the data)
+    // Get server groups from live TeamSpeak server if connected, otherwise fall back to database profiles
+    $liveServerGroupsById = [];
+    if ($tsConnected) {
+        try {
+            $node = TeamSpeakUtils::i()->getTSNodeServer();
+            // Fetch live server groups for each member from TeamSpeak
+            foreach ($allIds as $cldbid) {
+                try {
+                    $sgList = $node->serverGroupsByClientId($cldbid);
+                    if ($sgList) {
+                        $groupIds = [];
+                        foreach ($sgList as $sg) {
+                            $gid = isset($sg['sgid']) ? (int) $sg['sgid'] : (isset($sg['servergroup_id']) ? (int) $sg['servergroup_id'] : null);
+                            if ($gid) {
+                                $groupIds[] = $gid;
+                            }
+                        }
+                        $liveServerGroupsById[$cldbid] = $groupIds;
+                    }
+                } catch (\Exception $e) { /* ignore individual lookup failures */ }
+            }
+        } catch (\Exception $e) { /* ignore TeamSpeak errors, will fall back to database */ }
+    }
+    
+    // Fallback: Get server groups from database profiles if TeamSpeak is not connected
     $profileSgById = [];
-    try {
-        $rows = $db->select('profiles', ['cldbid', 'servergroups'], ['cldbid' => $allIds]);
-        foreach ($rows as $r) { $profileSgById[(int)$r['cldbid']] = (string) $r['servergroups']; }
-    } catch (\Exception $e) { /* ignore */ }
-
-    // Cache for individual server group lookups (cache for 5 minutes)
-    $sgCache = new PhpFileCache(__CACHE_DIR, "member_servergroups");
+    if (empty($liveServerGroupsById)) {
+        try {
+            $rows = $db->select('profiles', ['cldbid', 'servergroups'], ['cldbid' => $allIds]);
+            foreach ($rows as $r) { $profileSgById[(int)$r['cldbid']] = (string) $r['servergroups']; }
+        } catch (\Exception $e) { /* ignore */ }
+    }
 
     foreach ($members as &$m) {
         $dbid = (int) $m['cldbid'];
         $sgids = [];
         
-        // Try to get from cache first
-        try {
-            $cached = $sgCache->retrieve("sg_" . $dbid);
-            if (is_array($cached)) {
-                $sgids = $cached;
-            }
-        } catch (\Exception $e) { /* cache miss, will fetch below */ }
-        
-        // If not in cache, get from database profile
-        if (empty($sgids) && isset($profileSgById[$dbid]) && $profileSgById[$dbid] !== '') {
+        // Prefer live TeamSpeak data over cached/database data
+        if (!empty($liveServerGroupsById[$dbid])) {
+            $sgids = $liveServerGroupsById[$dbid];
+        } elseif (isset($profileSgById[$dbid]) && $profileSgById[$dbid] !== '') {
+            // Fallback to database profile if live data not available
             $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $profileSgById[$dbid])), function ($v) { return $v > 0; }));
-            
-            // Store in cache for 5 minutes
-            try {
-                $sgCache->store("sg_" . $dbid, $sgids, 300);
-            } catch (\Exception $e) { /* ignore */ }
         }
         
         // Store all server groups for display
