@@ -8,7 +8,9 @@
             <div class="d-flex align-items-center">
                 <div class="avatar avatar-preview">
                     <img src="{$avatarUrl}" alt="avatar" class="avatar-img">
-                    <img src="{$avatarBorderUrl}" alt="avatar border" class="avatar-border-overlay">
+                    {if $avatarBorderUrl}
+                        <img src="{$avatarBorderUrl}" alt="avatar border" class="avatar-border-overlay">
+                    {/if}
                 </div>
                 <div class="meta ml-3">
                     <h3 class="nickname mb-1 d-flex align-items-center">

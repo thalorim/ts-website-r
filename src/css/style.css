@@ -446,6 +446,7 @@ table.dataTable > tbody > tr.child td.child {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .avatar-preview .avatar-img {
@@ -465,8 +466,9 @@ table.dataTable > tbody > tr.child td.child {
     object-fit: contain;
     pointer-events: none;
     user-select: none;
-    top: 0;
-    left: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .avatar-preview--sm {
@@ -563,4 +565,48 @@ table.dataTable > tbody > tr.child td.child {
     0% { box-shadow: 0 0 0 0 rgba(0,0,0,0.3); }
     70% { box-shadow: 0 0 0 8px rgba(0,0,0,0); }
     100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+}
+
+/* Mobile responsive fixes for avatar and border overlay */
+@media (max-width: 768px) {
+    .steamlike-header .avatar-and-meta {
+        flex-direction: column;
+        align-items: center !important;
+        text-align: center;
+    }
+    
+    .steamlike-header .avatar-and-meta > div:first-child {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .steamlike-header .meta {
+        margin-left: 0 !important;
+        margin-top: 1rem;
+    }
+    
+    .avatar-preview {
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 576px) {
+    .steamlike-header .cover {
+        height: 120px;
+    }
+    
+    .avatar-preview {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .avatar-preview .avatar-img {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .avatar-preview .avatar-border-overlay {
+        width: 100px;
+        height: 100px;
+    }
 }

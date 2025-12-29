@@ -7,16 +7,21 @@ namespace Wruczek\TSWebsite\Utils;
  */
 class AvatarBorderUtils {
 
-    private const DEFAULT_KEY = 'radiant-vortex';
+    private const DEFAULT_KEY = 'none';
 
     /**
      * @var array<string, array{label: string, url: string, description: string}>
      */
     private const BORDER_OPTIONS = [
+        'none' => [
+            'label' => 'None',
+            'url' => '',
+            'description' => 'No avatar border overlay.',
+        ],
         'radiant-vortex' => [
             'label' => 'Radiant Vortex',
             'url' => 'https://shared.fastly.steamstatic.com/community_assets/images/items/1145350/7e753023f517ba01d4fd5d4031d69addb68751f5.png',
-            'description' => 'Default purple lightning overlay featured on all avatars.',
+            'description' => 'Purple lightning overlay with energy aura.',
         ],
         'ember-crown' => [
             'label' => 'Ember Crown',

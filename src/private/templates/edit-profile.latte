@@ -18,7 +18,9 @@
             <div class="d-flex align-items-center mb-3">
                 <div class="avatar-preview mr-3">
                     <img src="{$currentAvatar}" alt="current avatar" class="avatar-img">
-                    <img src="{$currentAvatarBorderUrl}" alt="selected border" class="avatar-border-overlay">
+                    {if $currentAvatarBorderUrl}
+                        <img src="{$currentAvatarBorderUrl}" alt="selected border" class="avatar-border-overlay">
+                    {/if}
                 </div>
                 <div>
                     <div class="text-muted">Current avatar &amp; border</div>
@@ -41,7 +43,9 @@
                                 <div class="border-option__body">
                                     <div class="avatar-preview avatar-preview--sm mb-2">
                                         <img src="{$currentAvatar}" alt="preview avatar" class="avatar-img">
-                                        <img src="{$border['url']}" alt="{$border['label']} border" class="avatar-border-overlay">
+                                        {if $border['url']}
+                                            <img src="{$border['url']}" alt="{$border['label']} border" class="avatar-border-overlay">
+                                        {/if}
                                     </div>
                                     <div class="font-weight-bold">{$border['label']}</div>
                                     <small class="text-muted d-block mt-1">{$border['description']}</small>
