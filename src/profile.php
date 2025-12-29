@@ -118,6 +118,17 @@ if ($onlineClient) {
     // Enhance with current channel and online since
     $profileData["cid"] = isset($onlineClient["cid"]) ? (int) $onlineClient["cid"] : null;
     $profileData["clid"] = isset($onlineClient["clid"]) ? (int) $onlineClient["clid"] : null;
+    
+    // Get live timestamps from online client (same as viewer hover data)
+    if (isset($onlineClient["client_created"]) && is_numeric($onlineClient["client_created"])) {
+        $profileData["created_ts"] = (int) $onlineClient["client_created"];
+    }
+    if (isset($onlineClient["client_lastconnected"]) && is_numeric($onlineClient["client_lastconnected"])) {
+        $profileData["lastconnected_ts"] = (int) $onlineClient["client_lastconnected"];
+    }
+    if (isset($onlineClient["client_totalconnections"]) && is_numeric($onlineClient["client_totalconnections"])) {
+        $profileData["totalconnections"] = (int) $onlineClient["client_totalconnections"];
+    }
 
     // Try to get more live info to compute "online since" timestamp
     try {
@@ -138,8 +149,15 @@ if ($onlineClient) {
                 $parts[] = $seconds . " second" . ($seconds !== 1 ? "s" : "");
                 $profileData["online_since_text"] = implode(" ", $parts);
             }
-            if (isset($live["client_totalconnections"])) {
+            // Get detailed client info including totalconnections, created, lastconnected
+            if (isset($live["client_totalconnections"]) && is_numeric($live["client_totalconnections"])) {
                 $profileData["totalconnections"] = (int) $live["client_totalconnections"]; // live value preferred when online
+            }
+            if (isset($live["client_created"]) && is_numeric($live["client_created"])) {
+                $profileData["created_ts"] = (int) $live["client_created"]; // override with live data
+            }
+            if (isset($live["client_lastconnected"]) && is_numeric($live["client_lastconnected"])) {
+                $profileData["lastconnected_ts"] = (int) $live["client_lastconnected"]; // override with live data
             }
             // Bandwidth last minute totals (bytes) -> compute per-second and human readable
             if (isset($live["connection_bandwidth_sent_last_minute_total"])) {
@@ -175,6 +193,8 @@ if ($isOnline) {
             "version" => $profileData["version"] ?? null,
             "platform" => $profileData["platform"] ?? null,
             "totalconnections" => $profileData["totalconnections"] ?? null,
+            "created_ts" => $profileData["created_ts"] ?? null,
+            "lastconnected_ts" => $profileData["lastconnected_ts"] ?? null,
             "bw_up_h" => $profileData["bw_up_h"] ?? null,
             "bw_down_h" => $profileData["bw_down_h"] ?? null,
             "nickname" => $profileData["nickname"] ?? null,
@@ -220,23 +240,29 @@ if (!$isOnline) {
     }
 }
 
+// Fetch DB-stored fields FIRST before we update database
+$dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
+
 // Persist to DB (upsert) - do not overwrite existing values with NULLs
-try {
-    if ($db->has("profiles", ["cldbid" => $cldbid])) {
-        $updateData = array_filter($profileData, function ($v) { return $v !== null; });
-        if (!empty($updateData)) {
-            $db->update("profiles", $updateData, ["cldbid" => $cldbid]);
+// This updates the database with the latest data every time a profile is viewed
+// ensuring that data like totalconnections, created_ts, lastconnected_ts persist when user goes offline
+// Only save if we have new data (user is online or we got fresh TS data)
+if ($isOnline || $tsInfo) {
+    try {
+        if ($dbProfile) {
+            $updateData = array_filter($profileData, function ($v) { return $v !== null; });
+            if (!empty($updateData)) {
+                $db->update("profiles", $updateData, ["cldbid" => $cldbid]);
+            }
+        } else {
+            $db->insert("profiles", $profileData);
         }
-    } else {
-        $db->insert("profiles", $profileData);
+    } catch (\Exception $e) {
+        // Non-fatal for rendering
     }
-} catch (\Exception $e) {
-    // Non-fatal for rendering
 }
 
 // Prepare data for template
-// Fetch DB-stored fields (e.g., avatar)
-$dbProfile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
 
 // Resolve server group details
 $groupsDetailed = [];
@@ -320,8 +346,8 @@ if ((empty($profileData["servergroups"]) || $profileData["servergroups"] === nul
 // Preserve timestamps and total connections always (even when offline)
 $preserveNumericKeys = ["created_ts", "lastconnected_ts", "totalconnections"];
 foreach ($preserveNumericKeys as $k) {
-    if (!isset($profileData[$k]) || $profileData[$k] === null) {
-        if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null) {
+    if (!isset($profileData[$k]) || $profileData[$k] === null || $profileData[$k] === '') {
+        if ($dbProfile && isset($dbProfile[$k]) && $dbProfile[$k] !== null && $dbProfile[$k] !== '') {
             $profileData[$k] = is_numeric($dbProfile[$k]) ? (int) $dbProfile[$k] : $dbProfile[$k];
         }
     }
@@ -342,14 +368,14 @@ if (!$isOnline) {
         $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
         $last = $lastSeenCache->retrieve("u_" . (int) $cldbid);
         if (is_array($last)) {
-            foreach (["country", "version", "platform", "bw_up_h", "bw_down_h", "nickname"] as $k) {
+            foreach (["country", "version", "platform", "bw_up_h", "bw_down_h", "nickname", "totalconnections", "created_ts", "lastconnected_ts"] as $k) {
                 if (!isset($profileData[$k]) || $profileData[$k] === null || $profileData[$k] === '') {
                     if (isset($last[$k]) && $last[$k] !== null && $last[$k] !== '') {
                         $profileData[$k] = $last[$k];
                     }
                 }
             }
-            // Use cached timestamp as lastconnected_ts fallback if missing
+            // Use cached timestamp as lastconnected_ts fallback if missing (legacy support)
             if ((!isset($profileData["lastconnected_ts"]) || $profileData["lastconnected_ts"] === null) && isset($last['ts']) && is_numeric($last['ts'])) {
                 $profileData["lastconnected_ts"] = (int) $last['ts'];
             }
@@ -463,11 +489,16 @@ if (!$isOnline) {
 }
 
 // Compute human-readable first connected and last online date strings for Overview
+// Use the same format as viewer hover: DD/MM/YYYY HH:MM:SS
 if (isset($profileData["created_ts"]) && is_numeric($profileData["created_ts"])) {
-    $renderData["profile"]["first_connected_human"] = date('jS F, Y', (int) $profileData["created_ts"]);
+    $renderData["profile"]["first_connected_human"] = date('d/m/Y H:i:s', (int) $profileData["created_ts"]);
 }
-if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
-    $renderData["profile"]["last_online_human"] = date('jS F, Y, g:ia', (int) $profileData["lastconnected_ts"]);
+
+// Last online: show "Now" when online, or date/time when offline
+if ($isOnline) {
+    $renderData["profile"]["last_online_human"] = "Now";
+} else if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
+    $renderData["profile"]["last_online_human"] = date('d/m/Y H:i:s', (int) $profileData["lastconnected_ts"]);
 }
 
 TemplateUtils::i()->renderTemplate("profile", $renderData);
