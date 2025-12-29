@@ -186,6 +186,8 @@ if ($isOnline) {
             "version" => $profileData["version"] ?? null,
             "platform" => $profileData["platform"] ?? null,
             "totalconnections" => $profileData["totalconnections"] ?? null,
+            "created_ts" => $profileData["created_ts"] ?? null,
+            "lastconnected_ts" => $profileData["lastconnected_ts"] ?? null,
             "bw_up_h" => $profileData["bw_up_h"] ?? null,
             "bw_down_h" => $profileData["bw_down_h"] ?? null,
             "nickname" => $profileData["nickname"] ?? null,
@@ -232,6 +234,8 @@ if (!$isOnline) {
 }
 
 // Persist to DB (upsert) - do not overwrite existing values with NULLs
+// This updates the database with the latest data every time a profile is viewed
+// ensuring that data like totalconnections, created_ts, lastconnected_ts persist when user goes offline
 try {
     if ($db->has("profiles", ["cldbid" => $cldbid])) {
         $updateData = array_filter($profileData, function ($v) { return $v !== null; });
@@ -353,14 +357,14 @@ if (!$isOnline) {
         $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
         $last = $lastSeenCache->retrieve("u_" . (int) $cldbid);
         if (is_array($last)) {
-            foreach (["country", "version", "platform", "bw_up_h", "bw_down_h", "nickname", "totalconnections"] as $k) {
+            foreach (["country", "version", "platform", "bw_up_h", "bw_down_h", "nickname", "totalconnections", "created_ts", "lastconnected_ts"] as $k) {
                 if (!isset($profileData[$k]) || $profileData[$k] === null || $profileData[$k] === '') {
                     if (isset($last[$k]) && $last[$k] !== null && $last[$k] !== '') {
                         $profileData[$k] = $last[$k];
                     }
                 }
             }
-            // Use cached timestamp as lastconnected_ts fallback if missing
+            // Use cached timestamp as lastconnected_ts fallback if missing (legacy support)
             if ((!isset($profileData["lastconnected_ts"]) || $profileData["lastconnected_ts"] === null) && isset($last['ts']) && is_numeric($last['ts'])) {
                 $profileData["lastconnected_ts"] = (int) $last['ts'];
             }
