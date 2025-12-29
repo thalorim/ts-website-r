@@ -11,11 +11,11 @@ require_once __DIR__ . "/private/php/load.php";
 
 $db = DatabaseUtils::i()->getDb();
 
-// Get configurable member groups from database, default to [532, 556, 542, 533]
-// Display order: 532, then 556, then 542, then 533
-$memberGroups = Config::get("members_groups", [532, 556, 542, 533]);
+// Get configurable member groups from database
+// Display order: 532, 556, 543, 533, then 1005 down to 996
+$memberGroups = Config::get("members_groups", [532, 556, 543, 533, 1005, 1004, 1003, 1002, 1001, 1000, 999, 998, 997, 996]);
 if (!is_array($memberGroups) || empty($memberGroups)) {
-    $memberGroups = [532, 556, 542, 533];
+    $memberGroups = [532, 556, 543, 533, 1005, 1004, 1003, 1002, 1001, 1000, 999, 998, 997, 996];
 }
 
 // Define priority order for member groups (lower priority value = displayed first)
@@ -32,91 +32,149 @@ $getBestPriority = function($groups) use ($groupPriority) {
     return !empty($priorities) ? min($priorities) : PHP_INT_MAX;
 };
 
-// Build members from live TS server group membership (preferred), fallback to DB profiles
+// Cache member list to avoid flooding ServerQuery (cache for 5 minutes)
+$membersCache = new PhpFileCache(__CACHE_DIR, "members_list");
+$cacheKey = "members_" . md5(json_encode($memberGroups));
 $members = [];
-if (TeamSpeakUtils::i()->checkTSConnection()) {
+
+try {
+    $members = $membersCache->retrieve($cacheKey);
+} catch (\Exception $e) {
+    $members = null;
+}
+
+// If cache miss or invalid, fetch from server or database
+if (!is_array($members)) {
+    $members = [];
+    $tsConnected = false;
     try {
-        $node = TeamSpeakUtils::i()->getTSNodeServer();
-        // Dynamically fetch all configured member groups
-        $groupClients = [];
-        foreach ($memberGroups as $groupId) {
-            $groupClients[$groupId] = $node->serverGroupClientList((int)$groupId) ?: [];
-        }
+        $tsConnected = TeamSpeakUtils::i()->checkTSConnection();
+    } catch (\Exception $e) {
+        $tsConnected = false;
+    }
 
-        // Map each client to their groups
-        $map = [];
-        foreach ($groupClients as $groupId => $clients) {
-            foreach ($clients as $c) {
-                $dbid = isset($c['cldbid']) ? (int) $c['cldbid'] : (isset($c['client_database_id']) ? (int) $c['client_database_id'] : null);
-                if (!$dbid) continue;
-                if (!isset($map[$dbid])) {
-                    $map[$dbid] = ['groups' => []];
-                }
-                $map[$dbid]['groups'][] = (int)$groupId;
+    if ($tsConnected) {
+        try {
+            $node = TeamSpeakUtils::i()->getTSNodeServer();
+            // Dynamically fetch all configured member groups
+            $groupClients = [];
+            foreach ($memberGroups as $groupId) {
+                $groupClients[$groupId] = $node->serverGroupClientList((int)$groupId) ?: [];
             }
-        }
 
-        if (!empty($map)) {
-            // Prefetch profile country/nickname where available
-            $profilesById = [];
-            try {
-                $ids = array_keys($map);
-                if (!empty($ids)) {
-                    $rows = $db->select('profiles', ['cldbid', 'nickname', 'country'], ['cldbid' => $ids]);
-                    foreach ($rows as $r) {
-                        $profilesById[(int)$r['cldbid']] = [
-                            'nickname' => (string) $r['nickname'],
-                            'country' => (string) $r['country'],
-                        ];
+            // Map each client to their groups
+            $map = [];
+            foreach ($groupClients as $groupId => $clients) {
+                foreach ($clients as $c) {
+                    $dbid = isset($c['cldbid']) ? (int) $c['cldbid'] : (isset($c['client_database_id']) ? (int) $c['client_database_id'] : null);
+                    if (!$dbid) continue;
+                    if (!isset($map[$dbid])) {
+                        $map[$dbid] = ['groups' => []];
                     }
+                    $map[$dbid]['groups'][] = (int)$groupId;
                 }
-            } catch (\Exception $e) { /* ignore */ }
+            }
 
-            foreach ($map as $dbid => $data) {
-                $groups = $data['groups'];
-                if (empty($groups)) continue;
-                // Category: best priority from user's groups (for sorting)
-                $cat = $getBestPriority($groups);
-                $nick = null;
-                $country = null;
-                $isOnline = false;
-                
-                // Try to get data from online client (highest priority)
-                $online = CacheManager::i()->getClient($dbid);
-                if ($online) {
-                    $isOnline = true;
-                    if (isset($online['client_nickname'])) { $nick = (string) $online['client_nickname']; }
-                    if (!empty($online['client_country'])) { $country = (string) $online['client_country']; }
+            if (!empty($map)) {
+                // Prefetch profile country/nickname where available
+                $profilesById = [];
+                try {
+                    $ids = array_keys($map);
+                    if (!empty($ids)) {
+                        $rows = $db->select('profiles', ['cldbid', 'nickname', 'country'], ['cldbid' => $ids]);
+                        foreach ($rows as $r) {
+                            $profilesById[(int)$r['cldbid']] = [
+                                'nickname' => (string) $r['nickname'],
+                                'country' => (string) $r['country'],
+                            ];
+                        }
+                    }
+                } catch (\Exception $e) { /* ignore */ }
+
+                foreach ($map as $dbid => $data) {
+                    $groups = $data['groups'];
+                    if (empty($groups)) continue;
+                    // Category: best priority from user's groups (for sorting)
+                    $cat = $getBestPriority($groups);
+                    $nick = null;
+                    $country = null;
+                    $isOnline = false;
                     
-                    // Cache online data for offline use (similar to viewer/profile behavior)
-                    if ($nick || $country) {
+                    // Try to get data from online client (highest priority)
+                    $online = CacheManager::i()->getClient($dbid);
+                    if ($online) {
+                        $isOnline = true;
+                        if (isset($online['client_nickname'])) { $nick = (string) $online['client_nickname']; }
+                        if (!empty($online['client_country'])) { $country = (string) $online['client_country']; }
+                        
+                        // Cache online data for offline use (similar to viewer/profile behavior)
+                        if ($nick || $country) {
+                            try {
+                                $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
+                                $cacheData = $lastSeenCache->retrieve("u_" . (int) $dbid);
+                                if (!is_array($cacheData)) {
+                                    $cacheData = [];
+                                }
+                                if ($nick) { $cacheData['nickname'] = $nick; }
+                                if ($country) { $cacheData['country'] = $country; }
+                                $cacheData['ts'] = time();
+                                $lastSeenCache->store("u_" . (int) $dbid, $cacheData, 31536000); // 365 days
+                            } catch (\Exception $e) { /* ignore cache errors */ }
+                        }
+                    }
+                    
+                    // Fallback to profile DB data if still missing
+                    if (!$nick || !$country) {
+                        if (isset($profilesById[$dbid])) {
+                            if (!$nick && !empty($profilesById[$dbid]['nickname'])) { $nick = $profilesById[$dbid]['nickname']; }
+                            if (!$country && !empty($profilesById[$dbid]['country'])) { $country = $profilesById[$dbid]['country']; }
+                        }
+                    }
+                    
+                    // Final fallback: use cached "last seen" data from when user was online
+                    if (!$nick || !$country) {
                         try {
                             $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
-                            $cacheData = $lastSeenCache->retrieve("u_" . (int) $dbid);
-                            if (!is_array($cacheData)) {
-                                $cacheData = [];
+                            $cached = $lastSeenCache->retrieve("u_" . (int) $dbid);
+                            if (is_array($cached)) {
+                                if (!$nick && !empty($cached['nickname'])) { $nick = (string) $cached['nickname']; }
+                                if (!$country && !empty($cached['country'])) { $country = (string) $cached['country']; }
                             }
-                            if ($nick) { $cacheData['nickname'] = $nick; }
-                            if ($country) { $cacheData['country'] = $country; }
-                            $cacheData['ts'] = time();
-                            $lastSeenCache->store("u_" . (int) $dbid, $cacheData, 31536000); // 365 days
-                        } catch (\Exception $e) { /* ignore cache errors */ }
+                        } catch (\Exception $e) { /* ignore */ }
                     }
+                    
+                    $members[] = [
+                        'cldbid' => (int) $dbid,
+                        'nickname' => $nick ?: ('User #' . $dbid),
+                        'country' => $country ?: null,
+                        'cat' => $cat,
+                    ];
                 }
+            }
+        } catch (\Exception $e) { /* ignore */ }
+    }
+
+    // Fallback to profiles table if TS server not reachable
+    if (empty($members)) {
+        try {
+            $rows = $db->select("profiles", ["cldbid", "nickname", "country", "servergroups"], ["ORDER" => ["cldbid" => "ASC"]]);
+            foreach ($rows as $r) {
+                $sg = isset($r["servergroups"]) ? (string) $r["servergroups"] : "";
+                $ids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(",", $sg)), function ($v) { return $v > 0; }));
+                if (empty($ids)) continue;
+                // Check if user has any of the configured member groups
+                $matchingGroups = array_intersect($ids, $memberGroups);
+                if (empty($matchingGroups)) continue;
+                $cat = $getBestPriority(array_values($matchingGroups));
+                $dbid = (int) $r["cldbid"];
+                $nick = isset($r["nickname"]) && $r["nickname"] !== '' ? (string) $r["nickname"] : null;
+                $country = isset($r['country']) && $r['country'] !== '' ? (string) $r['country'] : null;
                 
-                // Fallback to profile DB data if still missing
-                if (!$nick || !$country) {
-                    if (isset($profilesById[$dbid])) {
-                        if (!$nick && !empty($profilesById[$dbid]['nickname'])) { $nick = $profilesById[$dbid]['nickname']; }
-                        if (!$country && !empty($profilesById[$dbid]['country'])) { $country = $profilesById[$dbid]['country']; }
-                    }
-                }
-                
-                // Final fallback: use cached "last seen" data from when user was online
+                // Try to use cached "last seen" data as fallback (from when user was online)
                 if (!$nick || !$country) {
                     try {
-                        $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
-                        $cached = $lastSeenCache->retrieve("u_" . (int) $dbid);
+                        $lastSeenCache = new \Wruczek\PhpFileCache\PhpFileCache(__CACHE_DIR, "profile_last_seen");
+                        $cached = $lastSeenCache->retrieve("u_" . $dbid);
                         if (is_array($cached)) {
                             if (!$nick && !empty($cached['nickname'])) { $nick = (string) $cached['nickname']; }
                             if (!$country && !empty($cached['country'])) { $country = (string) $cached['country']; }
@@ -125,55 +183,22 @@ if (TeamSpeakUtils::i()->checkTSConnection()) {
                 }
                 
                 $members[] = [
-                    'cldbid' => (int) $dbid,
-                    'nickname' => $nick ?: ('User #' . $dbid),
-                    'country' => $country ?: null,
-                    'cat' => $cat,
+                    "cldbid" => $dbid,
+                    "nickname" => $nick ?: ("User #" . $dbid),
+                    "country" => $country ?: null,
+                    "cat" => $cat
                 ];
             }
-        }
-    } catch (\Exception $e) { /* ignore */ }
-}
-
-// Fallback to profiles table if TS server not reachable
-if (empty($members)) {
+        } catch (\Exception $e) { /* ignore */ }
+    }
+    
+    // Store in cache for 5 minutes (300 seconds)
     try {
-        $rows = $db->select("profiles", ["cldbid", "nickname", "country", "servergroups"], ["ORDER" => ["cldbid" => "ASC"]]);
-        foreach ($rows as $r) {
-            $sg = isset($r["servergroups"]) ? (string) $r["servergroups"] : "";
-            $ids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(",", $sg)), function ($v) { return $v > 0; }));
-            if (empty($ids)) continue;
-            // Check if user has any of the configured member groups
-            $matchingGroups = array_intersect($ids, $memberGroups);
-            if (empty($matchingGroups)) continue;
-            $cat = $getBestPriority(array_values($matchingGroups));
-            $dbid = (int) $r["cldbid"];
-            $nick = isset($r["nickname"]) && $r["nickname"] !== '' ? (string) $r["nickname"] : null;
-            $country = isset($r['country']) && $r['country'] !== '' ? (string) $r['country'] : null;
-            
-            // Try to use cached "last seen" data as fallback (from when user was online)
-            if (!$nick || !$country) {
-                try {
-                    $lastSeenCache = new \Wruczek\PhpFileCache\PhpFileCache(__CACHE_DIR, "profile_last_seen");
-                    $cached = $lastSeenCache->retrieve("u_" . $dbid);
-                    if (is_array($cached)) {
-                        if (!$nick && !empty($cached['nickname'])) { $nick = (string) $cached['nickname']; }
-                        if (!$country && !empty($cached['country'])) { $country = (string) $cached['country']; }
-                    }
-                } catch (\Exception $e) { /* ignore */ }
-            }
-            
-            $members[] = [
-                "cldbid" => $dbid,
-                "nickname" => $nick ?: ("User #" . $dbid),
-                "country" => $country ?: null,
-                "cat" => $cat
-            ];
-        }
-    } catch (\Exception $e) { /* ignore */ }
+        $membersCache->store($cacheKey, $members, 300);
+    } catch (\Exception $e) { /* ignore cache errors */ }
 }
 
-// Sort: by category (priority order: 532, 556, 542, 533), then by cldbid ascending
+// Sort: by category (priority order: 532, 556, 543, 533, 1005-996), then by cldbid ascending
 $members && usort($members, function ($a, $b) {
     if ($a["cat"] === $b["cat"]) {
         return $a["cldbid"] <=> $b["cldbid"];
@@ -181,61 +206,55 @@ $members && usort($members, function ($a, $b) {
     return $a["cat"] <=> $b["cat"];
 });
 
-// Calculate top 5 countries for pie chart
-$countryStats = [];
-foreach ($members as $m) {
-    if (!empty($m['country'])) {
-        $country = strtoupper((string) $m['country']);
-        if (!isset($countryStats[$country])) {
-            $countryStats[$country] = 0;
-        }
-        $countryStats[$country]++;
-    }
-}
-arsort($countryStats);
-$topCountries = array_slice($countryStats, 0, 5, true);
-
-// Pagination
-$page = isset($_GET["page"]) ? max(1, (int) $_GET["page"]) : 1;
-$perPage = 10;
-$start = ($page - 1) * $perPage;
-$pageItems = array_slice($members, $start, $perPage);
-$hasMore = count($members) > ($start + $perPage);
-$nextPageUrl = $hasMore ? ("members.php?page=" . ($page + 1)) : null;
-
-// Get configurable rank badge range from database, default to 9-18
+// Get configurable rank badge range from database, default to 996-1005
 $rankBadgeRange = Config::get("rank_badge_range", ["min" => 996, "max" => 1005]);
 $rankMin = isset($rankBadgeRange['min']) ? (int)$rankBadgeRange['min'] : 996;
 $rankMax = isset($rankBadgeRange['max']) ? (int)$rankBadgeRange['max'] : 1005;
 
-// Enrich page items with rank icon (configurable group id range)
+// Enrich all members with rank icon and server groups (configurable group id range)
 try {
     $serverGroups = CacheManager::i()->getServerGroupList();
 } catch (\Exception $e) { $serverGroups = null; }
 
-if (!empty($pageItems) && $serverGroups) {
-    $idsOnPage = array_map(function ($m) { return (int) $m['cldbid']; }, $pageItems);
+if (!empty($members) && $serverGroups) {
+    $allIds = array_map(function ($m) { return (int) $m['cldbid']; }, $members);
+    
+    // Get server groups from database profiles (already contains the data)
     $profileSgById = [];
     try {
-        $rows = $db->select('profiles', ['cldbid', 'servergroups'], ['cldbid' => $idsOnPage]);
+        $rows = $db->select('profiles', ['cldbid', 'servergroups'], ['cldbid' => $allIds]);
         foreach ($rows as $r) { $profileSgById[(int)$r['cldbid']] = (string) $r['servergroups']; }
     } catch (\Exception $e) { /* ignore */ }
 
-    $tsOk = TeamSpeakUtils::i()->checkTSConnection();
-    $node = $tsOk ? TeamSpeakUtils::i()->getTSNodeServer() : null;
+    // Cache for individual server group lookups (cache for 5 minutes)
+    $sgCache = new PhpFileCache(__CACHE_DIR, "member_servergroups");
 
-    foreach ($pageItems as &$m) {
+    foreach ($members as &$m) {
         $dbid = (int) $m['cldbid'];
         $sgids = [];
-        if ($tsOk) {
-            try {
-                $byDb = $node->clientGetServerGroupsByDbid($dbid);
-                if (is_array($byDb)) { $sgids = array_keys($byDb); }
-            } catch (\Exception $e) { /* fallback below */ }
-        }
+        
+        // Try to get from cache first
+        try {
+            $cached = $sgCache->retrieve("sg_" . $dbid);
+            if (is_array($cached)) {
+                $sgids = $cached;
+            }
+        } catch (\Exception $e) { /* cache miss, will fetch below */ }
+        
+        // If not in cache, get from database profile
         if (empty($sgids) && isset($profileSgById[$dbid]) && $profileSgById[$dbid] !== '') {
             $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $profileSgById[$dbid])), function ($v) { return $v > 0; }));
+            
+            // Store in cache for 5 minutes
+            try {
+                $sgCache->store("sg_" . $dbid, $sgids, 300);
+            } catch (\Exception $e) { /* ignore */ }
         }
+        
+        // Store all server groups for display
+        $m['servergroups'] = $sgids;
+        
+        // Find rank icon from groups in range 996-1005
         if (!empty($sgids)) {
             $rankGroups = array_values(array_filter($sgids, function ($g) use ($rankMin, $rankMax) { 
                 return $g >= $rankMin && $g <= $rankMax; 
@@ -244,6 +263,7 @@ if (!empty($pageItems) && $serverGroups) {
                 $chosen = max($rankGroups);
                 if (isset($serverGroups[$chosen]) && !empty($serverGroups[$chosen]['iconid'])) {
                     $m['rank_iconid'] = (int) $serverGroups[$chosen]['iconid'];
+                    $m['rank_group_name'] = isset($serverGroups[$chosen]['name']) ? (string) $serverGroups[$chosen]['name'] : null;
                 }
             }
         }
@@ -251,24 +271,9 @@ if (!empty($pageItems) && $serverGroups) {
     unset($m);
 }
 
-// Prepare chart data as JSON (ensure valid JSON even if empty)
-$chartLabelsJson = '[]';
-$chartValuesJson = '[]';
-if (!empty($topCountries)) {
-    $chartLabels = array_keys($topCountries);
-    $chartValues = array_values($topCountries);
-    $chartLabelsJson = json_encode($chartLabels);
-    $chartValuesJson = json_encode($chartValues);
-}
-
 TemplateUtils::i()->renderTemplate("members", [
     "title" => "Members list",
     "navActiveIndex" => 6,
-    "members" => $pageItems,
-    "hasMore" => $hasMore,
-    "nextPageUrl" => $nextPageUrl,
-    "page" => $page,
-    "topCountries" => $topCountries,
-    "chartLabelsJson" => $chartLabelsJson,
-    "chartValuesJson" => $chartValuesJson,
+    "members" => $members,
+    "serverGroups" => $serverGroups
 ]);
