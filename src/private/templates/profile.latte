@@ -13,19 +13,21 @@
                     {/if}
                 </div>
                 <div class="meta ml-3">
-                    <h3 class="nickname mb-1 d-flex align-items-center">
+                    <h3 class="nickname mb-1 d-flex align-items-center{if $nicknameStyle} nickname-{$nicknameStyle}{/if}">
                         <span>{$profile["nickname"] ?? ("User #" . $profile["cldbid"]) }</span>
                         {ifset $groups}
                             {foreach $groups as $g}
-                                {if $g['sgid'] === 6}
-                                    <img src="https://cdn3.emoji.gg/emojis/28948-staff.png" alt="Group 6" class="ml-2" style="height:24px;width:24px;object-fit:contain;vertical-align:middle;" data-toggle="tooltip" title="Group 6">
-                                    {breakIf true}
+                                {if $g['sgid'] === 532 && $g['iconid']}
+                                    <img src="api/geticon.php?iconid={$g['iconid']}" alt="{$g['name']}" class="ml-2" style="height:16px;width:16px;object-fit:contain;vertical-align:middle;" data-toggle="tooltip" title="{$g['name']}">
+                                {/if}
+                                {if $g['sgid'] === 556 && $g['iconid']}
+                                    <img src="api/geticon.php?iconid={$g['iconid']}" alt="{$g['name']}" class="ml-2" style="height:16px;width:16px;object-fit:contain;vertical-align:middle;" data-toggle="tooltip" title="{$g['name']}">
                                 {/if}
                             {/foreach}
                         {/ifset}
                     </h3>
                     <div class="subtext">
-                        <span><i class="fas fa-id-badge"></i> CLDBID: {$profile["cldbid"]}</span>
+                        <span>#{$profile["cldbid"]}</span>
                         {ifset $profile["cluid"]}
                             <span class="ml-2"><i class="fas fa-fingerprint"></i> {$profile["cluid"]}</span>
                         {/ifset}
