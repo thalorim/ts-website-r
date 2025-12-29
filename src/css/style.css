@@ -468,3 +468,104 @@ table.dataTable > tbody > tr.child td.child {
     70% { box-shadow: 0 0 0 8px rgba(0,0,0,0); }
     100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
 }
+
+/* Nickname Display Styles */
+
+/* Style 1: Gold Gradient */
+.client-name.nickname-style-1 {
+    background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}
+
+/* Style 2: Purple Gradient */
+.client-name.nickname-style-2 {
+    background: linear-gradient(90deg, #9B30FF, #DA70D6, #9B30FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}
+
+/* Style 3: Blue Gradient */
+.client-name.nickname-style-3 {
+    background: linear-gradient(90deg, #1E90FF, #00BFFF, #1E90FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}
+
+/* Style 4: Red Gradient */
+.client-name.nickname-style-4 {
+    background: linear-gradient(90deg, #FF4500, #FF6347, #FF4500);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}
+
+/* Style 5: Pink Gradient */
+.client-name.nickname-style-5 {
+    background: linear-gradient(90deg, #FF1493, #FF69B4, #FF1493);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}
+
+/* Style 6: Cyan Gradient */
+.client-name.nickname-style-6 {
+    background: linear-gradient(90deg, #00CED1, #48D1CC, #00CED1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}
+
+/* Style 7: Animated Gif Background */
+.client-name.nickname-style-7 {
+    background: url(https://media.giphy.com/media/3otO6NFBIAFg2vPZuM/giphy.gif);
+    color: #fff;
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    font-weight: 800 !important;
+    background-size: cover;
+}
+
+/* Style 8: Cyan with Animated Gif Background and Shadow */
+.client-name.nickname-style-8 {
+    color: #70d7ea;
+    background: url(https://i.ibb.co/HgjQ6sM/udGakie.gif);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0px 4px 5px #000;
+    background-size: cover;
+    font-weight: bold;
+}
+
+/* Style 9: Greeny Animated Gradient with Neon Glow */
+.client-name.nickname-style-9 {
+    position: relative;
+    font-weight: bold;
+    text-shadow: 0 0 2px #ffffff, 0 0 2px #ffffff, 0 0 7px #F00, 0 0 7px #F00, 0 0 8px #F00, 0 0 9px #F00, 0 0 10px #F00;
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    background-image: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(110, 255, 73, 1) 35%, rgba(56, 255, 0, 1) 100%);
+    background-size: 200% auto;
+    animation: style9anim 3s linear infinite;
+}
+
+@keyframes style9anim {
+    0% {
+        background-position: 0% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
