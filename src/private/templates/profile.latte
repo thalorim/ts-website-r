@@ -84,9 +84,15 @@
                     <p><strong>Version:</strong> {$profile["version"] ?? '-'}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Total connections:</strong> {ifset $profile["totalconnections"]}{$profile["totalconnections"]}{else}-{/ifset}</p>
+                    <p><strong>Total connections:</strong> {$profile["totalconnections"] ?? '-'}</p>
                     <p><strong>First connected:</strong> {$profile["first_connected_human"] ?? '-'}</p>
-                    <p><strong>Last online:</strong> {$profile["last_online_human"] ?? '-'}</p>
+                    <p><strong>Last online:</strong>
+                        {if $isOnline}
+                            <span class="status-dot green"></span> Now
+                        {else}
+                            {$profile["last_online_human"] ?? '-'}
+                        {/if}
+                    </p>
                 </div>
             </div>
             <hr>

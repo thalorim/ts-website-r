@@ -342,7 +342,7 @@ if (!$isOnline) {
         $lastSeenCache = new PhpFileCache(__CACHE_DIR, "profile_last_seen");
         $last = $lastSeenCache->retrieve("u_" . (int) $cldbid);
         if (is_array($last)) {
-            foreach (["country", "version", "platform", "bw_up_h", "bw_down_h", "nickname"] as $k) {
+            foreach (["country", "version", "platform", "bw_up_h", "bw_down_h", "nickname", "totalconnections"] as $k) {
                 if (!isset($profileData[$k]) || $profileData[$k] === null || $profileData[$k] === '') {
                     if (isset($last[$k]) && $last[$k] !== null && $last[$k] !== '') {
                         $profileData[$k] = $last[$k];
@@ -466,7 +466,11 @@ if (!$isOnline) {
 if (isset($profileData["created_ts"]) && is_numeric($profileData["created_ts"])) {
     $renderData["profile"]["first_connected_human"] = date('jS F, Y', (int) $profileData["created_ts"]);
 }
-if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
+
+// Last online: show "Now" when online, or date/time when offline
+if ($isOnline) {
+    $renderData["profile"]["last_online_human"] = "Now";
+} else if (isset($profileData["lastconnected_ts"]) && is_numeric($profileData["lastconnected_ts"])) {
     $renderData["profile"]["last_online_human"] = date('jS F, Y, g:ia', (int) $profileData["lastconnected_ts"]);
 }
 
