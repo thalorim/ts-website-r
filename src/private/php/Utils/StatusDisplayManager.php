@@ -181,8 +181,8 @@ class StatusDisplayManager {
         
         $description = "[center]";
         
-        // Add avatar image
-        $description .= "[img]" . htmlspecialchars($avatarUrl) . "[/img]\n\n";
+        // Add avatar image (resized to 250x250)
+        $description .= "[img=250x250]" . htmlspecialchars($avatarUrl) . "[/img]\n\n";
         
         // Add username
         $description .= "[size=14][b]" . htmlspecialchars($nickname) . "[/b][/size]\n\n";
@@ -265,20 +265,33 @@ class StatusDisplayManager {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         
-        // Remove trailing slash
-        $baseUrl = rtrim($protocol . '://' . $host, '/');
+        // Get the document root and current script path
+        $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+        $scriptFilename = $_SERVER['SCRIPT_FILENAME'] ?? '';
         
-        // Check if we're in a subdirectory
-        if (defined('__BASE_DIR')) {
-            $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-            $basePath = str_replace('/index.php', '', $scriptName);
-            $basePath = str_replace('/private/php/load.php', '', $basePath);
-            if (!empty($basePath) && $basePath !== '/') {
-                $baseUrl .= $basePath;
+        // Calculate base path
+        $basePath = '';
+        if (!empty($documentRoot) && !empty($scriptFilename)) {
+            // Get the relative path from document root
+            $relativePath = str_replace($documentRoot, '', dirname($scriptFilename));
+            
+            // Find the 'src' directory and go one level up
+            if (strpos($relativePath, '/src') !== false) {
+                $parts = explode('/src', $relativePath);
+                $basePath = $parts[0];
+            } elseif (strpos($relativePath, '/private/php') !== false) {
+                $parts = explode('/private/php', $relativePath);
+                $basePath = $parts[0];
+            } elseif (strpos($relativePath, '/admin') !== false) {
+                $parts = explode('/admin', $relativePath);
+                $basePath = $parts[0];
             }
         }
         
-        return $baseUrl;
+        // Construct full URL
+        $baseUrl = $protocol . '://' . $host . $basePath;
+        
+        return rtrim($baseUrl, '/');
     }
 
     /**
