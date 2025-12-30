@@ -255,30 +255,33 @@ class StatusDisplayManager {
             }
         }
         
-        // Social media links
+        // Social media links with image icons
         if ($profile && !empty($profile["socials_json"])) {
             $socials = json_decode($profile["socials_json"], true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($socials) && !empty($socials)) {
                 $description .= "[size=10][b]Social Media:[/b][/size]\n";
                 
+                // Map platform to image filename
                 $socialIcons = [
-                    'instagram' => '📷',
-                    'facebook' => '👤',
-                    'youtube' => '▶️',
-                    'twitter' => '🐦',
-                    'steam' => '🎮',
-                    'soundcloud' => '🎵',
-                    'github' => '💻',
-                    'telegram' => '✈️',
-                    'twitch' => '📺',
-                    'discord' => '💬',
+                    'instagram' => 'ts3-instagram.png',
+                    'facebook' => 'ts3-facebook.png',
+                    'youtube' => 'ts3-youtube.png',
+                    'twitter' => 'ts3-twitter.png',
+                    'steam' => 'ts3-steam.png',
+                    'soundcloud' => 'ts3-soundcloud.png',
+                    'github' => 'ts3-github.png',
+                    'telegram' => 'ts3-telegram.png',
+                    'twitch' => 'ts3-twitch.png',
+                    'discord' => 'ts3-discord.png',
                 ];
                 
                 foreach ($socials as $platform => $url) {
-                    if (!empty($url)) {
-                        $icon = $socialIcons[$platform] ?? '🔗';
-                        $platformName = ucfirst($platform);
-                        $description .= "[url={$url}]{$icon} {$platformName}[/url] ";
+                    if (!empty($url) && isset($socialIcons[$platform])) {
+                        $iconFilename = $socialIcons[$platform];
+                        $iconUrl = $baseUrl . '/img/icons/' . $iconFilename;
+                        
+                        // Make image clickable by wrapping in URL tag
+                        $description .= "[url={$url}][img]{$iconUrl}[/img][/url] ";
                     }
                 }
                 $description .= "\n\n";

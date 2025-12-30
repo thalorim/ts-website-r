@@ -1,0 +1,141 @@
+================================================================================
+  SOCIAL MEDIA ICONS - UPLOAD INSTRUCTIONS
+================================================================================
+
+Upload the 10 icon files to this directory on your server:
+
+  /var/www/web.reape.rs/img/icons/
+
+================================================================================
+REQUIRED FILES (10 total):
+================================================================================
+
+1.  ts3-instagram.png
+2.  ts3-facebook.png
+3.  ts3-youtube.png
+4.  ts3-twitter.png
+5.  ts3-steam.png
+6.  ts3-soundcloud.png
+7.  ts3-github.png
+8.  ts3-telegram.png
+9.  ts3-twitch.png
+10. ts3-discord.png
+
+================================================================================
+UPLOAD METHODS:
+================================================================================
+
+METHOD 1: Using SCP (Secure Copy)
+----------------------------------
+From your local computer:
+
+scp ts3-*.png user@web.reape.rs:/var/www/web.reape.rs/img/icons/
+
+METHOD 2: Using FTP/SFTP
+------------------------
+1. Connect to: web.reape.rs
+2. Navigate to: /var/www/web.reape.rs/img/icons/
+3. Upload all ts3-*.png files
+
+METHOD 3: Direct Upload (if you have shell access)
+--------------------------------------------------
+If files are already on the server:
+
+mv /path/to/ts3-*.png /var/www/web.reape.rs/img/icons/
+chmod 644 /var/www/web.reape.rs/img/icons/ts3-*.png
+chown www-data:www-data /var/www/web.reape.rs/img/icons/ts3-*.png
+
+METHOD 4: Using rsync
+---------------------
+rsync -avz ts3-*.png user@web.reape.rs:/var/www/web.reape.rs/img/icons/
+
+================================================================================
+AFTER UPLOAD:
+================================================================================
+
+1. Set Proper Permissions:
+   
+   chmod 644 /var/www/web.reape.rs/img/icons/ts3-*.png
+   chown www-data:www-data /var/www/web.reape.rs/img/icons/ts3-*.png
+
+2. Verify Files Exist:
+   
+   ls -la /var/www/web.reape.rs/img/icons/ts3-*.png
+
+   You should see all 10 files listed.
+
+3. Test in Browser:
+   
+   http://web.reape.rs/img/icons/ts3-instagram.png
+   
+   Should display the Instagram icon.
+
+4. Check via Admin Panel:
+   
+   http://web.reape.rs/admin/check-social-icons.php
+   
+   This page shows which icons are present and previews them.
+
+5. Run the Bot:
+   
+   cd /var/www/web.reape.rs
+   php src/private/php/status-display-bot.php --once
+
+6. Check TeamSpeak:
+   
+   Open your configured channel and view the description.
+   Social media links should now appear as clickable image icons!
+
+================================================================================
+ICON SPECIFICATIONS:
+================================================================================
+
+Format:      PNG (with transparency recommended)
+Size:        32x32 or 64x64 pixels (recommended)
+File Size:   Under 50KB each
+Naming:      MUST match exactly (case-sensitive):
+             - ts3-instagram.png (not TS3-Instagram.PNG)
+             - ts3-facebook.png (not ts3_facebook.png)
+             - etc.
+
+================================================================================
+TROUBLESHOOTING:
+================================================================================
+
+Icons Not Showing in Channel?
+------------------------------
+1. Check files exist: ls -la /var/www/web.reape.rs/img/icons/ts3-*.png
+2. Check permissions: Should be 644 (readable by web server)
+3. Test URL in browser: http://web.reape.rs/img/icons/ts3-instagram.png
+4. Run admin check: http://web.reape.rs/admin/check-social-icons.php
+5. Re-run bot: php src/private/php/status-display-bot.php --once
+
+Wrong Directory?
+----------------
+If /var/www/web.reape.rs/img/icons/ doesn't exist, create it:
+
+mkdir -p /var/www/web.reape.rs/img/icons/
+chmod 755 /var/www/web.reape.rs/img/icons/
+
+================================================================================
+EXAMPLE RESULT IN TEAMSPEAK:
+================================================================================
+
+Before (with emojis):
+  Social Media:
+  📷 Instagram  🐦 Twitter  🎮 Steam
+
+After (with icon images):
+  Social Media:
+  [IG Icon] [Twitter Icon] [Steam Icon]
+  (all clickable)
+
+================================================================================
+NEED HELP?
+================================================================================
+
+- See: SOCIAL_MEDIA_ICONS.md (complete documentation)
+- Test: http://web.reape.rs/admin/check-social-icons.php
+- Logs: tail -f /var/log/ts-status-bot.log
+
+================================================================================
