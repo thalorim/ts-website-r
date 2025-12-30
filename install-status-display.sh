@@ -44,10 +44,18 @@ print_warning() {
 # Check if running from correct directory
 if [ ! -f "src/private/php/load.php" ]; then
     print_error "Error: This script must be run from the TS-website root directory"
+    print_info "Current directory: $(pwd)"
+    print_info "Looking for: src/private/php/load.php"
+    echo ""
+    print_warning "Please navigate to your TS-website root directory and try again:"
+    echo "  cd /path/to/ts-website"
+    echo "  bash install-status-display.sh"
+    echo ""
+    print_info "Or use the manual installation guide: MANUAL_INSTALL.md"
     exit 1
 fi
 
-print_success "Found TS-website installation"
+print_success "Found TS-website installation at: $(pwd)"
 echo ""
 
 # Step 1: Verify required files
