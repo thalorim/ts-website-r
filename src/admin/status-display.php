@@ -10,26 +10,17 @@ use Wruczek\TSWebsite\Config;
 require_once __DIR__ . "/../private/php/load.php";
 
 // Check if user is logged in and is admin
+// Use the same simple check as the main admin panel (CLDBID 3)
 if (!Auth::isLoggedIn()) {
     TemplateUtils::i()->renderErrorTemplate("401", "Unauthorized", "Please log in to access the admin panel.");
     exit;
 }
 
-// Simple admin check - you may want to enhance this based on your auth system
-// For now, we'll check if user has admin server group
-$adminGroups = Config::get("adminstatus_groups", []);
-$userGroups = Auth::getServerGroups();
-$isAdmin = false;
-
-foreach ($adminGroups as $adminGroup) {
-    if (in_array($adminGroup, $userGroups)) {
-        $isAdmin = true;
-        break;
-    }
-}
-
-if (!$isAdmin) {
-    TemplateUtils::i()->renderErrorTemplate("403", "Forbidden", "You don't have permission to access this page.");
+// Simple admin check - only CLDBID 3 can access (same as main admin panel)
+// You can modify this to suit your needs
+$userCldbid = Auth::getCldbid();
+if ($userCldbid !== 3) {
+    TemplateUtils::i()->renderErrorTemplate("403", "Forbidden", "You don't have permission to access this page. Only CLDBID 3 can access the admin panel.");
     exit;
 }
 
