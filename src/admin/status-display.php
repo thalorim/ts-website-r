@@ -4,6 +4,7 @@ use Wruczek\TSWebsite\Auth;
 use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Utils\StatusDisplayManager;
+use Wruczek\TSWebsite\Utils\CsrfUtils;
 use Wruczek\TSWebsite\CacheManager;
 use Wruczek\TSWebsite\Config;
 
@@ -32,6 +33,9 @@ $error = null;
 
 // Handle form submissions
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    // Validate CSRF token
+    CsrfUtils::validateRequest();
+    
     try {
         $action = $_POST["action"] ?? "";
         
@@ -203,6 +207,7 @@ try {
             </button>
             <form method="POST" style="display: inline;">
                 <input type="hidden" name="action" value="test_update">
+                <input type="hidden" name="csrf-token" value="<?= htmlspecialchars(CsrfUtils::getToken()) ?>">
                 <button type="submit" class="btn btn-info">
                     <i class="fas fa-sync"></i> Test Update All
                 </button>
@@ -257,6 +262,7 @@ try {
                                 <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this configuration?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= (int) $config['id'] ?>">
+                                    <input type="hidden" name="csrf-token" value="<?= htmlspecialchars(CsrfUtils::getToken()) ?>">
                                     <button type="submit" class="btn btn-danger btn-sm">
                                         <i class="fas fa-trash"></i> Delete
                                     </button>
@@ -295,6 +301,7 @@ try {
                 <form method="POST">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="csrf-token" value="<?= htmlspecialchars(CsrfUtils::getToken()) ?>">
                         
                         <div class="form-group">
                             <label for="cldbid">Client Database ID *</label>

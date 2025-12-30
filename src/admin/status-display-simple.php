@@ -25,6 +25,7 @@ try {
 }
 
 use Wruczek\TSWebsite\Utils\DatabaseUtils;
+use Wruczek\TSWebsite\Utils\CsrfUtils;
 use Wruczek\TSWebsite\Config;
 
 echo "<h1>Status Display Admin (Simple Version)</h1>";
@@ -57,8 +58,17 @@ try {
 
 // Handle form submissions
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    try {
-        $action = $_POST["action"] ?? "";
+    // Validate CSRF token
+    $csrfValid = false;
+    if (isset($_POST["csrf-token"])) {
+        $csrfValid = CsrfUtils::validateToken($_POST["csrf-token"]);
+    }
+    
+    if (!$csrfValid) {
+        echo "<div class='alert alert-danger'>CSRF token validation failed. Please try again.</div>";
+    } else {
+        try {
+            $action = $_POST["action"] ?? "";
         
         switch ($action) {
             case "add":
@@ -96,8 +106,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $message = "Test update completed: {$stats['updated']} updated, {$stats['failed']} failed, {$stats['skipped']} skipped (total: {$stats['total']})";
                 break;
         }
-    } catch (Exception $e) {
-        $error = $e->getMessage();
+        } catch (Exception $e) {
+            $error = $e->getMessage();
+        }
     }
 }
 
@@ -127,6 +138,7 @@ try {
     <div class="card-body">
         <form method="POST">
             <input type="hidden" name="action" value="add">
+            <input type="hidden" name="csrf-token" value="<?= htmlspecialchars(CsrfUtils::getToken()) ?>">
             
             <div class="form-group">
                 <label>Client Database ID (cldbid)</label>
@@ -156,6 +168,7 @@ try {
         <h3>Current Configurations</h3>
         <form method="POST" style="display:inline;">
             <input type="hidden" name="action" value="test_update">
+            <input type="hidden" name="csrf-token" value="<?= htmlspecialchars(CsrfUtils::getToken()) ?>">
             <button type="submit" class="btn btn-sm btn-info float-right">Test Update All</button>
         </form>
     </div>
@@ -186,6 +199,7 @@ try {
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this configuration?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= (int) $config['id'] ?>">
+                                    <input type="hidden" name="csrf-token" value="<?= htmlspecialchars(CsrfUtils::getToken()) ?>">
                                     <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                                 </form>
                             </td>
