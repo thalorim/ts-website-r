@@ -107,20 +107,50 @@ class StatusDisplayManager {
             $db = DatabaseUtils::i()->getDb();
             $profile = $db->get("profiles", "*", ["cldbid" => $cldbid]);
             
+            $nickname = "User";
+            $clid = null;
+            $uid = null;
+            
+            // Try to get live data if user is online
+            if ($isOnline) {
+                try {
+                    $onlineClients = CacheManager::i()->getClientList();
+                    foreach ($onlineClients as $client) {
+                        if (isset($client['client_database_id']) && (int)$client['client_database_id'] === $cldbid) {
+                            $nickname = (string)$client['client_nickname'];
+                            $clid = (int)$client['clid'];
+                            $uid = (string)$client['client_unique_identifier'];
+                            break;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Fallback to profile/db data
+                }
+            }
+            
+            // Fallback to profile data
             if (!$profile) {
                 // Try to fetch from TeamSpeak
                 try {
                     $tsInfo = $tsServer->clientDbInfo($cldbid);
-                    $nickname = isset($tsInfo["client_nickname"]) ? (string) $tsInfo["client_nickname"] : "User";
+                    $nickname = isset($tsInfo["client_nickname"]) ? (string) $tsInfo["client_nickname"] : $nickname;
+                    if (!$uid && isset($tsInfo["client_unique_identifier"])) {
+                        $uid = (string) $tsInfo["client_unique_identifier"];
+                    }
                 } catch (\Exception $e) {
-                    $nickname = "User";
+                    // Use default
                 }
             } else {
-                $nickname = $profile["nickname"] ?? "User";
+                if (empty($nickname) || $nickname === "User") {
+                    $nickname = $profile["nickname"] ?? "User";
+                }
+                if (!$uid && !empty($profile["cluid"])) {
+                    $uid = (string) $profile["cluid"];
+                }
             }
 
             // Build BBCode description
-            $description = $this->buildChannelDescription($cldbid, $nickname, $isOnline, $profile, $serverGroupId);
+            $description = $this->buildChannelDescription($cldbid, $nickname, $isOnline, $profile, $serverGroupId, $clid, $uid);
 
             // Update channel description
             // Method 1: Try getting channel object and modifying it
@@ -155,9 +185,11 @@ class StatusDisplayManager {
      * @param bool $isOnline
      * @param array|null $profile
      * @param int|null $serverGroupId
+     * @param int|null $clid Client ID (if online)
+     * @param string|null $uid Client Unique Identifier
      * @return string
      */
-    private function buildChannelDescription(int $cldbid, string $nickname, bool $isOnline, ?array $profile, ?int $serverGroupId): string {
+    private function buildChannelDescription(int $cldbid, string $nickname, bool $isOnline, ?array $profile, ?int $serverGroupId, ?int $clid = null, ?string $uid = null): string {
         $baseUrl = $this->getBaseUrl();
         $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
         
@@ -184,8 +216,15 @@ class StatusDisplayManager {
         // Add avatar image (resized to 250x250)
         $description .= "[img=250x250]" . htmlspecialchars($avatarUrl) . "[/img]\n\n";
         
-        // Add username
-        $description .= "[size=14][b]" . htmlspecialchars($nickname) . "[/b][/size]\n\n";
+        // Add username - make it clickable if online and we have the client data
+        if ($isOnline && $clid !== null && $uid !== null) {
+            // TeamSpeak clickable client link format: [URL=client://CLID/UID~NICKNAME]NICKNAME[/URL]
+            $clientUrl = "client://{$clid}/" . rawurlencode($uid) . "~" . rawurlencode($nickname);
+            $description .= "[size=14][b][url=" . htmlspecialchars($clientUrl) . "]" . htmlspecialchars($nickname) . "[/url][/b][/size]\n\n";
+        } else {
+            // Not online or no client data - just show name
+            $description .= "[size=14][b]" . htmlspecialchars($nickname) . "[/b][/size]\n\n";
+        }
         
         // Status with color
         $description .= "[color={$statusColor}][size=12][b]{$statusIcon} {$statusText}[/b][/size][/color]\n\n";
@@ -247,11 +286,16 @@ class StatusDisplayManager {
         if ($profile) {
             if (!empty($profile["description"])) {
                 $description .= "[hr]\n";
-                $description .= "[size=10]" . htmlspecialchars(substr($profile["description"], 0, 200)) . "[/size]\n";
+                $description .= "[size=10]" . htmlspecialchars(substr($profile["description"], 0, 200)) . "[/size]\n\n";
             }
         }
         
         $description .= "[/center]";
+        
+        // Add footer with timestamp
+        $timestamp = date('Y-m-d H:i:s');
+        $description .= "[hr]\n";
+        $description .= "[right][size=8]Last updated: {$timestamp}[/size][/right]";
         
         return $description;
     }
