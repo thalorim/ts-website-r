@@ -299,6 +299,9 @@ class StatusDisplayManager {
                 if ($steamId !== null && $steamUrl !== null) {
                     $signatureUrl = "https://www.reape.rs/signature/signature.php?steamid={$steamId}";
                     $description .= "[url={$steamUrl}][img]{$signatureUrl}[/img][/url]\n\n";
+                    
+                    // Debug log
+                    error_log("Steam Signature Added: steamid={$steamId}, url={$signatureUrl}");
                 }
             }
         }
