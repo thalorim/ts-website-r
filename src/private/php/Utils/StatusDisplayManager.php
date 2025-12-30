@@ -123,8 +123,9 @@ class StatusDisplayManager {
             $description = $this->buildChannelDescription($cldbid, $nickname, $isOnline, $profile, $serverGroupId);
 
             // Update channel description
+            // Note: TeamSpeak Query uses uppercase parameter names
             $tsServer->channelEdit($channelId, [
-                "channel_description" => $description
+                "CHANNEL_DESCRIPTION" => $description
             ]);
 
             return true;
