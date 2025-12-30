@@ -9,6 +9,13 @@
     <div class="card-body">
         <p>Only user with CLDBID 3 can access this page.</p>
 
+        <div class="alert alert-info mb-4">
+            <h6><i class="fas fa-link"></i> Quick Links</h6>
+            <a href="admin/status-display.php" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-broadcast-tower"></i> Status Display Configuration
+            </a>
+        </div>
+
         <form id="form-config" method="post" action="api/save-config.php" class="mb-4">
             {$csrfField}
             <h5>Assigner Config (JSON)</h5>
