@@ -123,10 +123,23 @@ class StatusDisplayManager {
             $description = $this->buildChannelDescription($cldbid, $nickname, $isOnline, $profile, $serverGroupId);
 
             // Update channel description
-            // Note: TeamSpeak Query uses uppercase parameter names
-            $tsServer->channelEdit($channelId, [
-                "CHANNEL_DESCRIPTION" => $description
-            ]);
+            // Method 1: Try getting channel object and modifying it
+            try {
+                $channel = $tsServer->channelGetById($channelId);
+                $channel->modify(['channel_description' => $description]);
+            } catch (\Exception $e1) {
+                // Method 2: Try using execute method (for older versions)
+                try {
+                    $tsServer->execute("channeledit", [
+                        "cid" => $channelId,
+                        "channel_description" => $description
+                    ]);
+                } catch (\Exception $e2) {
+                    // Method 3: Use raw request as last resort
+                    $tsServer->request("channeledit cid=" . (int)$channelId . 
+                        " channel_description=" . $tsServer->escape($description));
+                }
+            }
 
             return true;
         } catch (\Exception $e) {
