@@ -112,10 +112,7 @@ function updateStatusDisplays(): array {
             ];
         }
         
-        // Force cache refresh to get latest client list
-        CacheManager::i()->clearCache();
-        
-        // Get currently online clients
+        // Get currently online clients (cache will auto-refresh based on configured interval)
         $onlineClients = CacheManager::i()->getClientList();
         $onlineCldbids = [];
         
