@@ -161,12 +161,30 @@ class StatusDisplayManager {
         $baseUrl = $this->getBaseUrl();
         $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
         
+        // Get avatar URL
+        $avatarUrl = null;
+        if ($profile && !empty($profile["avatar_url"])) {
+            $avatarUrl = $profile["avatar_url"];
+            // Make absolute URL if relative
+            if (!preg_match('/^https?:\/\//', $avatarUrl)) {
+                $avatarUrl = $baseUrl . '/' . ltrim($avatarUrl, '/');
+            }
+        } else {
+            // Default avatar
+            $avatarUrl = $baseUrl . '/img/icons/defaulticon-128.png';
+        }
+        
         // Status indicator
         $statusColor = $isOnline ? "#00ff00" : "#ff0000";
         $statusText = $isOnline ? "ONLINE" : "OFFLINE";
         $statusIcon = $isOnline ? "✓" : "✗";
         
         $description = "[center]";
+        
+        // Add avatar image
+        $description .= "[img]" . htmlspecialchars($avatarUrl) . "[/img]\n\n";
+        
+        // Add username
         $description .= "[size=14][b]" . htmlspecialchars($nickname) . "[/b][/size]\n\n";
         
         // Status with color
