@@ -256,6 +256,9 @@ class StatusDisplayManager {
         }
         
         // Social media links with image icons
+        $steamId = null;
+        $steamUrl = null;
+        
         if ($profile && !empty($profile["socials_json"])) {
             $socials = json_decode($profile["socials_json"], true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($socials) && !empty($socials)) {
@@ -282,9 +285,21 @@ class StatusDisplayManager {
                         
                         // Make image clickable by wrapping in URL tag
                         $description .= "[url={$url}][img]{$iconUrl}[/img][/url] ";
+                        
+                        // Extract Steam ID if this is a Steam profile
+                        if ($platform === 'steam' && $steamId === null) {
+                            $steamId = $this->extractSteamId($url);
+                            $steamUrl = $url;
+                        }
                     }
                 }
                 $description .= "\n\n";
+                
+                // Add Steam signature if Steam ID was found
+                if ($steamId !== null && $steamUrl !== null) {
+                    $signatureUrl = "https://www.reape.rs/signature/signature.php?steamid={$steamId}";
+                    $description .= "[url={$steamUrl}][img]{$signatureUrl}[/img][/url]\n\n";
+                }
             }
         }
         
@@ -306,6 +321,43 @@ class StatusDisplayManager {
         return $description;
     }
 
+    /**
+     * Extract Steam ID from Steam profile URL
+     * @param string $steamUrl
+     * @return string|null Steam ID (64-bit format) or null if not found
+     */
+    private function extractSteamId(string $steamUrl): ?string {
+        // Steam URL formats:
+        // https://steamcommunity.com/profiles/76561198399534638
+        // https://steamcommunity.com/id/username
+        // steamcommunity.com/profiles/76561198399534638
+        
+        // Try to extract 64-bit Steam ID (17 digits starting with 7656)
+        if (preg_match('/\/profiles\/(\d{17})/', $steamUrl, $matches)) {
+            return $matches[1];
+        }
+        
+        // Try to extract from direct ID in URL
+        if (preg_match('/steamid=(\d{17})/', $steamUrl, $matches)) {
+            return $matches[1];
+        }
+        
+        // If it's a custom URL (/id/username), we can't directly get the Steam64 ID
+        // without making an API call, so we'll try to extract it if it's in the URL
+        if (preg_match('/\/id\/([a-zA-Z0-9_-]+)/', $steamUrl, $matches)) {
+            // Could implement Steam API lookup here if needed
+            // For now, return null as we need the 64-bit ID
+            return null;
+        }
+        
+        // Try one more pattern - just the ID at the end
+        if (preg_match('/(\d{17})(?:\/|$)/', $steamUrl, $matches)) {
+            return $matches[1];
+        }
+        
+        return null;
+    }
+    
     /**
      * Get base URL for profile links
      * @return string
