@@ -219,7 +219,10 @@ class StatusDisplayManager {
         // Add username - make it clickable if online and we have the client data
         if ($isOnline && $clid !== null && $uid !== null) {
             // TeamSpeak clickable client link format: [URL=client://CLID/UID~NICKNAME]NICKNAME[/URL]
-            $clientUrl = "client://{$clid}/" . rawurlencode($uid) . "~" . rawurlencode($nickname);
+            // Note: UID should NOT be URL encoded - TeamSpeak expects it as-is
+            // Only encode the nickname part for special characters
+            $encodedNickname = str_replace(['[', ']', ' '], ['%5B', '%5D', '%20'], $nickname);
+            $clientUrl = "client://{$clid}/{$uid}~{$encodedNickname}";
             $description .= "[size=14][b][url=" . htmlspecialchars($clientUrl) . "]" . htmlspecialchars($nickname) . "[/url][/b][/size]\n\n";
         } else {
             // Not online or no client data - just show name
