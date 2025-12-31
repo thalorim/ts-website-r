@@ -112,7 +112,11 @@ function updateStatusDisplays(): array {
             ];
         }
         
-        // Get currently online clients (cache will auto-refresh based on configured interval)
+        // IMPORTANT: Clear client list cache to get fresh data
+        // This ensures we detect when users go offline
+        CacheManager::i()->clearClientList();
+        
+        // Get currently online clients (fresh data, not cached)
         $onlineClients = CacheManager::i()->getClientList();
         $onlineCldbids = [];
         
@@ -120,6 +124,11 @@ function updateStatusDisplays(): array {
             if (isset($client['client_database_id'])) {
                 $onlineCldbids[] = (int) $client['client_database_id'];
             }
+        }
+        
+        // Debug: Log current online users
+        if ($isDaemon && !empty($onlineCldbids)) {
+            error_log("Status Bot: Currently online CLDBIDs: " . implode(", ", $onlineCldbids));
         }
         
         // Process each configuration
@@ -132,11 +141,16 @@ function updateStatusDisplays(): array {
             
             // Check if state changed
             $stateKey = "{$cldbid}_{$channelId}";
+            $previousState = isset($previousStates[$stateKey]) ? ($previousStates[$stateKey] ? "ONLINE" : "OFFLINE") : "UNKNOWN";
+            $currentState = $isOnline ? "ONLINE" : "OFFLINE";
             $stateChanged = !isset($previousStates[$stateKey]) || $previousStates[$stateKey] !== $isOnline;
+            
+            // Debug logging
+            error_log("Status Bot: CLDBID {$cldbid} - Previous: {$previousState}, Current: {$currentState}, Changed: " . ($stateChanged ? "YES" : "NO"));
             
             // Update if state changed (connect/disconnect event)
             if ($stateChanged) {
-                echo date('[Y-m-d H:i:s]') . " Client {$cldbid} state changed to " . ($isOnline ? "ONLINE" : "OFFLINE") . " - updating channel {$channelId}\n";
+                echo date('[Y-m-d H:i:s]') . " Client {$cldbid} state changed from {$previousState} to {$currentState} - updating channel {$channelId}\n";
                 
                 $result = $manager->updateChannelDescription($cldbid, $channelId, $isOnline, $serverGroupId);
                 
