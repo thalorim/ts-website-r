@@ -38,7 +38,7 @@ $navActiveIndex = isset($navActiveIndex) ? (int) $navActiveIndex : 0;
         {$tplutils::includeStylesheet("css/dev.css", true)}
     {/if}
 </head>
-<body n:attr="class => 'lang ' . $userlangcode">
+<body n:attr="class => 'lang ' . $userlangcode . (isset($pageClass) ? ' ' . $pageClass : '')">
 
 <noscript>
     <div class="alert alert-danger noscript-alert bottom-error-alert" role="alert">

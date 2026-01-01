@@ -24,6 +24,31 @@ $dbConfig = Config::i()->getDatabaseConfig();
 $prefix = isset($dbConfig["prefix"]) ? $dbConfig["prefix"] : "";
 $rawTableName = $prefix . "profiles";
 
+// Ensure userbar_groups table exists
+$userbarGroupsTable = $prefix . "userbar_groups";
+try {
+    $existsStmt = $db->query("SHOW TABLES LIKE '" . addslashes($userbarGroupsTable) . "'");
+    $exists = $existsStmt && $existsStmt->fetchColumn();
+
+    if (!$exists) {
+        $createSql = "CREATE TABLE IF NOT EXISTS `{$userbarGroupsTable}` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `sgid` INT(11) NOT NULL,
+            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uniq_sgid` (`sgid`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        $db->query($createSql);
+        
+        // Insert default allowed groups (532 and 556)
+        $db->insert($userbarGroupsTable, ["sgid" => 532]);
+        $db->insert($userbarGroupsTable, ["sgid" => 556]);
+    }
+} catch (\Exception $e) {
+    TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring userbar_groups table", $e->getMessage());
+    exit;
+}
+
 // Ensure avatar/border/social/banner/description columns exist
 try {
     $colStmt = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'avatar_url'");
@@ -55,10 +80,46 @@ try {
     if (!$colExists4) {
         $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `description` TEXT NULL AFTER `banner_url`");
     }
+
+    $colStmt5 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'userbar_url'");
+    $colExists5 = $colStmt5 && $colStmt5->fetchColumn();
+    if (!$colExists5) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `userbar_url` VARCHAR(512) NULL AFTER `description`");
+    }
+
+    $colStmt6 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'discord_id'");
+    $colExists6 = $colStmt6 && $colStmt6->fetchColumn();
+    if (!$colExists6) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `discord_id` VARCHAR(64) NULL AFTER `userbar_url`");
+    }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring avatar column", $e->getMessage());
     exit;
 }
+
+// Fetch user's current server groups to check permissions
+$userServerGroups = [];
+$currentDbProfile = $db->get("profiles", ["servergroups"], ["cldbid" => $requestedCldbid]);
+if ($currentDbProfile && !empty($currentDbProfile["servergroups"])) {
+    foreach (explode(',', (string) $currentDbProfile["servergroups"]) as $id) {
+        $id = (int) trim($id);
+        if ($id > 0) $userServerGroups[] = $id;
+    }
+}
+
+// Fetch allowed userbar groups from database
+$allowedUserbarGroups = [];
+try {
+    $allowedRows = $db->select($userbarGroupsTable, ["sgid"]);
+    foreach ($allowedRows as $row) {
+        $allowedUserbarGroups[] = (int) $row["sgid"];
+    }
+} catch (\Exception $e) {
+    // ignore
+}
+
+// Check if user can edit userbar
+$canEditUserbar = !empty(array_intersect($userServerGroups, $allowedUserbarGroups));
 
 $message = null;
 $error = null;
@@ -173,6 +234,39 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $updateData["description"] = $desc !== "" ? $desc : null;
         }
 
+        // Handle userbar URL (only if user has permission)
+        if ($canEditUserbar && isset($_POST["userbar_url"])) {
+            $userbarUrl = trim((string) $_POST["userbar_url"]);
+            $updateData["userbar_url"] = $userbarUrl !== "" ? $userbarUrl : null;
+        }
+
+        // Handle Discord ID
+        if (isset($_POST["discord_id"])) {
+            $discordIdInput = trim((string) $_POST["discord_id"]);
+            
+            if ($discordIdInput === "") {
+                // Empty = remove Discord ID
+                $updateData["discord_id"] = null;
+            } else {
+                // Try to extract Discord ID from input (supports both raw ID and URL)
+                $discordId = null;
+                
+                // Check if it's a URL
+                if (preg_match('#discord\.com/users/(\d{17,19})#', $discordIdInput, $matches)) {
+                    $discordId = $matches[1];
+                } else if (preg_match('/^\d{17,19}$/', $discordIdInput)) {
+                    // Direct ID input
+                    $discordId = $discordIdInput;
+                }
+                
+                if ($discordId) {
+                    $updateData["discord_id"] = $discordId;
+                } else {
+                    throw new \Exception("Invalid Discord ID format. Please enter either your Discord User ID (17-19 digits) or your Discord profile URL.");
+                }
+            }
+        }
+
         $selectedBorder = isset($_POST["avatar_border"]) ? trim((string) $_POST["avatar_border"]) : null;
         $updateData["avatar_border"] = AvatarBorderUtils::normalize($selectedBorder);
 
@@ -190,11 +284,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 // Fetch current data to display in form
-$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description"], ["cldbid" => $requestedCldbid]);
+$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description","userbar_url","discord_id"], ["cldbid" => $requestedCldbid]);
 $currentAvatar = $current && isset($current["avatar_url"]) && $current["avatar_url"] ? $current["avatar_url"] : "img/icons/defaulticon-128.png";
 $currentAvatarBorder = AvatarBorderUtils::normalize($current["avatar_border"] ?? null);
 $currentAvatarBorderUrl = AvatarBorderUtils::getUrl($currentAvatarBorder);
 $currentDescription = $current && isset($current["description"]) ? $current["description"] : null;
+$currentUserbarUrl = $current && isset($current["userbar_url"]) ? $current["userbar_url"] : null;
+$currentDiscordId = $current && isset($current["discord_id"]) ? $current["discord_id"] : null;
 $currentSocials = [];
 if ($current && !empty($current["socials_json"])) {
     $decoded = json_decode((string) $current["socials_json"], true);
@@ -213,6 +309,9 @@ TemplateUtils::i()->renderTemplate("edit-profile", [
     "borderOptions" => AvatarBorderUtils::getOptions(),
     "currentDescription" => $currentDescription,
     "currentSocials" => $currentSocials,
+    "currentUserbarUrl" => $currentUserbarUrl,
+    "currentDiscordId" => $currentDiscordId,
+    "canEditUserbar" => $canEditUserbar,
     "message" => $message,
     "error" => $error,
 ]);

@@ -6,6 +6,7 @@ use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Config;
 use Wruczek\TSWebsite\Utils\TeamSpeakUtils;
+use Wruczek\TSWebsite\Utils\DiscordUtils;
 use Wruczek\PhpFileCache\PhpFileCache;
 
 require_once __DIR__ . "/private/php/load.php";
@@ -331,6 +332,18 @@ $avatarUrl = ($dbProfile && !empty($dbProfile["avatar_url"])) ? $dbProfile["avat
 $bannerUrl = ($dbProfile && !empty($dbProfile["banner_url"])) ? $dbProfile["banner_url"] : null;
 $avatarBorderKey = $dbProfile && isset($dbProfile["avatar_border"]) ? AvatarBorderUtils::normalize($dbProfile["avatar_border"]) : AvatarBorderUtils::getDefaultKey();
 $avatarBorderUrl = AvatarBorderUtils::getUrl($avatarBorderKey);
+$userbarUrl = ($dbProfile && !empty($dbProfile["userbar_url"])) ? $dbProfile["userbar_url"] : null;
+
+// Fetch Discord data if discord_id is set
+$discordData = null;
+if ($dbProfile && !empty($dbProfile["discord_id"])) {
+    try {
+        $discordData = DiscordUtils::i()->getUserData($dbProfile["discord_id"]);
+    } catch (\Exception $e) {
+        // Silently fail - Discord widget just won't show
+    }
+}
+
 // Prefer user-saved description if present
 if ($dbProfile && !empty($dbProfile["description"])) {
     $profileData["description"] = (string) $dbProfile["description"];
@@ -430,21 +443,30 @@ foreach ($socials as $key => $url) {
     ];
 }
 
+// Build page classes - only add has-discord-widget if Discord data exists
+$pageClasses = "page-profile";
+if ($discordData !== null) {
+    $pageClasses .= " has-discord-widget";
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
+    "pageClass" => $pageClasses,
     "isOnline" => $isOnline,
     "profile" => $profileData,
     "avatarUrl" => $avatarUrl,
     "avatarBorderUrl" => $avatarBorderUrl,
     "avatarBorderKey" => $avatarBorderKey,
     "bannerUrl" => $bannerUrl,
+    "userbarUrl" => $userbarUrl,
     "groups" => $groupsDetailed,
     "socials" => $socialItems,
     "currentChannelName" => $currentChannelName,
     "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
+    "discordData" => $discordData,
 ];
 
 // Compute last seen text for offline users

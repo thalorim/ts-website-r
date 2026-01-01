@@ -1,3 +1,4 @@
+<div class="sidebar-wrapper">
 <div class="card card-accent">
     <div class="card-header">
         <i class="fas fa-signal"></i>{_"STATUS_PANEL_TITLE"}
@@ -89,3 +90,27 @@
         </div>
     </div>
 {/ifset}
+
+{ifset $discordData}
+    <div class="card card-accent">
+        <div class="card-header">
+            <i class="fab fa-discord"></i> Discord Status
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-center">
+                <div class="mr-3">
+                    <img src="{$discordData['avatar_url']}" alt="Discord Avatar" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">
+                </div>
+                <div class="flex-grow-1">
+                    <div class="font-weight-bold mb-1">{$discordData['global_name']}</div>
+                    <div class="text-muted small mb-1">@{$discordData['username']}{if $discordData['discriminator'] !== '0'}#{$discordData['discriminator']}{/if}</div>
+                    <div class="d-flex align-items-center">
+                        <span class="status-dot {$discordData['status_class']}"></span>
+                        <span class="small">{$discordData['status_text']}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{/ifset}
+</div>

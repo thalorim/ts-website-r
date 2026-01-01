@@ -66,11 +66,18 @@
                     </div>
                 </div>
             </div>
-            {ifset $rankImageUrl}
-                <div class="ml-auto">
-                    <img src="{$rankImageUrl}" alt="Rank {$rankLevel}" style="height:48px;width:auto;">
-                </div>
-            {/ifset}
+            <div class="ml-auto d-flex align-items-center">
+                {ifset $userbarUrl}
+                    <div class="mr-3 d-none d-md-block">
+                        <img src="{$userbarUrl}" alt="Profile Userbar" style="max-height:50px;width:auto;max-width:350px;">
+                    </div>
+                {/ifset}
+                {ifset $rankImageUrl}
+                    <div>
+                        <img src="{$rankImageUrl}" alt="Rank {$rankLevel}" style="height:48px;width:auto;">
+                    </div>
+                {/ifset}
+            </div>
         </div>
     </div>
 
