@@ -11,18 +11,17 @@ require_once __DIR__ . "/private/php/load.php";
 
 $db = DatabaseUtils::i()->getDb();
 
-// Define staff groups: 532 (highest rank), 556 (admins)
-$staffGroups = [532, 556];
-
-// Define VIP groups for different games
-$vipGroups = [
-    'cs2' => Config::get('vip_cs2_groups', [557, 558]), // Example VIP group IDs for CS2
-    'minecraft' => Config::get('vip_mc_groups', [559, 560]), // Example VIP group IDs for Minecraft
-    'teamspeak' => Config::get('vip_ts3_groups', [561, 562]) // Example VIP group IDs for TeamSpeak
+// Define staff groups with their names
+$staffGroups = [
+    532 => 'CM',      // Community Manager
+    556 => 'Admin'    // Administrator
 ];
 
+// Define VIP group
+$vipGroup = 542; // VIP group ID
+
 $staff = [];
-$vipMembers = ['cs2' => [], 'minecraft' => [], 'teamspeak' => []];
+$vipMembers = [];
 $tsConnected = false;
 
 try {
@@ -32,9 +31,14 @@ try {
 }
 
 // Function to fetch members by group IDs
-function fetchMembersByGroups($groupIds, $db, $node = null) {
+function fetchMembersByGroups($groupIds, $db, $node = null, $serverGroups = null) {
     $members = [];
     $clientGroupMap = [];
+    
+    // Normalize groupIds to array
+    if (!is_array($groupIds)) {
+        $groupIds = [$groupIds];
+    }
     
     if ($node) {
         // Fetch from TeamSpeak
@@ -94,6 +98,8 @@ function fetchMembersByGroups($groupIds, $db, $node = null) {
         $isOnline = false;
         $avatarUrl = null;
         $socialLinks = [];
+        $groupIcon = null;
+        $groupName = null;
         
         // Check if user is online
         if (isset($onlineClients[$dbid])) {
@@ -125,21 +131,44 @@ function fetchMembersByGroups($groupIds, $db, $node = null) {
                 $avatarUrl = (string) $profile['avatar_url'];
             }
             
-            // Get social links
-            if (!empty($profile['discord'])) {
-                $socialLinks['discord'] = (string) $profile['discord'];
+            // Get social links - parse JSON if stored as JSON
+            $socialData = null;
+            if (!empty($profile['social_links'])) {
+                $socialData = json_decode($profile['social_links'], true);
             }
-            if (!empty($profile['steam'])) {
-                $socialLinks['steam'] = (string) $profile['steam'];
+            
+            if (is_array($socialData)) {
+                $socialLinks = $socialData;
+            } else {
+                // Fallback to individual columns
+                if (!empty($profile['discord'])) {
+                    $socialLinks['discord'] = (string) $profile['discord'];
+                }
+                if (!empty($profile['steam'])) {
+                    $socialLinks['steam'] = (string) $profile['steam'];
+                }
+                if (!empty($profile['twitter'])) {
+                    $socialLinks['twitter'] = (string) $profile['twitter'];
+                }
+                if (!empty($profile['youtube'])) {
+                    $socialLinks['youtube'] = (string) $profile['youtube'];
+                }
+                if (!empty($profile['github'])) {
+                    $socialLinks['github'] = (string) $profile['github'];
+                }
             }
-            if (!empty($profile['twitter'])) {
-                $socialLinks['twitter'] = (string) $profile['twitter'];
-            }
-            if (!empty($profile['youtube'])) {
-                $socialLinks['youtube'] = (string) $profile['youtube'];
-            }
-            if (!empty($profile['github'])) {
-                $socialLinks['github'] = (string) $profile['github'];
+        }
+        
+        // Get group icon and name from the highest priority group
+        if (!empty($memberGroupIds) && $serverGroups) {
+            $primaryGroup = $memberGroupIds[0]; // First group in their list
+            if (isset($serverGroups[$primaryGroup])) {
+                if (!empty($serverGroups[$primaryGroup]['iconid'])) {
+                    $groupIcon = (int) $serverGroups[$primaryGroup]['iconid'];
+                }
+                if (!empty($serverGroups[$primaryGroup]['name'])) {
+                    $groupName = (string) $serverGroups[$primaryGroup]['name'];
+                }
             }
         }
         
@@ -168,24 +197,32 @@ function fetchMembersByGroups($groupIds, $db, $node = null) {
             'isOnline' => $isOnline,
             'groups' => $memberGroupIds,
             'avatarUrl' => $avatarUrl,
-            'socialLinks' => $socialLinks
+            'socialLinks' => $socialLinks,
+            'groupIcon' => $groupIcon,
+            'groupName' => $groupName
         ];
     }
     
     return $members;
 }
 
+// Get server groups list first
+$serverGroups = null;
+try {
+    $serverGroups = CacheManager::i()->getServerGroupList();
+} catch (\Exception $e) {
+    // Continue without server groups
+}
+
 if ($tsConnected) {
     try {
         $node = TeamSpeakUtils::i()->getTSNodeServer();
         
-        // Fetch staff members
-        $staff = fetchMembersByGroups($staffGroups, $db, $node);
+        // Fetch staff members (groups 532 and 556)
+        $staff = fetchMembersByGroups(array_keys($staffGroups), $db, $node, $serverGroups);
         
-        // Fetch VIP members for each game
-        foreach ($vipGroups as $game => $groupIds) {
-            $vipMembers[$game] = fetchMembersByGroups($groupIds, $db, $node);
-        }
+        // Fetch VIP members (group 542)
+        $vipMembers = fetchMembersByGroups($vipGroup, $db, $node, $serverGroups);
         
     } catch (\Exception $e) {
         // Fall through to database fallback
@@ -193,7 +230,7 @@ if ($tsConnected) {
 }
 
 // Fallback to database if TeamSpeak is not available
-if (empty($staff)) {
+if (empty($staff) && empty($vipMembers)) {
     try {
         $rows = $db->select("profiles", "*", ["ORDER" => ["cldbid" => "ASC"]]);
         foreach ($rows as $r) {
@@ -205,46 +242,65 @@ if (empty($staff)) {
             
             if (empty($sgids)) continue;
             
-            // Check if user has any staff groups
-            $matchingStaffGroups = array_intersect($sgids, $staffGroups);
-            if (!empty($matchingStaffGroups)) {
-                $staff[] = [
-                    'cldbid' => (int) $r['cldbid'],
-                    'nickname' => isset($r['nickname']) ? (string) $r['nickname'] : ('User #' . $r['cldbid']),
-                    'country' => isset($r['country']) ? (string) $r['country'] : null,
-                    'isOnline' => false,
-                    'groups' => $sgids,
-                    'avatarUrl' => isset($r['avatar_url']) ? (string) $r['avatar_url'] : null,
-                    'socialLinks' => [
-                        'discord' => isset($r['discord']) ? (string) $r['discord'] : null,
-                        'steam' => isset($r['steam']) ? (string) $r['steam'] : null,
-                        'twitter' => isset($r['twitter']) ? (string) $r['twitter'] : null,
-                        'youtube' => isset($r['youtube']) ? (string) $r['youtube'] : null,
-                        'github' => isset($r['github']) ? (string) $r['github'] : null,
-                    ]
-                ];
+            // Get social links
+            $socialLinks = [];
+            $socialData = null;
+            if (!empty($r['social_links'])) {
+                $socialData = json_decode($r['social_links'], true);
             }
             
-            // Check VIP groups
-            foreach ($vipGroups as $game => $groupIds) {
-                $matchingVipGroups = array_intersect($sgids, $groupIds);
-                if (!empty($matchingVipGroups)) {
-                    $vipMembers[$game][] = [
-                        'cldbid' => (int) $r['cldbid'],
-                        'nickname' => isset($r['nickname']) ? (string) $r['nickname'] : ('User #' . $r['cldbid']),
-                        'country' => isset($r['country']) ? (string) $r['country'] : null,
-                        'isOnline' => false,
-                        'groups' => $sgids,
-                        'avatarUrl' => isset($r['avatar_url']) ? (string) $r['avatar_url'] : null,
-                        'socialLinks' => [
-                            'discord' => isset($r['discord']) ? (string) $r['discord'] : null,
-                            'steam' => isset($r['steam']) ? (string) $r['steam'] : null,
-                            'twitter' => isset($r['twitter']) ? (string) $r['twitter'] : null,
-                            'youtube' => isset($r['youtube']) ? (string) $r['youtube'] : null,
-                            'github' => isset($r['github']) ? (string) $r['github'] : null,
-                        ]
-                    ];
+            if (is_array($socialData)) {
+                $socialLinks = $socialData;
+            } else {
+                // Fallback to individual columns
+                if (!empty($r['discord'])) $socialLinks['discord'] = (string) $r['discord'];
+                if (!empty($r['steam'])) $socialLinks['steam'] = (string) $r['steam'];
+                if (!empty($r['twitter'])) $socialLinks['twitter'] = (string) $r['twitter'];
+                if (!empty($r['youtube'])) $socialLinks['youtube'] = (string) $r['youtube'];
+                if (!empty($r['github'])) $socialLinks['github'] = (string) $r['github'];
+            }
+            
+            // Get group icon and name
+            $groupIcon = null;
+            $groupName = null;
+            if (!empty($sgids) && $serverGroups) {
+                // Find the first matching staff or VIP group
+                foreach ($sgids as $gid) {
+                    if (isset($staffGroups[$gid]) || $gid == $vipGroup) {
+                        if (isset($serverGroups[$gid])) {
+                            if (!empty($serverGroups[$gid]['iconid'])) {
+                                $groupIcon = (int) $serverGroups[$gid]['iconid'];
+                            }
+                            if (!empty($serverGroups[$gid]['name'])) {
+                                $groupName = (string) $serverGroups[$gid]['name'];
+                            }
+                        }
+                        break;
+                    }
                 }
+            }
+            
+            $memberData = [
+                'cldbid' => (int) $r['cldbid'],
+                'nickname' => isset($r['nickname']) ? (string) $r['nickname'] : ('User #' . $r['cldbid']),
+                'country' => isset($r['country']) ? (string) $r['country'] : null,
+                'isOnline' => false,
+                'groups' => $sgids,
+                'avatarUrl' => isset($r['avatar_url']) ? (string) $r['avatar_url'] : null,
+                'socialLinks' => $socialLinks,
+                'groupIcon' => $groupIcon,
+                'groupName' => $groupName
+            ];
+            
+            // Check if user has any staff groups
+            $matchingStaffGroups = array_intersect($sgids, array_keys($staffGroups));
+            if (!empty($matchingStaffGroups)) {
+                $staff[] = $memberData;
+            }
+            
+            // Check if user has VIP group
+            if (in_array($vipGroup, $sgids)) {
+                $vipMembers[] = $memberData;
             }
         }
     } catch (\Exception $e) {
@@ -252,28 +308,31 @@ if (empty($staff)) {
     }
 }
 
-// Sort staff: group 532 first, then 556
-usort($staff, function($a, $b) {
-    $aHas532 = in_array(532, $a['groups']);
-    $bHas532 = in_array(532, $b['groups']);
-    
-    if ($aHas532 && !$bHas532) return -1;
-    if (!$aHas532 && $bHas532) return 1;
-    
-    return $a['cldbid'] <=> $b['cldbid'];
-});
+// Sort staff: group 532 (CM) first, then 556 (Admin)
+if (!empty($staff)) {
+    usort($staff, function($a, $b) {
+        $aHas532 = in_array(532, $a['groups']);
+        $bHas532 = in_array(532, $b['groups']);
+        
+        if ($aHas532 && !$bHas532) return -1;
+        if (!$aHas532 && $bHas532) return 1;
+        
+        return $a['cldbid'] <=> $b['cldbid'];
+    });
+}
 
-// Get server groups list for display
-$serverGroups = null;
-try {
-    $serverGroups = CacheManager::i()->getServerGroupList();
-} catch (\Exception $e) {
-    // Continue without server groups
+// Sort VIP members by cldbid
+if (!empty($vipMembers)) {
+    usort($vipMembers, function($a, $b) {
+        return $a['cldbid'] <=> $b['cldbid'];
+    });
 }
 
 TemplateUtils::i()->renderTemplate("staff", [
     "staff" => $staff,
     "vipMembers" => $vipMembers,
     "serverGroups" => $serverGroups,
+    "staffGroups" => $staffGroups,
+    "vipGroup" => $vipGroup,
     "navActiveIndex" => 8
 ]);

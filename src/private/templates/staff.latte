@@ -1,20 +1,33 @@
 {extends "body.latte"}
-{var $title = "Staff"}
+{var $title = "Staff & VIP"}
 
 {block content}
     <div class="card card-titleblock card-accent">
         <div class="card-header">
-            <i class="fas fa-user-shield"></i> Staff Team
+            <i class="fas fa-user-shield"></i> Staff & VIP Members
         </div>
     </div>
 
+    {* Toggle Buttons *}
+    <div class="member-type-filters">
+        <button class="btn btn-outline-primary filter-btn active" data-filter="staff">
+            <i class="fas fa-user-shield"></i> Staff Members
+            <span class="badge badge-pill badge-light ml-1">{count($staff)}</span>
+        </button>
+        <button class="btn btn-outline-primary filter-btn" data-filter="vip">
+            <i class="fas fa-star"></i> VIP Members
+            <span class="badge badge-pill badge-light ml-1">{count($vipMembers)}</span>
+        </button>
+    </div>
+
     {* Staff Members Section *}
-    {if !$staff || count($staff) === 0}
-        <div class="alert alert-info text-center" role="alert">
-            <i class="fas fa-info-circle"></i> No staff members found.
-        </div>
-    {else}
-        <div class="staff-grid">
+    <div id="staff-section" class="members-section">
+        {if !$staff || count($staff) === 0}
+            <div class="alert alert-info text-center" role="alert">
+                <i class="fas fa-info-circle"></i> No staff members found.
+            </div>
+        {else}
+            <div class="members-grid">
             {foreach $staff as $member}
                 <div class="staff-card card">
                     <div class="card-body">
@@ -101,88 +114,140 @@
     {/if}
 
     {* VIP Members Section *}
-    <div class="card card-titleblock card-accent mt-4">
-        <div class="card-header">
-            <i class="fas fa-star"></i> VIP Members
-        </div>
-    </div>
-
-    {* VIP Tabs *}
-    <div class="vip-section">
-        <ul class="nav nav-tabs vip-tabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="cs2-tab" data-toggle="tab" href="#cs2-vips" role="tab">
-                    <i class="fas fa-crosshairs"></i> CS2 VIPs
-                    <span class="badge badge-pill badge-light ml-1">{count($vipMembers['cs2'])}</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="mc-tab" data-toggle="tab" href="#mc-vips" role="tab">
-                    <i class="fas fa-cube"></i> Minecraft VIPs
-                    <span class="badge badge-pill badge-light ml-1">{count($vipMembers['minecraft'])}</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="ts3-tab" data-toggle="tab" href="#ts3-vips" role="tab">
-                    <i class="fas fa-microphone"></i> TeamSpeak VIPs
-                    <span class="badge badge-pill badge-light ml-1">{count($vipMembers['teamspeak'])}</span>
-                </a>
-            </li>
-        </ul>
-
-        <div class="tab-content vip-tab-content">
-            {* CS2 VIPs *}
-            <div class="tab-pane fade show active" id="cs2-vips" role="tabpanel">
-                {if empty($vipMembers['cs2'])}
-                    <div class="alert alert-info text-center mt-3" role="alert">
-                        <i class="fas fa-info-circle"></i> No CS2 VIP members found.
-                    </div>
-                {else}
-                    <div class="vip-grid">
-                        {foreach $vipMembers['cs2'] as $member}
-                            {include "staff-vip-card.latte", member => $member}
-                        {/foreach}
-                    </div>
-                {/if}
+    <div id="vip-section" class="members-section" style="display: none;">
+        {if !$vipMembers || count($vipMembers) === 0}
+            <div class="alert alert-info text-center" role="alert">
+                <i class="fas fa-info-circle"></i> No VIP members found.
             </div>
+        {else}
+            <div class="members-grid">
+                {foreach $vipMembers as $member}
+                    <div class="member-card card">
+                        <div class="card-body">
+                            {* Online Status Badge *}
+                            {if $member['isOnline']}
+                                <div class="online-badge" title="Online">
+                                    <span class="status-dot green"></span>
+                                </div>
+                            {/if}
 
-            {* Minecraft VIPs *}
-            <div class="tab-pane fade" id="mc-vips" role="tabpanel">
-                {if empty($vipMembers['minecraft'])}
-                    <div class="alert alert-info text-center mt-3" role="alert">
-                        <i class="fas fa-info-circle"></i> No Minecraft VIP members found.
-                    </div>
-                {else}
-                    <div class="vip-grid">
-                        {foreach $vipMembers['minecraft'] as $member}
-                            {include "staff-vip-card.latte", member => $member}
-                        {/foreach}
-                    </div>
-                {/if}
-            </div>
+                            {* Avatar *}
+                            <div class="member-avatar-container">
+                                {if $member['avatarUrl']}
+                                    <img src="{$member['avatarUrl']}" alt="{$member['nickname']}" class="member-avatar">
+                                {else}
+                                    <div class="member-avatar-placeholder">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {/if}
+                            </div>
 
-            {* TeamSpeak VIPs *}
-            <div class="tab-pane fade" id="ts3-vips" role="tabpanel">
-                {if empty($vipMembers['teamspeak'])}
-                    <div class="alert alert-info text-center mt-3" role="alert">
-                        <i class="fas fa-info-circle"></i> No TeamSpeak VIP members found.
+                            {* Name *}
+                            <h5 class="member-name" title="{$member['nickname']}">
+                                <a href="profile.php?cldbid={$member['cldbid']}">{$member['nickname']}</a>
+                            </h5>
+
+                            {* Group Info with Icon *}
+                            <div class="member-group-info">
+                                {if $member['groupIcon']}
+                                    <img src="api/geticon.php?iconid={$member['groupIcon']}" alt="group icon" class="group-icon">
+                                {/if}
+                                <div class="group-details">
+                                    {if $member['groupName']}
+                                        <div class="group-name">{$member['groupName']}</div>
+                                    {/if}
+                                    <div class="group-id">ID: {$vipGroup}</div>
+                                </div>
+                            </div>
+
+                            {* Country Flag *}
+                            {if isset($member['country']) && $member['country']}
+                                <div class="member-country">
+                                    <span class="famfamfam-flags {strtolower($member['country'])}" title="{strtoupper($member['country'])}"></span>
+                                </div>
+                            {/if}
+
+                            {* Social Media Links *}
+                            <div class="member-social-links">
+                                {if !empty($member['socialLinks']['discord'])}
+                                    <a href="{$member['socialLinks']['discord']}" target="_blank" class="social-link discord" title="Discord">
+                                        <i class="fab fa-discord"></i>
+                                    </a>
+                                {/if}
+
+                                {if !empty($member['socialLinks']['steam'])}
+                                    <a href="{$member['socialLinks']['steam']}" target="_blank" class="social-link steam" title="Steam">
+                                        <i class="fab fa-steam"></i>
+                                    </a>
+                                {/if}
+
+                                {if !empty($member['socialLinks']['twitter'])}
+                                    <a href="{$member['socialLinks']['twitter']}" target="_blank" class="social-link twitter" title="Twitter">
+                                        <i class="fab fa-twitter"></i>
+                                    </a>
+                                {/if}
+
+                                {if !empty($member['socialLinks']['youtube'])}
+                                    <a href="{$member['socialLinks']['youtube']}" target="_blank" class="social-link youtube" title="YouTube">
+                                        <i class="fab fa-youtube"></i>
+                                    </a>
+                                {/if}
+
+                                {if !empty($member['socialLinks']['github'])}
+                                    <a href="{$member['socialLinks']['github']}" target="_blank" class="social-link github" title="GitHub">
+                                        <i class="fab fa-github"></i>
+                                    </a>
+                                {/if}
+                            </div>
+                        </div>
                     </div>
-                {else}
-                    <div class="vip-grid">
-                        {foreach $vipMembers['teamspeak'] as $member}
-                            {include "staff-vip-card.latte", member => $member}
-                        {/foreach}
-                    </div>
-                {/if}
+                {/foreach}
             </div>
-        </div>
+        {/if}
     </div>
 {/block}
 
 {block footerbottom}
     <style>
-        /* Staff Grid */
-        .staff-grid {
+        /* Member Type Filters */
+        .member-type-filters {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            transition: all 0.2s ease;
+            font-weight: 500;
+            border-width: 2px;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background-color: #007bff !important;
+            border-color: #007bff !important;
+            color: #fff !important;
+        }
+
+        .filter-btn .badge {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .filter-btn.active .badge {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Members Section */
+        .members-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Members Grid */
+        .members-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 1.5rem;
@@ -195,19 +260,19 @@
             }
         }
 
-        /* Staff Card */
-        .staff-card {
+        /* Member Card */
+        .member-card {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             height: 100%;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .staff-card:hover {
+        .member-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
         }
 
-        .staff-card .card-body {
+        .member-card .card-body {
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
@@ -224,13 +289,13 @@
         }
 
         /* Avatar */
-        .staff-avatar-container {
+        .member-avatar-container {
             width: 96px;
             height: 96px;
             margin-bottom: 1rem;
         }
 
-        .staff-avatar {
+        .member-avatar {
             width: 100%;
             height: 100%;
             border-radius: 50%;
@@ -238,7 +303,7 @@
             border: 3px solid rgba(255, 255, 255, 0.2);
         }
 
-        .staff-avatar-placeholder {
+        .member-avatar-placeholder {
             width: 100%;
             height: 100%;
             border-radius: 50%;
@@ -252,7 +317,7 @@
         }
 
         /* Name */
-        .staff-name {
+        .member-name {
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 0.5rem;
@@ -262,294 +327,156 @@
             max-width: 100%;
         }
 
-        .staff-name a {
+        .member-name a {
             color: inherit;
             text-decoration: none;
         }
 
-        .staff-name a:hover {
+        .member-name a:hover {
             color: #007bff;
         }
 
-        /* Rank Badge */
-        .staff-rank-badge {
-            margin-bottom: 0.75rem;
-        }
-
-        .staff-rank-badge .badge {
-            font-size: 0.85rem;
-            padding: 0.4rem 0.75rem;
-            font-weight: 500;
-        }
-
-        /* Country */
-        .staff-country {
+        /* Group Info */
+        .member-group-info {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0.375rem;
         }
 
-        .country-code {
-            font-weight: 500;
+        .group-icon {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+        }
+
+        .group-details {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.3;
+        }
+
+        .group-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #007bff;
+        }
+
+        .group-id {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-family: var(--font-family-monospace), monospace;
+        }
+
+        /* Country */
+        .member-country {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .member-country .famfamfam-flags {
+            transform: scale(1.5);
         }
 
         /* Social Links */
-        .staff-social-links {
+        .member-social-links {
             display: flex;
             gap: 0.5rem;
             justify-content: center;
             flex-wrap: wrap;
         }
 
-        .social-btn {
-            width: 40px;
-            height: 40px;
+        .social-link {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
+            font-size: 1rem;
             transition: all 0.2s ease;
             text-decoration: none;
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
         }
 
-        .social-btn:not(.disabled):hover {
-            transform: scale(1.1);
+        .social-link:hover {
+            transform: scale(1.15);
+            color: white;
         }
 
-        .social-btn.discord {
+        .social-link.discord {
             background: #5865F2;
             color: white;
             border-color: #5865F2;
         }
 
-        .social-btn.discord:hover {
+        .social-link.discord:hover {
             background: #4752C4;
         }
 
-        .social-btn.steam {
+        .social-link.steam {
             background: #171a21;
             color: white;
             border-color: #171a21;
         }
 
-        .social-btn.steam:hover {
+        .social-link.steam:hover {
             background: #0e1015;
         }
 
-        .social-btn.twitter {
+        .social-link.twitter {
             background: #1DA1F2;
             color: white;
             border-color: #1DA1F2;
         }
 
-        .social-btn.twitter:hover {
+        .social-link.twitter:hover {
             background: #0d8bd9;
         }
 
-        .social-btn.disabled {
-            background: rgba(0, 0, 0, 0.2);
-            color: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.1);
-            cursor: not-allowed;
-            opacity: 0.5;
+        .social-link.youtube {
+            background: #FF0000;
         }
 
-        /* VIP Section */
-        .vip-section {
-            margin-bottom: 2rem;
+        .social-link.youtube:hover {
+            background: #cc0000;
         }
 
-        .vip-tabs {
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 0;
+        .social-link.github {
+            background: #333;
         }
 
-        .vip-tabs .nav-link {
-            color: rgba(255, 255, 255, 0.7);
-            border: none;
-            border-bottom: 3px solid transparent;
-            padding: 1rem 1.5rem;
-            transition: all 0.2s ease;
-            font-weight: 500;
-        }
-
-        .vip-tabs .nav-link:hover {
-            color: #fff;
-            border-bottom-color: rgba(0, 123, 255, 0.5);
-        }
-
-        .vip-tabs .nav-link.active {
-            color: #007bff;
-            background: transparent;
-            border-bottom-color: #007bff;
-        }
-
-        .vip-tabs .badge {
-            background: rgba(255, 255, 255, 0.2);
-            color: inherit;
-        }
-
-        .vip-tabs .nav-link.active .badge {
-            background: rgba(0, 123, 255, 0.2);
-        }
-
-        .vip-tab-content {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-top: none;
-            border-radius: 0 0 0.25rem 0.25rem;
-            padding: 1.5rem;
-            min-height: 200px;
-        }
-
-        /* VIP Grid */
-        .vip-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
-        @media (max-width: 768px) {
-            .vip-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            }
-        }
-
-        /* VIP Card (smaller version) */
-        .vip-card {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .vip-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .vip-online-badge {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-        }
-
-        .vip-avatar-container {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 0.75rem;
-        }
-
-        .vip-avatar {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .vip-avatar-placeholder {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: rgba(255, 255, 255, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .vip-name {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 100%;
-        }
-
-        .vip-name a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        .vip-name a:hover {
-            color: #007bff;
-        }
-
-        .vip-country {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.25rem;
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .vip-social-links {
-            display: flex;
-            gap: 0.25rem;
-            justify-content: center;
-            margin-top: 0.5rem;
-        }
-
-        .vip-social-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .vip-social-btn:not(.disabled):hover {
-            transform: scale(1.15);
-        }
-
-        .vip-social-btn.discord {
-            background: #5865F2;
-            color: white;
-            border-color: #5865F2;
-        }
-
-        .vip-social-btn.steam {
-            background: #171a21;
-            color: white;
-            border-color: #171a21;
-        }
-
-        .vip-social-btn.twitter {
-            background: #1DA1F2;
-            color: white;
-            border-color: #1DA1F2;
-        }
-
-        .vip-social-btn.disabled {
-            background: rgba(0, 0, 0, 0.2);
-            color: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.1);
-            cursor: not-allowed;
-            opacity: 0.3;
+        .social-link.github:hover {
+            background: #24292e;
         }
     </style>
+
+    <script>
+        $(document).ready(function() {
+            // Toggle between Staff and VIP views
+            $('.filter-btn').on('click', function() {
+                const filterType = $(this).data('filter');
+                
+                // Update active button
+                $('.filter-btn').removeClass('active');
+                $(this).addClass('active');
+                
+                // Toggle sections
+                if (filterType === 'staff') {
+                    $('#staff-section').fadeIn(300);
+                    $('#vip-section').fadeOut(300);
+                } else if (filterType === 'vip') {
+                    $('#staff-section').fadeOut(300);
+                    $('#vip-section').fadeIn(300);
+                }
+            });
+        });
+    </script>
 {/block}
