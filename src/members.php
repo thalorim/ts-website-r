@@ -86,17 +86,36 @@ if ($tsConnected) {
             // Continue without online status
         }
 
-        // Fetch profile data from database for all members
+        // Fetch ALL server groups directly from TeamSpeak for ALL members
+        $allServerGroupsByClient = [];
+        if (!empty($clientGroupMap)) {
+            foreach (array_keys($clientGroupMap) as $dbid) {
+                try {
+                    // Query TeamSpeak directly for this client's server groups
+                    $clientInfo = $node->clientDBInfo($dbid);
+                    if ($clientInfo && isset($clientInfo['client_servergroups'])) {
+                        $sgStr = (string) $clientInfo['client_servergroups'];
+                        $allServerGroupsByClient[$dbid] = array_values(array_filter(
+                            array_map(function ($x) { return (int) trim($x); }, explode(',', $sgStr)),
+                            function ($v) { return $v > 0; }
+                        ));
+                    }
+                } catch (\Exception $e) {
+                    // If direct query fails, fallback will be used
+                }
+            }
+        }
+        
+        // Fetch profile data from database for nickname/country only
         $profilesById = [];
         if (!empty($clientGroupMap)) {
             try {
                 $ids = array_keys($clientGroupMap);
-                $rows = $db->select('profiles', ['cldbid', 'nickname', 'country', 'servergroups'], ['cldbid' => $ids]);
+                $rows = $db->select('profiles', ['cldbid', 'nickname', 'country'], ['cldbid' => $ids]);
                 foreach ($rows as $r) {
                     $profilesById[(int)$r['cldbid']] = [
                         'nickname' => (string) $r['nickname'],
                         'country' => (string) $r['country'],
-                        'servergroups' => (string) $r['servergroups'],
                     ];
                 }
             } catch (\Exception $e) {
@@ -111,6 +130,11 @@ if ($tsConnected) {
             $country = null;
             $isOnline = false;
             $servergroups = [];
+            
+            // Priority 1: Get ALL server groups from TeamSpeak clientDBInfo (ALWAYS FRESH)
+            if (isset($allServerGroupsByClient[$dbid])) {
+                $servergroups = $allServerGroupsByClient[$dbid];
+            }
             
             // Check if user is online and get live data
             if (isset($onlineClients[$dbid])) {
@@ -127,7 +151,7 @@ if ($tsConnected) {
                     $country = (string) $online['client_country'];
                 }
                 
-                // Get ALL server groups from online client (fresh data)
+                // Override with online server groups if available (most current)
                 if (isset($online['client_servergroups']) && !empty($online['client_servergroups'])) {
                     $sgStr = (string) $online['client_servergroups'];
                     $servergroups = array_values(array_filter(
@@ -137,20 +161,13 @@ if ($tsConnected) {
                 }
             }
             
-            // Fallback to profile database if not online or data missing
+            // Fallback to profile database for nickname/country only (NOT server groups)
             if (isset($profilesById[$dbid])) {
                 if (empty($nick) && !empty($profilesById[$dbid]['nickname'])) {
                     $nick = $profilesById[$dbid]['nickname'];
                 }
                 if (empty($country) && !empty($profilesById[$dbid]['country'])) {
                     $country = $profilesById[$dbid]['country'];
-                }
-                if (empty($servergroups) && !empty($profilesById[$dbid]['servergroups'])) {
-                    $sgStr = $profilesById[$dbid]['servergroups'];
-                    $servergroups = array_values(array_filter(
-                        array_map(function ($x) { return (int) trim($x); }, explode(',', $sgStr)),
-                        function ($v) { return $v > 0; }
-                    ));
                 }
             }
             
