@@ -32,7 +32,7 @@ $getBestPriority = function($groups) use ($groupPriority) {
     return !empty($priorities) ? min($priorities) : PHP_INT_MAX;
 };
 
-// Cache member list to avoid flooding ServerQuery (cache for 5 minutes)
+// Cache member list to avoid flooding ServerQuery (cache for 30 seconds)
 $membersCache = new PhpFileCache(__CACHE_DIR, "members_list");
 $cacheKey = "members_" . md5(json_encode($memberGroups));
 $members = [];
@@ -148,6 +148,7 @@ if (!is_array($members)) {
                         'nickname' => $nick ?: ('User #' . $dbid),
                         'country' => $country ?: null,
                         'cat' => $cat,
+                        'isOnline' => $isOnline,
                     ];
                 }
             }
@@ -186,15 +187,16 @@ if (!is_array($members)) {
                     "cldbid" => $dbid,
                     "nickname" => $nick ?: ("User #" . $dbid),
                     "country" => $country ?: null,
-                    "cat" => $cat
+                    "cat" => $cat,
+                    "isOnline" => false,
                 ];
             }
         } catch (\Exception $e) { /* ignore */ }
     }
     
-    // Store in cache for 5 minutes (300 seconds)
+    // Store in cache for 30 seconds to keep data fresh
     try {
-        $membersCache->store($cacheKey, $members, 300);
+        $membersCache->store($cacheKey, $members, 30);
     } catch (\Exception $e) { /* ignore cache errors */ }
 }
 
@@ -226,28 +228,48 @@ if (!empty($members) && $serverGroups) {
         foreach ($rows as $r) { $profileSgById[(int)$r['cldbid']] = (string) $r['servergroups']; }
     } catch (\Exception $e) { /* ignore */ }
 
-    // Cache for individual server group lookups (cache for 5 minutes)
+    // Cache for individual server group lookups (cache for 30 seconds)
     $sgCache = new PhpFileCache(__CACHE_DIR, "member_servergroups");
 
     foreach ($members as &$m) {
         $dbid = (int) $m['cldbid'];
         $sgids = [];
         
-        // Try to get from cache first
-        try {
-            $cached = $sgCache->retrieve("sg_" . $dbid);
-            if (is_array($cached)) {
-                $sgids = $cached;
-            }
-        } catch (\Exception $e) { /* cache miss, will fetch below */ }
+        // Priority 1: Get live server groups from online client
+        if (!empty($m['isOnline'])) {
+            try {
+                $online = CacheManager::i()->getClient($dbid);
+                if ($online && isset($online['client_servergroups'])) {
+                    $sgStr = (string) $online['client_servergroups'];
+                    $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $sgStr)), function ($v) { return $v > 0; }));
+                    
+                    // Store fresh online data in cache for 30 seconds
+                    if (!empty($sgids)) {
+                        try {
+                            $sgCache->store("sg_" . $dbid, $sgids, 30);
+                        } catch (\Exception $e) { /* ignore */ }
+                    }
+                }
+            } catch (\Exception $e) { /* ignore */ }
+        }
         
-        // If not in cache, get from database profile
+        // Priority 2: Try to get from cache (if user is offline or online fetch failed)
+        if (empty($sgids)) {
+            try {
+                $cached = $sgCache->retrieve("sg_" . $dbid);
+                if (is_array($cached)) {
+                    $sgids = $cached;
+                }
+            } catch (\Exception $e) { /* cache miss, will fetch below */ }
+        }
+        
+        // Priority 3: Fallback to database profile
         if (empty($sgids) && isset($profileSgById[$dbid]) && $profileSgById[$dbid] !== '') {
             $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $profileSgById[$dbid])), function ($v) { return $v > 0; }));
             
-            // Store in cache for 5 minutes
+            // Store in cache for 30 seconds
             try {
-                $sgCache->store("sg_" . $dbid, $sgids, 300);
+                $sgCache->store("sg_" . $dbid, $sgids, 30);
             } catch (\Exception $e) { /* ignore */ }
         }
         
