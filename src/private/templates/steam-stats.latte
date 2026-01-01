@@ -30,9 +30,15 @@
                             <div class="steam-header-info">
                                 {* TS Profile Link *}
                                 <div class="ts-profile-link">
-                                    <a href="profile.php?cldbid={$data['cldbid']}" title="View TeamSpeak Profile">
-                                        <i class="fas fa-user"></i> {$data['nickname']}
-                                    </a>
+                                    {if $data['cldbid'] > 0}
+                                        <a href="profile.php?cldbid={$data['cldbid']}" title="View TeamSpeak Profile">
+                                            <i class="fas fa-user"></i> {$data['nickname']}
+                                        </a>
+                                    {else}
+                                        <span>
+                                            <i class="fas fa-user"></i> {$data['nickname']}
+                                        </span>
+                                    {/if}
                                 </div>
                                 
                                 {* Steam Persona Name *}

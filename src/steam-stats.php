@@ -20,8 +20,46 @@ if (empty($steamApiKey)) {
     exit;
 }
 
-// Fetch all profiles that have Steam links
+// ====================================================================
+// MANUAL STEAM IDS - Add your Steam IDs here
+// ====================================================================
+// Format: ['nickname' => 'Display Name', 'steamId' => 'Steam ID or URL', 'cldbid' => profile_id]
+// 
+// Parameters:
+//   - nickname: The display name shown on the card (required)
+//   - steamId: Steam ID or URL in any format (required)
+//   - cldbid: TeamSpeak profile ID for linking to profile.php, use 0 for no link (optional)
+//
+// Supported Steam ID formats:
+//   - Direct Steam ID (64-bit): '76561198123456789'
+//   - Profile URL: 'https://steamcommunity.com/profiles/76561198123456789'
+//   - Custom URL: 'https://steamcommunity.com/id/yourusername'
+//
+// Examples:
+$manualSteamProfiles = [
+    // Uncomment and edit these examples:
+    // ['nickname' => 'John Doe', 'steamId' => '76561198123456789', 'cldbid' => 123],
+    // ['nickname' => 'Jane Smith', 'steamId' => 'https://steamcommunity.com/id/janesmith', 'cldbid' => 0],
+    // ['nickname' => 'Roshke', 'steamId' => 'https://steamcommunity.com/id/Roshkeee', 'cldbid' => 456],
+];
+// ====================================================================
+
+// Process manual Steam profiles
 $steamProfiles = [];
+foreach ($manualSteamProfiles as $manual) {
+    if (!empty($manual['steamId'])) {
+        $steamId = extractSteamId($manual['steamId']);
+        if ($steamId) {
+            $steamProfiles[] = [
+                'cldbid' => isset($manual['cldbid']) ? (int) $manual['cldbid'] : 0,
+                'nickname' => isset($manual['nickname']) ? $manual['nickname'] : 'Unknown Player',
+                'steamId' => $steamId
+            ];
+        }
+    }
+}
+
+// Fetch all profiles from database that have Steam links
 try {
     $rows = $db->select("profiles", ["cldbid", "nickname", "steam", "socials_json"], ["ORDER" => ["nickname" => "ASC"]]);
     
@@ -50,7 +88,7 @@ try {
         }
     }
 } catch (\Exception $e) {
-    // Continue with empty list
+    // Continue with manual profiles only
 }
 
 // Function to extract Steam ID from various Steam URL formats
