@@ -82,7 +82,7 @@ function fetchMembersByGroups($groupIds, $db, $node = null, $serverGroups = null
     if (!empty($clientGroupMap)) {
         try {
             $ids = array_keys($clientGroupMap);
-            $rows = $db->select('profiles', '*', ['cldbid' => $ids]);
+            $rows = $db->select('profiles', ['cldbid', 'nickname', 'country', 'avatar_url', 'socials_json', 'discord', 'steam', 'twitter', 'youtube', 'github'], ['cldbid' => $ids]);
             foreach ($rows as $r) {
                 $profilesById[(int)$r['cldbid']] = $r;
             }
@@ -131,10 +131,10 @@ function fetchMembersByGroups($groupIds, $db, $node = null, $serverGroups = null
                 $avatarUrl = (string) $profile['avatar_url'];
             }
             
-            // Get social links - parse JSON if stored as JSON
+            // Get social links - parse JSON from socials_json column
             $socialData = null;
-            if (!empty($profile['social_links'])) {
-                $socialData = json_decode($profile['social_links'], true);
+            if (!empty($profile['socials_json'])) {
+                $socialData = json_decode($profile['socials_json'], true);
             }
             
             if (is_array($socialData)) {
@@ -242,11 +242,11 @@ if (empty($staff) && empty($vipMembers)) {
             
             if (empty($sgids)) continue;
             
-            // Get social links
+            // Get social links from socials_json column
             $socialLinks = [];
             $socialData = null;
-            if (!empty($r['social_links'])) {
-                $socialData = json_decode($r['social_links'], true);
+            if (!empty($r['socials_json'])) {
+                $socialData = json_decode($r['socials_json'], true);
             }
             
             if (is_array($socialData)) {

@@ -23,20 +23,20 @@ if (empty($steamApiKey)) {
 // Fetch all profiles that have Steam links
 $steamProfiles = [];
 try {
-    $rows = $db->select("profiles", ["cldbid", "nickname", "steam", "social_links"], ["ORDER" => ["nickname" => "ASC"]]);
+    $rows = $db->select("profiles", ["cldbid", "nickname", "steam", "socials_json"], ["ORDER" => ["nickname" => "ASC"]]);
     
     foreach ($rows as $r) {
         $steamId = null;
         
-        // Try to get Steam ID from social_links JSON
-        if (!empty($r['social_links'])) {
-            $socialData = json_decode($r['social_links'], true);
+        // Try to get Steam ID from socials_json column
+        if (!empty($r['socials_json'])) {
+            $socialData = json_decode($r['socials_json'], true);
             if (is_array($socialData) && !empty($socialData['steam'])) {
                 $steamId = extractSteamId($socialData['steam']);
             }
         }
         
-        // Fallback to steam column
+        // Fallback to steam column if exists
         if (!$steamId && !empty($r['steam'])) {
             $steamId = extractSteamId($r['steam']);
         }
