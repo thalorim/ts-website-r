@@ -5,8 +5,11 @@
 {block content}
 
     <div class="card card-accent">
-        <div class="card-header bigger-title">
-            <i class="fas fa-users"></i> Members list
+        <div class="card-header bigger-title d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-users"></i> Members list</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="location.reload();" title="Refresh member data">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
         </div>
         <div class="card-body">
             {if $members === null || $members === false}
@@ -68,6 +71,10 @@
                                 {if !empty($m['servergroups']) && $serverGroups}
                                     {var $displayGroups = []}
                                     {foreach $m['servergroups'] as $gid}
+                                        {* Skip rank groups (996-1005) - they show in Rank column *}
+                                        {if $gid >= $rankMin && $gid <= $rankMax}
+                                            {continueIf true}
+                                        {/if}
                                         {if isset($serverGroups[$gid])}
                                             {var $displayGroups[] = $serverGroups[$gid]['name']}
                                         {/if}
