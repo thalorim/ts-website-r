@@ -189,6 +189,30 @@ if (!empty($steamProfiles)) {
         }
     }
     
+    // Fetch Steam levels for all users
+    $steamLevels = [];
+    foreach ($steamProfiles as $profile) {
+        $steamId = $profile['steamId'];
+        $levelUrl = "https://api.steampowered.com/IPlayerService/GetSteamLevel/v1/?key=" . urlencode($steamApiKey) . "&steamid=" . urlencode($steamId);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $levelUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($response && $httpCode === 200) {
+            $data = json_decode($response, true);
+            if (isset($data['response']['player_level'])) {
+                $steamLevels[$steamId] = (int) $data['response']['player_level'];
+            }
+        }
+    }
+    
     // Fetch games data for each profile
     foreach ($steamProfiles as $profile) {
         $steamId = $profile['steamId'];
@@ -264,7 +288,8 @@ if (!empty($steamProfiles)) {
             'totalPlaytime' => $totalPlaytime,
             'mostPlayedGame' => $mostPlayedGame,
             'recentGames' => $recentGames,
-            'gameCount' => count($games)
+            'gameCount' => count($games),
+            'steamLevel' => isset($steamLevels[$steamId]) ? $steamLevels[$steamId] : 0
         ];
     }
 }
