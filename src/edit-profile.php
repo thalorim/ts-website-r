@@ -86,6 +86,12 @@ try {
     if (!$colExists5) {
         $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `userbar_url` VARCHAR(512) NULL AFTER `description`");
     }
+
+    $colStmt6 = $db->query("SHOW COLUMNS FROM `{$rawTableName}` LIKE 'discord_id'");
+    $colExists6 = $colStmt6 && $colStmt6->fetchColumn();
+    if (!$colExists6) {
+        $db->query("ALTER TABLE `{$rawTableName}` ADD COLUMN `discord_id` VARCHAR(64) NULL AFTER `userbar_url`");
+    }
 } catch (\Exception $e) {
     TemplateUtils::i()->renderErrorTemplate("DB error", "Failed ensuring avatar column", $e->getMessage());
     exit;
@@ -234,6 +240,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $updateData["userbar_url"] = $userbarUrl !== "" ? $userbarUrl : null;
         }
 
+        // Handle Discord ID
+        if (isset($_POST["discord_id"])) {
+            $discordId = trim((string) $_POST["discord_id"]);
+            // Validate Discord ID (should be numeric and 17-19 digits)
+            if ($discordId !== "" && preg_match('/^\d{17,19}$/', $discordId)) {
+                $updateData["discord_id"] = $discordId;
+            } else if ($discordId === "") {
+                $updateData["discord_id"] = null;
+            }
+        }
+
         $selectedBorder = isset($_POST["avatar_border"]) ? trim((string) $_POST["avatar_border"]) : null;
         $updateData["avatar_border"] = AvatarBorderUtils::normalize($selectedBorder);
 
@@ -251,12 +268,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 // Fetch current data to display in form
-$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description","userbar_url"], ["cldbid" => $requestedCldbid]);
+$current = $db->get("profiles", ["avatar_url","avatar_border","socials_json","banner_url","description","userbar_url","discord_id"], ["cldbid" => $requestedCldbid]);
 $currentAvatar = $current && isset($current["avatar_url"]) && $current["avatar_url"] ? $current["avatar_url"] : "img/icons/defaulticon-128.png";
 $currentAvatarBorder = AvatarBorderUtils::normalize($current["avatar_border"] ?? null);
 $currentAvatarBorderUrl = AvatarBorderUtils::getUrl($currentAvatarBorder);
 $currentDescription = $current && isset($current["description"]) ? $current["description"] : null;
 $currentUserbarUrl = $current && isset($current["userbar_url"]) ? $current["userbar_url"] : null;
+$currentDiscordId = $current && isset($current["discord_id"]) ? $current["discord_id"] : null;
 $currentSocials = [];
 if ($current && !empty($current["socials_json"])) {
     $decoded = json_decode((string) $current["socials_json"], true);
@@ -276,6 +294,7 @@ TemplateUtils::i()->renderTemplate("edit-profile", [
     "currentDescription" => $currentDescription,
     "currentSocials" => $currentSocials,
     "currentUserbarUrl" => $currentUserbarUrl,
+    "currentDiscordId" => $currentDiscordId,
     "canEditUserbar" => $canEditUserbar,
     "message" => $message,
     "error" => $error,

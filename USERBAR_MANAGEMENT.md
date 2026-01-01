@@ -1,7 +1,9 @@
-# Profile Userbar Management Guide
+# Profile Customization Management Guide
 
 ## Overview
-The profile userbar feature allows certain user groups to display custom userbar images on their profile pages. The feature is fully database-configurable.
+This guide covers two profile customization features:
+1. **Profile Userbar**: Allows certain user groups to display custom userbar images on their profile pages
+2. **Discord Status Widget**: Displays real-time Discord presence for users who have linked their Discord ID
 
 ## Database Tables
 
@@ -106,3 +108,73 @@ WHERE `cldbid` = USER_CLDBID;
 - No caching is used for group permissions (always fresh from database)
 - If a user's group is removed from `userbar_groups`, they lose access to edit the field but their existing userbar remains displayed
 - The userbar URL is stored per-user in the profiles table
+
+---
+
+## Discord Status Widget
+
+### Overview
+The Discord Status Widget displays real-time Discord presence information on user profiles, including:
+- Discord avatar
+- Display name (global name)
+- Username and discriminator
+- Online status (Online, Idle, DND, Offline)
+
+### Database Column
+- `discord_id` (VARCHAR 64) - Stores the Discord User ID
+
+### How It Works
+
+1. **User Setup:**
+   - Users can enter their Discord User ID in the Edit Profile page
+   - Discord User IDs are 17-19 digit numbers
+   - Users can find their Discord ID by enabling Developer Mode in Discord settings
+   - **Important:** Users must join the [Lanyard Discord server](https://discord.gg/lanyard) for their presence to be tracked
+
+2. **Data Fetching:**
+   - Uses the Lanyard API (https://api.lanyard.rest) to fetch real-time Discord presence
+   - Data is fetched on each profile page load (no caching)
+   - Falls back gracefully if Discord ID is invalid or API is unavailable
+   - Requires users to be in the Lanyard Discord server for tracking
+
+3. **Display:**
+   - Widget appears in the sidebar, below the Admin Status widget
+   - Only shows when user has a valid Discord ID configured
+   - Compact design with avatar, name, and status indicator
+
+### Managing Discord IDs
+
+#### View Users with Discord IDs
+```sql
+SELECT `cldbid`, `nickname`, `discord_id` 
+FROM `profiles` 
+WHERE `discord_id` IS NOT NULL;
+```
+
+#### Manually Set a User's Discord ID
+```sql
+UPDATE `profiles` 
+SET `discord_id` = '123456789012345678' 
+WHERE `cldbid` = USER_CLDBID;
+```
+
+#### Remove a User's Discord ID
+```sql
+UPDATE `profiles` 
+SET `discord_id` = NULL 
+WHERE `cldbid` = USER_CLDBID;
+```
+
+### Status Colors
+- **Online**: Green (#43b581)
+- **Idle**: Orange (#faa61a)
+- **Do Not Disturb**: Red (#f04747)
+- **Offline**: Gray (#747f8d)
+
+### Technical Details
+- Validates Discord ID format (17-19 digits)
+- 5-second timeout for API requests
+- Uses Lanyard API for real-time presence tracking
+- Supports both new username system (no discriminator) and legacy system
+- Automatically generates avatar URLs from Discord CDN
+- Handles both standard and animated avatars (GIF)

@@ -112,6 +112,12 @@
                     <label for="description"><i class="fas fa-align-left"></i> Profile description</label>
                     <textarea id="description" name="description" class="form-control" rows="4" placeholder="Tell others something about you...">{$currentDescription ?? ''}</textarea>
                 </div>
+                <hr>
+                <div class="form-group">
+                    <label for="discord_id"><i class="fab fa-discord"></i> Discord User ID</label>
+                    <input id="discord_id" name="discord_id" type="text" class="form-control" placeholder="123456789012345678" value="{$currentDiscordId ?? ''}" pattern="\d{17,19}">
+                    <small class="form-text text-muted">Enter your Discord User ID to display your Discord status on your profile. <a href="https://support.discord.com/hc/en-us/articles/206346498" target="_blank" rel="noopener">How to find your Discord ID</a></small>
+                </div>
                 {if $canEditUserbar}
                     <hr>
                     <div class="form-group">

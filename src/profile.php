@@ -6,6 +6,7 @@ use Wruczek\TSWebsite\Utils\DatabaseUtils;
 use Wruczek\TSWebsite\Utils\TemplateUtils;
 use Wruczek\TSWebsite\Config;
 use Wruczek\TSWebsite\Utils\TeamSpeakUtils;
+use Wruczek\TSWebsite\Utils\DiscordUtils;
 use Wruczek\PhpFileCache\PhpFileCache;
 
 require_once __DIR__ . "/private/php/load.php";
@@ -332,6 +333,17 @@ $bannerUrl = ($dbProfile && !empty($dbProfile["banner_url"])) ? $dbProfile["bann
 $avatarBorderKey = $dbProfile && isset($dbProfile["avatar_border"]) ? AvatarBorderUtils::normalize($dbProfile["avatar_border"]) : AvatarBorderUtils::getDefaultKey();
 $avatarBorderUrl = AvatarBorderUtils::getUrl($avatarBorderKey);
 $userbarUrl = ($dbProfile && !empty($dbProfile["userbar_url"])) ? $dbProfile["userbar_url"] : null;
+
+// Fetch Discord data if discord_id is set
+$discordData = null;
+if ($dbProfile && !empty($dbProfile["discord_id"])) {
+    try {
+        $discordData = DiscordUtils::i()->getUserData($dbProfile["discord_id"]);
+    } catch (\Exception $e) {
+        // Silently fail - Discord widget just won't show
+    }
+}
+
 // Prefer user-saved description if present
 if ($dbProfile && !empty($dbProfile["description"])) {
     $profileData["description"] = (string) $dbProfile["description"];
@@ -447,6 +459,7 @@ $renderData = [
     "currentChannelId" => isset($profileData['cid']) ? (int) $profileData['cid'] : null,
     "rankImageUrl" => $rankImageUrl,
     "rankLevel" => $rankLevel,
+    "discordData" => $discordData,
 ];
 
 // Compute last seen text for offline users
