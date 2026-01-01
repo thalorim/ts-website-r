@@ -242,12 +242,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         // Handle Discord ID
         if (isset($_POST["discord_id"])) {
-            $discordId = trim((string) $_POST["discord_id"]);
-            // Validate Discord ID (should be numeric and 17-19 digits)
-            if ($discordId !== "" && preg_match('/^\d{17,19}$/', $discordId)) {
-                $updateData["discord_id"] = $discordId;
-            } else if ($discordId === "") {
+            $discordIdInput = trim((string) $_POST["discord_id"]);
+            
+            if ($discordIdInput === "") {
+                // Empty = remove Discord ID
                 $updateData["discord_id"] = null;
+            } else {
+                // Try to extract Discord ID from input (supports both raw ID and URL)
+                $discordId = null;
+                
+                // Check if it's a URL
+                if (preg_match('#discord\.com/users/(\d{17,19})#', $discordIdInput, $matches)) {
+                    $discordId = $matches[1];
+                } else if (preg_match('/^\d{17,19}$/', $discordIdInput)) {
+                    // Direct ID input
+                    $discordId = $discordIdInput;
+                }
+                
+                if ($discordId) {
+                    $updateData["discord_id"] = $discordId;
+                } else {
+                    throw new \Exception("Invalid Discord ID format. Please enter either your Discord User ID (17-19 digits) or your Discord profile URL.");
+                }
             }
         }
 
