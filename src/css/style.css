@@ -12,25 +12,25 @@ body {
     font-size: 15px;
 }
 
-/* Make sidebar stretch to match main content height - ONLY on profile page */
+/* Make sidebar stretch to match main content height - ONLY on profile page with Discord widget */
 @media (min-width: 992px) {
-    body.page-profile .container > .row {
+    body.page-profile.has-discord-widget .container > .row {
         display: flex;
         flex-wrap: wrap;
     }
     
-    body.page-profile .container > .row > .col-lg-3 {
+    body.page-profile.has-discord-widget .container > .row > .col-lg-3 {
         display: flex;
         flex-direction: column;
     }
     
-    body.page-profile .sidebar-wrapper {
+    body.page-profile.has-discord-widget .sidebar-wrapper {
         display: flex;
         flex-direction: column;
         flex: 1;
     }
     
-    body.page-profile .sidebar-wrapper .card:last-child {
+    body.page-profile.has-discord-widget .sidebar-wrapper .card:last-child {
         margin-top: auto;
     }
 }

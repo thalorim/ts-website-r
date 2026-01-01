@@ -443,10 +443,16 @@ foreach ($socials as $key => $url) {
     ];
 }
 
+// Build page classes - only add has-discord-widget if Discord data exists
+$pageClasses = "page-profile";
+if ($discordData !== null) {
+    $pageClasses .= " has-discord-widget";
+}
+
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
-    "pageClass" => "page-profile",
+    "pageClass" => $pageClasses,
     "isOnline" => $isOnline,
     "profile" => $profileData,
     "avatarUrl" => $avatarUrl,
