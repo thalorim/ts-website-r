@@ -100,8 +100,22 @@
                 </div>
             </div>
             <hr>
-            <p><strong>Description</strong></p>
-            <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
+            <div class="row">
+                <div class="col-md-{ifset $discordId}6{else}12{/ifset}">
+                    <p><strong>Description</strong></p>
+                    <div class="desc">{ifset $profile["description"]}{$profile["description"]|noescape}{else}<em>No description</em>{/ifset}</div>
+                </div>
+                {ifset $discordId}
+                <div class="col-md-6">
+                    <p><strong>Discord Status</strong></p>
+                    <div id="lanyard-widget-{$profile['cldbid']}" class="lanyard-widget" data-discord-id="{$discordId}">
+                        <div class="lanyard-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading Discord status...
+                        </div>
+                    </div>
+                </div>
+                {/ifset}
+            </div>
         </div>
     </div>
 
@@ -126,3 +140,7 @@
     </div>
 {/block}
 
+{block footerbottom}
+{php $tplutils = Wruczek\TSWebsite\Utils\TemplateUtils::i()}
+{$tplutils::includeScript("js/lanyard.js", true)}
+{/block}

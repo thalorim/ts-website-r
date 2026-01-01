@@ -567,6 +567,158 @@ table.dataTable > tbody > tr.child td.child {
     100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
 }
 
+/* Discord Lanyard Widget */
+.lanyard-widget {
+    background: #f8f9fa;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    min-height: 100px;
+}
+
+.lanyard-loading {
+    text-align: center;
+    color: #6c757d;
+    padding: 1rem;
+}
+
+.lanyard-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.lanyard-user {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.lanyard-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    margin-right: 1rem;
+    position: relative;
+}
+
+.lanyard-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.lanyard-status-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid #f8f9fa;
+    background-color: #747f8d;
+}
+
+.lanyard-status-indicator.online {
+    background-color: #43b581;
+}
+
+.lanyard-status-indicator.idle {
+    background-color: #faa61a;
+}
+
+.lanyard-status-indicator.dnd {
+    background-color: #f04747;
+}
+
+.lanyard-user-info {
+    flex: 1;
+}
+
+.lanyard-username {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    color: #2c3e50;
+}
+
+.lanyard-discriminator {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.lanyard-status-text {
+    color: #495057;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.lanyard-activity {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.lanyard-activity-header {
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+.lanyard-activity-content {
+    display: flex;
+    align-items: center;
+}
+
+.lanyard-activity-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 0.375rem;
+    margin-right: 0.75rem;
+    object-fit: cover;
+}
+
+.lanyard-activity-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.lanyard-activity-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lanyard-activity-details-text {
+    font-size: 0.85rem;
+    color: #6c757d;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lanyard-activity-state {
+    font-size: 0.85rem;
+    color: #6c757d;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lanyard-error {
+    text-align: center;
+    color: #dc3545;
+    padding: 1rem;
+}
+
 /* Mobile responsive fixes for avatar and border overlay */
 @media (max-width: 768px) {
     .steamlike-header .avatar-and-meta {
@@ -587,6 +739,10 @@ table.dataTable > tbody > tr.child td.child {
     
     .avatar-preview {
         margin: 0 auto;
+    }
+    
+    .lanyard-widget {
+        margin-top: 1rem;
     }
 }
 
