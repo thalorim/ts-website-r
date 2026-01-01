@@ -71,6 +71,10 @@
                                 {if !empty($m['servergroups']) && $serverGroups}
                                     {var $displayGroups = []}
                                     {foreach $m['servergroups'] as $gid}
+                                        {* Skip rank groups (996-1005) - they show in Rank column *}
+                                        {if $gid >= $rankMin && $gid <= $rankMax}
+                                            {continueIf true}
+                                        {/if}
                                         {if isset($serverGroups[$gid])}
                                             {var $displayGroups[] = $serverGroups[$gid]['name']}
                                         {/if}

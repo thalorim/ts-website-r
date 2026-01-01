@@ -355,5 +355,7 @@ TemplateUtils::i()->renderTemplate("members", [
     "title" => "Members list",
     "navActiveIndex" => 6,
     "members" => $members,
-    "serverGroups" => $serverGroups
+    "serverGroups" => $serverGroups,
+    "rankMin" => $rankMin,
+    "rankMax" => $rankMax
 ]);
