@@ -106,16 +106,17 @@ if ($tsConnected) {
             }
         }
         
-        // Fetch profile data from database for nickname/country only
+        // Fetch profile data from database (including servergroups as fallback)
         $profilesById = [];
         if (!empty($clientGroupMap)) {
             try {
                 $ids = array_keys($clientGroupMap);
-                $rows = $db->select('profiles', ['cldbid', 'nickname', 'country'], ['cldbid' => $ids]);
+                $rows = $db->select('profiles', ['cldbid', 'nickname', 'country', 'servergroups'], ['cldbid' => $ids]);
                 foreach ($rows as $r) {
                     $profilesById[(int)$r['cldbid']] = [
                         'nickname' => (string) $r['nickname'],
                         'country' => (string) $r['country'],
+                        'servergroups' => (string) $r['servergroups'],
                     ];
                 }
             } catch (\Exception $e) {
@@ -130,11 +131,6 @@ if ($tsConnected) {
             $country = null;
             $isOnline = false;
             $servergroups = [];
-            
-            // Priority 1: Get ALL server groups from TeamSpeak clientDBInfo (ALWAYS FRESH)
-            if (isset($allServerGroupsByClient[$dbid])) {
-                $servergroups = $allServerGroupsByClient[$dbid];
-            }
             
             // Check if user is online and get live data
             if (isset($onlineClients[$dbid])) {
@@ -151,7 +147,7 @@ if ($tsConnected) {
                     $country = (string) $online['client_country'];
                 }
                 
-                // Override with online server groups if available (most current)
+                // Priority 1: Get server groups from online client (MOST CURRENT)
                 if (isset($online['client_servergroups']) && !empty($online['client_servergroups'])) {
                     $sgStr = (string) $online['client_servergroups'];
                     $servergroups = array_values(array_filter(
@@ -161,13 +157,26 @@ if ($tsConnected) {
                 }
             }
             
-            // Fallback to profile database for nickname/country only (NOT server groups)
+            // Priority 2: Get server groups from TeamSpeak clientDBInfo (if online didn't provide)
+            if (empty($servergroups) && isset($allServerGroupsByClient[$dbid])) {
+                $servergroups = $allServerGroupsByClient[$dbid];
+            }
+            
+            // Fallback to profile database for nickname/country and server groups
             if (isset($profilesById[$dbid])) {
                 if (empty($nick) && !empty($profilesById[$dbid]['nickname'])) {
                     $nick = $profilesById[$dbid]['nickname'];
                 }
                 if (empty($country) && !empty($profilesById[$dbid]['country'])) {
                     $country = $profilesById[$dbid]['country'];
+                }
+                // Priority 3: Fallback to database server groups if TeamSpeak queries failed
+                if (empty($servergroups) && !empty($profilesById[$dbid]['servergroups'])) {
+                    $sgStr = $profilesById[$dbid]['servergroups'];
+                    $servergroups = array_values(array_filter(
+                        array_map(function ($x) { return (int) trim($x); }, explode(',', $sgStr)),
+                        function ($v) { return $v > 0; }
+                    ));
                 }
             }
             
