@@ -1,0 +1,65 @@
+<div class="vip-card">
+    {* Online Status Badge *}
+    {if $member['isOnline']}
+        <div class="vip-online-badge" title="Online">
+            <span class="status-dot green"></span>
+        </div>
+    {/if}
+
+    {* Avatar *}
+    <div class="vip-avatar-container">
+        {if $member['avatarUrl']}
+            <img src="{$member['avatarUrl']}" alt="{$member['nickname']}" class="vip-avatar">
+        {else}
+            <div class="vip-avatar-placeholder">
+                <i class="fas fa-user"></i>
+            </div>
+        {/if}
+    </div>
+
+    {* Name *}
+    <div class="vip-name" title="{$member['nickname']}">
+        <a href="profile.php?cldbid={$member['cldbid']}">{$member['nickname']}</a>
+    </div>
+
+    {* Country Flag *}
+    {if isset($member['country']) && $member['country']}
+        <div class="vip-country">
+            <span class="famfamfam-flags {strtolower($member['country'])}"></span>
+            <span>{strtoupper($member['country'])}</span>
+        </div>
+    {/if}
+
+    {* Social Media Buttons *}
+    <div class="vip-social-links">
+        {if !empty($member['socialLinks']['discord'])}
+            <a href="{$member['socialLinks']['discord']}" target="_blank" class="vip-social-btn discord" title="Discord">
+                <i class="fab fa-discord"></i>
+            </a>
+        {else}
+            <span class="vip-social-btn disabled" title="Discord not available">
+                <i class="fab fa-discord"></i>
+            </span>
+        {/if}
+
+        {if !empty($member['socialLinks']['steam'])}
+            <a href="{$member['socialLinks']['steam']}" target="_blank" class="vip-social-btn steam" title="Steam">
+                <i class="fab fa-steam"></i>
+            </a>
+        {else}
+            <span class="vip-social-btn disabled" title="Steam not available">
+                <i class="fab fa-steam"></i>
+            </span>
+        {/if}
+
+        {if !empty($member['socialLinks']['twitter'])}
+            <a href="{$member['socialLinks']['twitter']}" target="_blank" class="vip-social-btn twitter" title="Twitter">
+                <i class="fab fa-twitter"></i>
+            </a>
+        {else}
+            <span class="vip-social-btn disabled" title="Twitter not available">
+                <i class="fab fa-twitter"></i>
+            </span>
+        {/if}
+    </div>
+</div>
