@@ -584,6 +584,16 @@ table.dataTable > tbody > tr.child td.child {
 .status-dot.gray { background: #6c757d; }
 .status-dot.gray::after { box-shadow: 0 0 0 0 rgba(108,117,125,0.6); }
 
+/* Discord status colors */
+.status-dot.discord-online { background: #43b581; }
+.status-dot.discord-online::after { box-shadow: 0 0 0 0 rgba(67,181,129,0.6); }
+.status-dot.discord-idle { background: #faa61a; }
+.status-dot.discord-idle::after { box-shadow: 0 0 0 0 rgba(250,166,26,0.6); }
+.status-dot.discord-dnd { background: #f04747; }
+.status-dot.discord-dnd::after { box-shadow: 0 0 0 0 rgba(240,71,71,0.6); }
+.status-dot.discord-offline { background: #747f8d; }
+.status-dot.discord-offline::after { box-shadow: 0 0 0 0 rgba(116,127,141,0.6); }
+
 @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(0,0,0,0.3); }
     70% { box-shadow: 0 0 0 8px rgba(0,0,0,0); }

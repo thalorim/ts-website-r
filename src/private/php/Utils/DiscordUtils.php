@@ -78,9 +78,10 @@ class DiscordUtils {
                 }
             }
             
-            // Format status text
+            // Format status text and CSS class
             $result['status_text'] = ucfirst($result['discord_status']);
             $result['status_color'] = $this->getStatusColor($result['discord_status']);
+            $result['status_class'] = $this->getStatusClass($result['discord_status']);
             
             return $result;
             
@@ -105,6 +106,25 @@ class DiscordUtils {
             case 'offline':
             default:
                 return '#747f8d'; // Gray
+        }
+    }
+    
+    /**
+     * Get status CSS class for display
+     * @param string $status Discord status
+     * @return string CSS class name
+     */
+    private function getStatusClass($status) {
+        switch ($status) {
+            case 'online':
+                return 'discord-online';
+            case 'idle':
+                return 'discord-idle';
+            case 'dnd':
+                return 'discord-dnd';
+            case 'offline':
+            default:
+                return 'discord-offline';
         }
     }
 }
