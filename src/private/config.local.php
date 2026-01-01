@@ -14,5 +14,9 @@ return [
 
     // Admin status will display members of server group ID 6
     'adminstatus_groups' => [6],
+    
+    // Steam API key for Steam statistics page
+    // Get your key from: https://steamcommunity.com/dev/apikey
+    'steam_api_key' => 'YOUR_STEAM_API_KEY_HERE',
 ];
 

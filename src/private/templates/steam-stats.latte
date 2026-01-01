@@ -1,0 +1,466 @@
+{extends "body.latte"}
+{var $title = "Steam Statistics"}
+
+{block content}
+    <div class="card card-titleblock card-accent">
+        <div class="card-header">
+            <i class="fab fa-steam"></i> Steam Statistics
+        </div>
+    </div>
+
+    {if !$steamData || count($steamData) === 0}
+        <div class="alert alert-info text-center" role="alert">
+            <i class="fas fa-info-circle"></i> No Steam profiles found. Users need to add their Steam profile to their account.
+        </div>
+    {else}
+        <div class="steam-stats-grid">
+            {foreach $steamData as $data}
+                <div class="steam-card card">
+                    <div class="card-body">
+                        {* Steam Status Badge *}
+                        <div class="steam-status-badge {$data['statusClass']}" title="{$data['statusText']}">
+                            <i class="fas {$data['statusIcon']}"></i>
+                        </div>
+                        
+                        {* Steam Profile Header *}
+                        <div class="steam-header">
+                            {if $data['playerInfo'] && isset($data['playerInfo']['avatarmedium'])}
+                                <img src="{$data['playerInfo']['avatarmedium']}" alt="Steam Avatar" class="steam-avatar">
+                            {else}
+                                <div class="steam-avatar-placeholder">
+                                    <i class="fab fa-steam"></i>
+                                </div>
+                            {/if}
+                            
+                            <div class="steam-header-info">
+                                {* Steam Level Badge *}
+                                {if $data['steamLevel'] > 0}
+                                    <div class="steam-level-badge" title="Steam Level {$data['steamLevel']}">
+                                        <i class="fas fa-layer-group"></i> {$data['steamLevel']}
+                                    </div>
+                                {/if}
+                                
+                                {* TS Profile Link *}
+                                <div class="ts-profile-link">
+                                    {if $data['cldbid'] > 0}
+                                        <a href="profile.php?cldbid={$data['cldbid']}" title="View TeamSpeak Profile">
+                                            {$data['nickname']}
+                                        </a>
+                                    {else}
+                                        <span>{$data['nickname']}</span>
+                                    {/if}
+                                </div>
+                                
+                                {* Steam Persona Name *}
+                                {if $data['playerInfo'] && isset($data['playerInfo']['personaname'])}
+                                    <div class="steam-persona-name">
+                                        {if isset($data['playerInfo']['profileurl'])}
+                                            <a href="{$data['playerInfo']['profileurl']}" target="_blank" class="steam-profile-link">
+                                                <i class="fab fa-steam"></i> {$data['playerInfo']['personaname']}
+                                            </a>
+                                        {else}
+                                            <i class="fab fa-steam"></i> {$data['playerInfo']['personaname']}
+                                        {/if}
+                                    </div>
+                                {/if}
+                            </div>
+                        </div>
+
+                        {* Stats Section *}
+                        <div class="steam-stats">
+                            <div class="stat-item">
+                                <div class="stat-label"><i class="fas fa-gamepad"></i> Games</div>
+                                <div class="stat-value">{$data['gameCount']}</div>
+                            </div>
+                            
+                            <div class="stat-item">
+                                <div class="stat-label"><i class="fas fa-clock"></i> Hours</div>
+                                <div class="stat-value">{round($data['totalPlaytime'] / 60, 1)}</div>
+                            </div>
+                        </div>
+
+                        {* Most Played Game *}
+                        {if $data['mostPlayedGame']}
+                            <div class="most-played-section">
+                                <div class="section-title"><i class="fas fa-trophy"></i> Most Played</div>
+                                <div class="most-played-game">
+                                    {if isset($data['mostPlayedGame']['img_icon_url'])}
+                                        <img src="https://media.steampowered.com/steamcommunity/public/images/apps/{$data['mostPlayedGame']['appid']}/{$data['mostPlayedGame']['img_icon_url']}.jpg" 
+                                             alt="{$data['mostPlayedGame']['name']}" 
+                                             class="game-icon">
+                                    {/if}
+                                    <div class="game-info">
+                                        <div class="game-name">{$data['mostPlayedGame']['name']}</div>
+                                        <div class="game-playtime">{round($data['mostPlayedGame']['playtime_forever'] / 60, 1)}h</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {/if}
+
+                        {* Recent Games *}
+                        {if !empty($data['recentGames'])}
+                            <div class="recent-games-section">
+                                <div class="section-title"><i class="fas fa-history"></i> Recent</div>
+                                <div class="recent-games-grid">
+                                    {foreach $data['recentGames'] as $game}
+                                        <div class="recent-game-card" title="{$game['name']}">
+                                            {if isset($game['img_logo_url'])}
+                                                <img src="https://media.steampowered.com/steamcommunity/public/images/apps/{$game['appid']}/{$game['img_logo_url']}.jpg" 
+                                                     alt="{$game['name']}" 
+                                                     class="recent-game-image">
+                                            {else}
+                                                <div class="recent-game-placeholder">
+                                                    <i class="fas fa-gamepad"></i>
+                                                </div>
+                                            {/if}
+                                            <div class="recent-game-info">
+                                                <div class="recent-game-name">{$game['name']}</div>
+                                                <div class="recent-game-time">{round($game['playtime_forever'] / 60, 1)}h</div>
+                                            </div>
+                                        </div>
+                                    {/foreach}
+                                </div>
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+            {/foreach}
+        </div>
+    {/if}
+{/block}
+
+{block footerbottom}
+    <style>
+        /* Steam Stats Grid */
+        .steam-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .steam-stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Steam Card */
+        .steam-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            height: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .steam-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .steam-card .card-body {
+            padding: 1rem;
+        }
+        
+        /* Steam Status Badge */
+        .steam-status-badge {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            z-index: 1;
+        }
+        
+        .steam-status-badge.online {
+            background: rgba(87, 242, 135, 0.2);
+            color: #57f287;
+            border: 1px solid rgba(87, 242, 135, 0.3);
+        }
+        
+        .steam-status-badge.offline {
+            background: rgba(128, 132, 142, 0.2);
+            color: #80848e;
+            border: 1px solid rgba(128, 132, 142, 0.3);
+        }
+        
+        .steam-status-badge.busy {
+            background: rgba(237, 66, 69, 0.2);
+            color: #ed4245;
+            border: 1px solid rgba(237, 66, 69, 0.3);
+        }
+        
+        .steam-status-badge.away {
+            background: rgba(254, 231, 92, 0.2);
+            color: #fee75c;
+            border: 1px solid rgba(254, 231, 92, 0.3);
+        }
+        
+        .steam-status-badge.snooze {
+            background: rgba(128, 132, 142, 0.2);
+            color: #80848e;
+            border: 1px solid rgba(128, 132, 142, 0.3);
+        }
+        
+        .steam-status-badge.trade {
+            background: rgba(88, 101, 242, 0.2);
+            color: #5865f2;
+            border: 1px solid rgba(88, 101, 242, 0.3);
+        }
+        
+        .steam-status-badge.play {
+            background: rgba(87, 242, 135, 0.2);
+            color: #57f287;
+            border: 1px solid rgba(87, 242, 135, 0.3);
+        }
+
+        /* Steam Header */
+        .steam-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .steam-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .steam-avatar-placeholder {
+            width: 64px;
+            height: 64px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .steam-header-info {
+            width: 100%;
+            min-width: 0;
+        }
+        
+        .steam-level-badge {
+            display: inline-block;
+            background: rgba(0, 123, 255, 0.2);
+            color: #007bff;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(0, 123, 255, 0.3);
+        }
+
+        .ts-profile-link {
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+
+        .ts-profile-link a, .ts-profile-link span {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .ts-profile-link a:hover {
+            color: #007bff;
+        }
+
+        .steam-persona-name {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .steam-profile-link {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .steam-profile-link:hover {
+            color: #007bff;
+        }
+
+        /* Stats Section */
+        .steam-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.75rem 0.5rem;
+            border-radius: 0.375rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label i {
+            margin-right: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #007bff;
+        }
+
+        /* Section Titles */
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-title i {
+            color: #007bff;
+            margin-right: 0.25rem;
+        }
+
+        /* Most Played Section */
+        .most-played-section {
+            margin-bottom: 0.75rem;
+        }
+
+        .most-played-game {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .game-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 0.25rem;
+            flex-shrink: 0;
+        }
+
+        .game-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .game-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-bottom: 0.125rem;
+        }
+
+        .game-playtime {
+            font-size: 0.7rem;
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        /* Recent Games Section */
+        .recent-games-section {
+            margin-top: 0.75rem;
+        }
+
+        .recent-games-grid {
+            display: grid;
+            gap: 0.375rem;
+        }
+
+        .recent-game-card {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.375rem 0.5rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .recent-game-card:hover {
+            background: rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(3px);
+        }
+
+        .recent-game-image {
+            width: 32px;
+            height: 12px;
+            object-fit: cover;
+            border-radius: 0.15rem;
+            flex-shrink: 0;
+        }
+
+        .recent-game-placeholder {
+            width: 32px;
+            height: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.15rem;
+            font-size: 0.6rem;
+            color: rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+        }
+
+        .recent-game-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .recent-game-name {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.9);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .recent-game-time {
+            font-size: 0.7rem;
+            color: #007bff;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+    </style>
+{/block}

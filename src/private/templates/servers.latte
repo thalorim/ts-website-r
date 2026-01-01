@@ -1,0 +1,421 @@
+{extends "body.latte"}
+{var $title = "Game Servers"}
+
+{block content}
+    <div class="card card-titleblock card-accent">
+        <div class="card-header">
+            <i class="fas fa-server"></i> Game Servers
+        </div>
+    </div>
+
+    <!-- Server Type Filters -->
+    <div class="server-filters">
+        <button class="btn btn-outline-primary filter-btn active" data-filter="all">
+            <i class="fas fa-list"></i> All Servers
+        </button>
+        <button class="btn btn-outline-primary filter-btn" data-filter="cs2">
+            <i class="fas fa-crosshairs"></i> CS2
+        </button>
+        <button class="btn btn-outline-primary filter-btn" data-filter="minecraft">
+            <i class="fas fa-cube"></i> Minecraft
+        </button>
+        <button class="btn btn-outline-primary filter-btn" data-filter="teamspeak">
+            <i class="fas fa-microphone"></i> TeamSpeak
+        </button>
+    </div>
+
+    {if !$servers || count($servers) === 0}
+        <div class="alert alert-info text-center" role="alert">
+            <i class="fas fa-info-circle"></i> No servers available at the moment.
+        </div>
+    {else}
+        <div class="servers-grid">
+            {foreach $servers as $server}
+                <div class="server-card card" data-server-type="{strtolower($server['app']['name'])}">
+                    <div class="card-body">
+                        <!-- Server Status Badge -->
+                        <div class="server-status-badge">
+                            {if $server['status'] && !isset($server['error'])}
+                                <span class="status-indicator status-online" title="Online">
+                                    <i class="fas fa-circle"></i>
+                                </span>
+                            {else}
+                                <span class="status-indicator status-offline" title="Offline">
+                                    <i class="fas fa-circle"></i>
+                                </span>
+                            {/if}
+                        </div>
+
+                        <!-- Server Name -->
+                        <h5 class="server-name" title="{$server['name']}">{$server['name']}</h5>
+
+                        <!-- Server Game Type -->
+                        <div class="server-game-badge">
+                            <span class="badge badge-primary">
+                                <i class="fas fa-gamepad"></i> {$server['app']['name']}
+                            </span>
+                        </div>
+
+                        <!-- Server Details -->
+                        <div class="server-details">
+                            <div class="detail-row">
+                                <span class="detail-label">
+                                    <i class="fas fa-users"></i> Players
+                                </span>
+                                <span class="detail-value">
+                                    {$server['numplayers']} / {$server['maxplayers']}
+                                </span>
+                            </div>
+
+                            <div class="detail-row">
+                                <span class="detail-label">
+                                    <i class="fas fa-network-wired"></i> IP Address
+                                </span>
+                                <span class="detail-value server-ip">
+                                    {$server['connect']}
+                                </span>
+                            </div>
+
+                            {if isset($server['version']) && $server['version']}
+                                <div class="detail-row">
+                                    <span class="detail-label">
+                                        <i class="fas fa-code-branch"></i> Version
+                                    </span>
+                                    <span class="detail-value">
+                                        {$server['version']}
+                                    </span>
+                                </div>
+                            {/if}
+
+                            {if isset($server['country']) && $server['country']}
+                                <div class="detail-row">
+                                    <span class="detail-label">
+                                        <i class="fas fa-globe"></i> Location
+                                    </span>
+                                    <span class="detail-value">
+                                        <span class="famfamfam-flags {strtolower($server['country'])}"></span>
+                                        {$server['country']}
+                                        {if isset($server['city']) && $server['city']}
+                                            , {$server['city']}
+                                        {/if}
+                                    </span>
+                                </div>
+                            {/if}
+                        </div>
+
+                        <!-- Copy IP Button -->
+                        <button class="btn btn-primary btn-block copy-ip-btn" 
+                                data-ip="{$server['connect']}"
+                                {if isset($server['error'])}disabled{/if}>
+                            <i class="fas fa-copy"></i> Copy IP Address
+                        </button>
+                    </div>
+                </div>
+            {/foreach}
+        </div>
+    {/if}
+{/block}
+
+{block footerbottom}
+    <style>
+        .server-filters {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            transition: all 0.2s ease;
+            font-weight: 500;
+            border-width: 2px;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background-color: #007bff !important;
+            border-color: #007bff !important;
+            color: #fff !important;
+        }
+
+        .servers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1200px) {
+            .servers-grid {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .servers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .server-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            height: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .server-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .server-card .card-body {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .server-card.hidden {
+            display: none;
+        }
+
+        .server-status-badge {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+        }
+
+        .status-indicator {
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .status-indicator.status-online {
+            color: #28a745;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .status-indicator.status-offline {
+            color: #dc3545;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .server-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            margin-top: 0;
+            padding-right: 1.75rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.3;
+            min-height: 2.6rem;
+        }
+
+        .server-game-badge {
+            margin-bottom: 0.75rem;
+        }
+
+        .server-game-badge .badge {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            font-weight: 500;
+        }
+
+        .server-details {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            flex-grow: 1;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .detail-label i {
+            width: 14px;
+            text-align: center;
+            margin-right: 0;
+            font-size: 0.85rem;
+        }
+
+        .detail-value {
+            font-weight: 500;
+            text-align: right;
+            word-break: break-all;
+            max-width: 60%;
+        }
+
+        .server-ip {
+            font-family: var(--font-family-monospace), monospace;
+            font-size: 0.75rem;
+        }
+
+        .famfamfam-flags {
+            margin-right: 0.25rem;
+            vertical-align: middle;
+        }
+
+        .copy-ip-btn {
+            transition: all 0.2s ease;
+            font-weight: 500;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .copy-ip-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+        }
+
+        .copy-ip-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .copy-ip-btn.copied {
+            background-color: #28a745 !important;
+            border-color: #28a745 !important;
+        }
+
+        .copy-ip-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+
+    <script>
+        $(document).ready(function() {
+            // Filter functionality
+            $('.filter-btn').on('click', function() {
+                const filterType = $(this).data('filter');
+                
+                // Update active button
+                $('.filter-btn').removeClass('active');
+                $(this).addClass('active');
+                
+                // Filter servers
+                if (filterType === 'all') {
+                    $('.server-card').removeClass('hidden').fadeIn(300);
+                } else {
+                    $('.server-card').each(function() {
+                        const serverType = $(this).data('server-type');
+                        
+                        // Match server types
+                        let matches = false;
+                        if (filterType === 'minecraft' && serverType === 'minecraft') {
+                            matches = true;
+                        } else if (filterType === 'cs2' && (serverType.includes('counter-strike') || serverType.includes('cs2'))) {
+                            matches = true;
+                        } else if (filterType === 'teamspeak' && serverType.includes('teamspeak')) {
+                            matches = true;
+                        }
+                        
+                        if (matches) {
+                            $(this).removeClass('hidden').fadeIn(300);
+                        } else {
+                            $(this).addClass('hidden').fadeOut(300);
+                        }
+                    });
+                }
+            });
+
+            // Copy IP to clipboard functionality
+            $('.copy-ip-btn').on('click', function() {
+                const btn = $(this);
+                const ip = btn.data('ip');
+                
+                if (!ip || ip === 'N/A') {
+                    return;
+                }
+
+                // Create temporary input element
+                const tempInput = $('<input>');
+                $('body').append(tempInput);
+                tempInput.val(ip).select();
+                
+                try {
+                    // Copy to clipboard
+                    document.execCommand('copy');
+                    
+                    // Visual feedback
+                    const originalHtml = btn.html();
+                    btn.html('<i class="fas fa-check"></i> Copied!');
+                    btn.addClass('copied');
+                    
+                    // Reset button after 2 seconds
+                    setTimeout(function() {
+                        btn.html(originalHtml);
+                        btn.removeClass('copied');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+                    alert('Failed to copy IP address. Please copy manually: ' + ip);
+                }
+                
+                // Remove temporary input
+                tempInput.remove();
+            });
+
+            // Modern clipboard API fallback (for newer browsers)
+            if (navigator.clipboard) {
+                $('.copy-ip-btn').off('click').on('click', function() {
+                    const btn = $(this);
+                    const ip = btn.data('ip');
+                    
+                    if (!ip || ip === 'N/A') {
+                        return;
+                    }
+
+                    navigator.clipboard.writeText(ip).then(function() {
+                        // Visual feedback
+                        const originalHtml = btn.html();
+                        btn.html('<i class="fas fa-check"></i> Copied!');
+                        btn.addClass('copied');
+                        
+                        // Reset button after 2 seconds
+                        setTimeout(function() {
+                            btn.html(originalHtml);
+                            btn.removeClass('copied');
+                        }, 2000);
+                    }).catch(function(err) {
+                        console.error('Failed to copy:', err);
+                        alert('Failed to copy IP address. Please copy manually: ' + ip);
+                    });
+                });
+            }
+        });
+    </script>
+{/block}
