@@ -87,18 +87,16 @@ if ($tsConnected) {
         }
 
         // Fetch ALL server groups directly from TeamSpeak for ALL members
+        // Using the same method as profile.php: clientGetServerGroupsByDbid
         $allServerGroupsByClient = [];
         if (!empty($clientGroupMap)) {
             foreach (array_keys($clientGroupMap) as $dbid) {
                 try {
-                    // Query TeamSpeak directly for this client's server groups
-                    $clientInfo = $node->clientDBInfo($dbid);
-                    if ($clientInfo && isset($clientInfo['client_servergroups'])) {
-                        $sgStr = (string) $clientInfo['client_servergroups'];
-                        $allServerGroupsByClient[$dbid] = array_values(array_filter(
-                            array_map(function ($x) { return (int) trim($x); }, explode(',', $sgStr)),
-                            function ($v) { return $v > 0; }
-                        ));
+                    // Use clientGetServerGroupsByDbid - same as profile page
+                    $sgByDb = $node->clientGetServerGroupsByDbid($dbid);
+                    if (is_array($sgByDb) && !empty($sgByDb)) {
+                        // array_keys gives us the group IDs
+                        $allServerGroupsByClient[$dbid] = array_map('intval', array_keys($sgByDb));
                     }
                 } catch (\Exception $e) {
                     // If direct query fails, fallback will be used
@@ -210,6 +208,32 @@ if ($tsConnected) {
                     $lastSeenCache->store("u_" . $dbid, $cacheData, 31536000); // 365 days
                 } catch (\Exception $e) {
                     // Ignore cache errors
+                }
+            }
+            
+            // Update database with fresh data (like profile.php does)
+            if (!empty($servergroups)) {
+                try {
+                    $sgStr = implode(',', $servergroups);
+                    $updateData = ['servergroups' => $sgStr];
+                    
+                    // Also update nickname and country if we have them
+                    if ($nick) {
+                        $updateData['nickname'] = $nick;
+                    }
+                    if ($country) {
+                        $updateData['country'] = $country;
+                    }
+                    
+                    // Update or insert profile data
+                    if ($db->has('profiles', ['cldbid' => $dbid])) {
+                        $db->update('profiles', $updateData, ['cldbid' => $dbid]);
+                    } else {
+                        $updateData['cldbid'] = $dbid;
+                        $db->insert('profiles', $updateData);
+                    }
+                } catch (\Exception $e) {
+                    // Ignore database errors, not critical for display
                 }
             }
             
