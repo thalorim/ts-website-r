@@ -446,6 +446,7 @@ foreach ($socials as $key => $url) {
 $renderData = [
     "title" => "Profile",
     "navActiveIndex" => 0,
+    "pageClass" => "page-profile",
     "isOnline" => $isOnline,
     "profile" => $profileData,
     "avatarUrl" => $avatarUrl,
