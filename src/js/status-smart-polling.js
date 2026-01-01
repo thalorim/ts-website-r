@@ -1,13 +1,12 @@
+// Enhanced version of status.js with smart polling
+// This version stops polling when the page is hidden/inactive
+// Replace status.js with this file to save even more queries
+
 $(function () {
     "use strict"
 
-    checkStatus()
-
-    // Increased from 10s to 30s to reduce query spam
-    // See QUERY_ANALYSIS.md for details
-    var intervalId = setInterval(function() {
-        checkStatus()
-    }, 30 * 1000)
+    var intervalId = null
+    var POLL_INTERVAL = 30 * 1000 // 30 seconds
 
     function checkStatus() {
         var showError = function () {
@@ -57,6 +56,44 @@ $(function () {
                 $(".server-status").addClass("loaded")
             }
         })
+    }
+
+    function startPolling() {
+        if (intervalId !== null) {
+            return // Already polling
+        }
+        
+        intervalId = setInterval(function() {
+            checkStatus()
+        }, POLL_INTERVAL)
+        
+        console.log("Started status polling (every " + (POLL_INTERVAL / 1000) + "s)")
+    }
+
+    function stopPolling() {
+        if (intervalId !== null) {
+            clearInterval(intervalId)
+            intervalId = null
+            console.log("Stopped status polling (page hidden)")
+        }
+    }
+
+    // Only poll when page is visible
+    if (typeof document.hidden !== "undefined") {
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stopPolling()
+            } else {
+                checkStatus() // Immediate update when returning to tab
+                startPolling()
+            }
+        })
+    }
+
+    // Initial check and start polling if page is visible
+    checkStatus()
+    if (!document.hidden) {
+        startPolling()
     }
 
     function getPlatformIcon(platform) {
