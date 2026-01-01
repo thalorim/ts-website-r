@@ -331,6 +331,7 @@ $avatarUrl = ($dbProfile && !empty($dbProfile["avatar_url"])) ? $dbProfile["avat
 $bannerUrl = ($dbProfile && !empty($dbProfile["banner_url"])) ? $dbProfile["banner_url"] : null;
 $avatarBorderKey = $dbProfile && isset($dbProfile["avatar_border"]) ? AvatarBorderUtils::normalize($dbProfile["avatar_border"]) : AvatarBorderUtils::getDefaultKey();
 $avatarBorderUrl = AvatarBorderUtils::getUrl($avatarBorderKey);
+$userbarUrl = ($dbProfile && !empty($dbProfile["userbar_url"])) ? $dbProfile["userbar_url"] : null;
 // Prefer user-saved description if present
 if ($dbProfile && !empty($dbProfile["description"])) {
     $profileData["description"] = (string) $dbProfile["description"];
@@ -439,6 +440,7 @@ $renderData = [
     "avatarBorderUrl" => $avatarBorderUrl,
     "avatarBorderKey" => $avatarBorderKey,
     "bannerUrl" => $bannerUrl,
+    "userbarUrl" => $userbarUrl,
     "groups" => $groupsDetailed,
     "socials" => $socialItems,
     "currentChannelName" => $currentChannelName,
