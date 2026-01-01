@@ -280,6 +280,53 @@ if (!empty($steamProfiles)) {
             }
         }
         
+        // Determine Steam status
+        $personaState = 0;
+        $statusClass = 'offline';
+        $statusText = 'Offline';
+        $statusIcon = 'fa-circle';
+        
+        if (isset($playerSummaries[$steamId]['personastate'])) {
+            $personaState = (int) $playerSummaries[$steamId]['personastate'];
+            
+            switch($personaState) {
+                case 1:
+                    $statusClass = 'online';
+                    $statusText = 'Online';
+                    $statusIcon = 'fa-circle';
+                    break;
+                case 2:
+                    $statusClass = 'busy';
+                    $statusText = 'Busy';
+                    $statusIcon = 'fa-minus-circle';
+                    break;
+                case 3:
+                    $statusClass = 'away';
+                    $statusText = 'Away';
+                    $statusIcon = 'fa-clock';
+                    break;
+                case 4:
+                    $statusClass = 'snooze';
+                    $statusText = 'Snooze';
+                    $statusIcon = 'fa-moon';
+                    break;
+                case 5:
+                    $statusClass = 'trade';
+                    $statusText = 'Looking to Trade';
+                    $statusIcon = 'fa-exchange-alt';
+                    break;
+                case 6:
+                    $statusClass = 'play';
+                    $statusText = 'Looking to Play';
+                    $statusIcon = 'fa-gamepad';
+                    break;
+                default:
+                    $statusClass = 'offline';
+                    $statusText = 'Offline';
+                    $statusIcon = 'fa-circle';
+            }
+        }
+        
         $steamData[$steamId] = [
             'cldbid' => $profile['cldbid'],
             'nickname' => $profile['nickname'],
@@ -289,7 +336,10 @@ if (!empty($steamProfiles)) {
             'mostPlayedGame' => $mostPlayedGame,
             'recentGames' => $recentGames,
             'gameCount' => count($games),
-            'steamLevel' => isset($steamLevels[$steamId]) ? $steamLevels[$steamId] : 0
+            'steamLevel' => isset($steamLevels[$steamId]) ? $steamLevels[$steamId] : 0,
+            'statusClass' => $statusClass,
+            'statusText' => $statusText,
+            'statusIcon' => $statusIcon
         ];
     }
 }

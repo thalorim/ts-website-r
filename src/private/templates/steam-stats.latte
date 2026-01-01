@@ -15,60 +15,11 @@
     {else}
         <div class="steam-stats-grid">
             {foreach $steamData as $data}
-                {* Determine Steam status *}
-                {php
-                    $personaState = 0;
-                    $statusClass = 'offline';
-                    $statusText = 'Offline';
-                    $statusIcon = 'fa-circle';
-                    
-                    if (isset($data['playerInfo']['personastate'])) {
-                        $personaState = (int) $data['playerInfo']['personastate'];
-                        
-                        switch($personaState) {
-                            case 1:
-                                $statusClass = 'online';
-                                $statusText = 'Online';
-                                $statusIcon = 'fa-circle';
-                                break;
-                            case 2:
-                                $statusClass = 'busy';
-                                $statusText = 'Busy';
-                                $statusIcon = 'fa-minus-circle';
-                                break;
-                            case 3:
-                                $statusClass = 'away';
-                                $statusText = 'Away';
-                                $statusIcon = 'fa-clock';
-                                break;
-                            case 4:
-                                $statusClass = 'snooze';
-                                $statusText = 'Snooze';
-                                $statusIcon = 'fa-moon';
-                                break;
-                            case 5:
-                                $statusClass = 'trade';
-                                $statusText = 'Looking to Trade';
-                                $statusIcon = 'fa-exchange-alt';
-                                break;
-                            case 6:
-                                $statusClass = 'play';
-                                $statusText = 'Looking to Play';
-                                $statusIcon = 'fa-gamepad';
-                                break;
-                            default:
-                                $statusClass = 'offline';
-                                $statusText = 'Offline';
-                                $statusIcon = 'fa-circle';
-                        }
-                    }
-                }
-                
                 <div class="steam-card card">
                     <div class="card-body">
                         {* Steam Status Badge *}
-                        <div class="steam-status-badge {$statusClass}" title="{$statusText}">
-                            <i class="fas {$statusIcon}"></i>
+                        <div class="steam-status-badge {$data['statusClass']}" title="{$data['statusText']}">
+                            <i class="fas {$data['statusIcon']}"></i>
                         </div>
                         
                         {* Steam Profile Header *}
