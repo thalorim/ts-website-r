@@ -32,15 +32,33 @@ $getBestPriority = function($groups) use ($groupPriority) {
     return !empty($priorities) ? min($priorities) : PHP_INT_MAX;
 };
 
-// Cache member list to avoid flooding ServerQuery (cache for 30 seconds)
+// Cache member list to avoid flooding ServerQuery (cache for 10 seconds)
 $membersCache = new PhpFileCache(__CACHE_DIR, "members_list");
 $cacheKey = "members_" . md5(json_encode($memberGroups));
 $members = [];
 
-try {
-    $members = $membersCache->retrieve($cacheKey);
-} catch (\Exception $e) {
-    $members = null;
+// Allow forcing cache refresh with ?refresh=1 parameter
+$forceRefresh = isset($_GET['refresh']) && $_GET['refresh'] == '1';
+
+if ($forceRefresh) {
+    // Clear the main members cache
+    try {
+        $membersCache->eraseKey($cacheKey);
+    } catch (\Exception $e) { /* ignore */ }
+    
+    // Clear individual server groups caches
+    try {
+        $sgCache = new PhpFileCache(__CACHE_DIR, "member_servergroups");
+        $sgCache->clearCache();
+    } catch (\Exception $e) { /* ignore */ }
+}
+
+if (!$forceRefresh) {
+    try {
+        $members = $membersCache->retrieve($cacheKey);
+    } catch (\Exception $e) {
+        $members = null;
+    }
 }
 
 // If cache miss or invalid, fetch from server or database
@@ -194,9 +212,9 @@ if (!is_array($members)) {
         } catch (\Exception $e) { /* ignore */ }
     }
     
-    // Store in cache for 30 seconds to keep data fresh
+    // Store in cache for 10 seconds to keep data fresh
     try {
-        $membersCache->store($cacheKey, $members, 30);
+        $membersCache->store($cacheKey, $members, 10);
     } catch (\Exception $e) { /* ignore cache errors */ }
 }
 
@@ -228,7 +246,7 @@ if (!empty($members) && $serverGroups) {
         foreach ($rows as $r) { $profileSgById[(int)$r['cldbid']] = (string) $r['servergroups']; }
     } catch (\Exception $e) { /* ignore */ }
 
-    // Cache for individual server group lookups (cache for 30 seconds)
+    // Cache for individual server group lookups (cache for 10 seconds)
     $sgCache = new PhpFileCache(__CACHE_DIR, "member_servergroups");
 
     foreach ($members as &$m) {
@@ -243,10 +261,10 @@ if (!empty($members) && $serverGroups) {
                     $sgStr = (string) $online['client_servergroups'];
                     $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $sgStr)), function ($v) { return $v > 0; }));
                     
-                    // Store fresh online data in cache for 30 seconds
+                    // Store fresh online data in cache for 10 seconds
                     if (!empty($sgids)) {
                         try {
-                            $sgCache->store("sg_" . $dbid, $sgids, 30);
+                            $sgCache->store("sg_" . $dbid, $sgids, 10);
                         } catch (\Exception $e) { /* ignore */ }
                     }
                 }
@@ -267,9 +285,9 @@ if (!empty($members) && $serverGroups) {
         if (empty($sgids) && isset($profileSgById[$dbid]) && $profileSgById[$dbid] !== '') {
             $sgids = array_values(array_filter(array_map(function ($x) { return (int) trim($x); }, explode(',', $profileSgById[$dbid])), function ($v) { return $v > 0; }));
             
-            // Store in cache for 30 seconds
+            // Store in cache for 10 seconds
             try {
-                $sgCache->store("sg_" . $dbid, $sgids, 30);
+                $sgCache->store("sg_" . $dbid, $sgids, 10);
             } catch (\Exception $e) { /* ignore */ }
         }
         
