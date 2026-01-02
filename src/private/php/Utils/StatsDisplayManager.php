@@ -102,19 +102,6 @@ class StatsDisplayManager {
             $existing = $db->get("user_statistics", "*", ["cldbid" => $cldbid]);
             $today = date('Y-m-d');
             $dayOfWeek = date('w'); // 0 (Sunday) to 6 (Saturday)
-            $currentTimestamp = time();
-            
-            // Update profiles table with latest connection timestamp
-            try {
-                if ($db->has("profiles", ["cldbid" => $cldbid])) {
-                    $db->update("profiles", [
-                        "lastconnected_ts" => $currentTimestamp,
-                        "nickname" => $nickname
-                    ], ["cldbid" => $cldbid]);
-                }
-            } catch (\Exception $e) {
-                error_log("Failed to update profiles lastconnected_ts: " . $e->getMessage());
-            }
             
             if ($existing) {
                 // Parse connection dates
@@ -544,17 +531,16 @@ class StatsDisplayManager {
     private function buildDetailedUserStats(int $topCount, string $baseUrl): string {
         $db = DatabaseUtils::i()->getDb();
         
-        // Get top users with JOIN to profiles table for actual TS dates
+        // Get top users from user_statistics
         try {
-            $topUsers = $db->query(
-                "SELECT us.*, p.created_ts, p.lastconnected_ts, p.totalconnections as profile_connections
-                FROM user_statistics us
-                LEFT JOIN profiles p ON us.cldbid = p.cldbid
-                WHERE us.total_online_time > 0
-                ORDER BY us.total_online_hours DESC, us.total_online_time DESC
-                LIMIT ?",
-                [$topCount]
-            )->fetchAll(\PDO::FETCH_ASSOC);
+            $topUsers = $db->select(
+                "user_statistics",
+                "*",
+                [
+                    "ORDER" => ["total_online_hours" => "DESC", "total_online_time" => "DESC"],
+                    "LIMIT" => $topCount
+                ]
+            );
         } catch (\Exception $e) {
             error_log("Failed to fetch detailed stats: " . $e->getMessage());
             $topUsers = [];
@@ -579,15 +565,41 @@ class StatsDisplayManager {
             $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
             $userLink = "[url={$profileUrl}]{$nickname}[/url]";
             
-            // Format dates from profiles table (actual TS data)
+            // Get live TeamSpeak data for this user (same way viewer.php does it)
             $firstConnected = 'Unknown';
-            if (!empty($user['created_ts']) && $user['created_ts'] > 0) {
-                $firstConnected = date('jS F, Y', (int)$user['created_ts']);
-            }
-                
             $lastOnline = 'Unknown';
-            if (!empty($user['lastconnected_ts']) && $user['lastconnected_ts'] > 0) {
-                $lastOnline = date('jS F, Y, g:ia', (int)$user['lastconnected_ts']);
+            
+            try {
+                if (\Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->checkTSConnection()) {
+                    $tsInfo = \Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+                    
+                    // Get client_created timestamp (same as viewer.php)
+                    if (isset($tsInfo["client_created"]) && $tsInfo["client_created"] > 0) {
+                        $createdTs = (int)$tsInfo["client_created"];
+                        $firstConnected = date('jS F, Y', $createdTs);
+                    }
+                    
+                    // Get client_lastconnected timestamp (same as viewer.php)
+                    if (isset($tsInfo["client_lastconnected"]) && $tsInfo["client_lastconnected"] > 0) {
+                        $lastconnectedTs = (int)$tsInfo["client_lastconnected"];
+                        $lastOnline = date('jS F, Y, g:ia', $lastconnectedTs);
+                    }
+                }
+            } catch (\Exception $e) {
+                // Fallback to database if TS query fails
+                try {
+                    $profile = $db->get("profiles", ["created_ts", "lastconnected_ts"], ["cldbid" => $cldbid]);
+                    if ($profile) {
+                        if (!empty($profile['created_ts']) && $profile['created_ts'] > 0) {
+                            $firstConnected = date('jS F, Y', (int)$profile['created_ts']);
+                        }
+                        if (!empty($profile['lastconnected_ts']) && $profile['lastconnected_ts'] > 0) {
+                            $lastOnline = date('jS F, Y, g:ia', (int)$profile['lastconnected_ts']);
+                        }
+                    }
+                } catch (\Exception $e2) {
+                    // Use defaults
+                }
             }
             
             // Total time in hours - ensure we have the data
@@ -601,16 +613,39 @@ class StatsDisplayManager {
             // Connected days
             $connectedDays = (int)($user['connected_days'] ?? 0);
             
-            // Calculate percentage using actual first connection date
+            // Calculate percentage - try to get created_ts for accurate calculation
             $percentageDays = 0;
             $totalDays = 0;
-            if (!empty($user['created_ts']) && $user['created_ts'] > 0) {
-                $firstDate = new \DateTime('@' . (int)$user['created_ts']);
-                $now = new \DateTime();
-                $totalDays = $firstDate->diff($now)->days + 1;
-                $percentageDays = $connectedDays > 0 && $totalDays > 0 
-                    ? round(($connectedDays / $totalDays) * 100, 2) 
-                    : 0;
+            
+            try {
+                $createdTs = null;
+                
+                // Try to get from TS server first
+                if (\Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->checkTSConnection()) {
+                    $tsInfo = \Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+                    if (isset($tsInfo["client_created"]) && $tsInfo["client_created"] > 0) {
+                        $createdTs = (int)$tsInfo["client_created"];
+                    }
+                }
+                
+                // Fallback to database
+                if (!$createdTs) {
+                    $profile = $db->get("profiles", "created_ts", ["cldbid" => $cldbid]);
+                    if ($profile && !empty($profile['created_ts'])) {
+                        $createdTs = (int)$profile['created_ts'];
+                    }
+                }
+                
+                if ($createdTs && $createdTs > 0) {
+                    $firstDate = new \DateTime('@' . $createdTs);
+                    $now = new \DateTime();
+                    $totalDays = $firstDate->diff($now)->days + 1;
+                    $percentageDays = $connectedDays > 0 && $totalDays > 0 
+                        ? round(($connectedDays / $totalDays) * 100, 2) 
+                        : 0;
+                }
+            } catch (\Exception $e) {
+                // Use defaults
             }
             
             // Most consecutive days

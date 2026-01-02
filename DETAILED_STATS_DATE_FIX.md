@@ -16,39 +16,49 @@ $firstConnected = date('jS F, Y', strtotime($user['first_seen']));
 $lastOnline = date('jS F, Y, g:ia', strtotime($user['last_seen']));
 ```
 
-**After**: Pulled dates from `profiles` table (actual TeamSpeak data)
+**After**: Pulls dates DIRECTLY from TeamSpeak server query (same as viewer.php and profile.php)
 ```php
-// JOIN with profiles table to get actual TS dates
-$topUsers = $db->query(
-    "SELECT us.*, p.created_ts, p.lastconnected_ts, p.totalconnections
-    FROM user_statistics us
-    LEFT JOIN profiles p ON us.cldbid = p.cldbid
-    ..."
-);
-
-$firstConnected = date('jS F, Y', (int)$user['created_ts']);
-$lastOnline = date('jS F, Y, g:ia', (int)$user['lastconnected_ts']);
-```
-
-### 2. Real-time Last Online Updates
-
-Added code to update `profiles.lastconnected_ts` when user connects:
-
-```php
-// Update profiles table with latest connection timestamp
-try {
-    if ($db->has("profiles", ["cldbid" => $cldbid])) {
-        $db->update("profiles", [
-            "lastconnected_ts" => time(),
-            "nickname" => $nickname
-        ], ["cldbid" => $cldbid]);
+// Query TeamSpeak server directly for live data
+if (TeamSpeakUtils::i()->checkTSConnection()) {
+    $tsInfo = TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+    
+    // Get client_created (first connection)
+    if (isset($tsInfo["client_created"])) {
+        $createdTs = (int)$tsInfo["client_created"];
+        $firstConnected = date('jS F, Y', $createdTs);
     }
-} catch (\Exception $e) {
-    error_log("Failed to update profiles lastconnected_ts: " . $e->getMessage());
+    
+    // Get client_lastconnected (last online)
+    if (isset($tsInfo["client_lastconnected"])) {
+        $lastconnectedTs = (int)$tsInfo["client_lastconnected"];
+        $lastOnline = date('jS F, Y, g:ia', $lastconnectedTs);
+    }
 }
 ```
 
-This ensures "last online" is updated in real-time by the bot.
+This uses the exact same method as `viewer.php` and `profile.php`, ensuring dates are always accurate and up-to-date.
+
+### 2. Direct TeamSpeak Server Query
+
+The detailed stats display now queries TeamSpeak server directly using `clientDbInfo()`:
+
+```php
+$tsInfo = TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+```
+
+This returns:
+- `client_created`: Unix timestamp of first connection
+- `client_lastconnected`: Unix timestamp of last connection
+- `client_totalconnections`: Total connections count
+
+This is the **exact same method** used by:
+- `viewer.php` - for client info popover
+- `profile.php` - for profile page display
+- `getclientinfo.php` - for API
+
+### 3. Fallback to Database
+
+If TeamSpeak server query fails, it falls back to `profiles` table data.
 
 ### 3. Percentage Calculation Fix
 
@@ -136,13 +146,33 @@ longest_streak INT(11)      -- Consecutive days streak (calculated by bot)
 
 ## How It Works Now
 
-1. **First Connected**: Shows `profiles.created_ts` (actual TS server data)
-2. **Last Online**: Shows `profiles.lastconnected_ts` (updated by bot in real-time)
+1. **First Connected**: Queries TS server `clientDbInfo()` → `client_created` timestamp
+2. **Last Online**: Queries TS server `clientDbInfo()` → `client_lastconnected` timestamp
 3. **Total Time**: Calculated from `user_statistics.total_online_hours` (tracked by bot)
 4. **Connected Days**: Counted from `user_statistics.connection_dates` (tracked by bot)
-5. **Percentage**: `connected_days / (today - created_ts)` (accurate from TS first connection)
+5. **Percentage**: `connected_days / (today - client_created)` (accurate from TS first connection)
 6. **Streaks**: Calculated from `connection_dates` array (tracked by bot)
 7. **Popular Day**: From `day_statistics` JSON (tracked by bot)
+
+### Data Flow
+
+```
+Channel Update Triggered
+    ↓
+For each user in leaderboard:
+    ↓
+Query TS Server: clientDbInfo(cldbid)
+    ↓
+Get client_created & client_lastconnected
+    ↓
+Format dates: "10th February, 2024"
+    ↓
+Get stats from user_statistics table
+    ↓
+Build BBCode description
+    ↓
+Update channel
+```
 
 ## Verification
 
