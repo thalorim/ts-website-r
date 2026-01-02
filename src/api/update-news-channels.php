@@ -39,5 +39,9 @@ try {
         "result" => $result,
     ]);
 } catch (\Exception $e) {
+    // Log the error for debugging
+    error_log("News Channel Update Error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    
     ApiUtils::jsonError($e->getMessage(), "UPDATE_FAILED", 500);
 }
