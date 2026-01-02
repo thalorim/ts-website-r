@@ -366,9 +366,23 @@ class StatusDisplayManager {
      * @return string
      */
     private function getBaseUrl(): string {
-        // Try to get from config or construct from server variables
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        // When running via CLI (bot), use config or auto-detect based on domain
+        $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'web.reape.rs';
+        
+        // Auto-detect protocol based on domain or default to HTTPS
+        // For production domains, always use HTTPS
+        if (php_sapi_name() === 'cli') {
+            // Running via CLI (bot) - default to HTTPS for production
+            $protocol = 'https';
+        } else {
+            // Running via web - check actual HTTPS status
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        }
+        
+        // Override: If localhost/local domain, use HTTP
+        if (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false || strpos($host, '.local') !== false) {
+            $protocol = 'http';
+        }
         
         // Get the document root and current script path
         $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
