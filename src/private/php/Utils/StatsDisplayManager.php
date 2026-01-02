@@ -565,40 +565,96 @@ class StatsDisplayManager {
             $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
             $userLink = "[url={$profileUrl}]{$nickname}[/url]";
             
-            // Get live TeamSpeak data for this user (same way viewer.php does it)
+            // Get live TeamSpeak data for this user (same way profile.php does it)
             $firstConnected = 'Unknown';
             $lastOnline = 'Unknown';
+            $createdTs = null;
+            $lastconnectedTs = null;
             
+            // First try: Check if user is currently online (fastest)
             try {
-                if (\Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->checkTSConnection()) {
-                    $tsInfo = \Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
-                    
-                    // Get client_created timestamp (same as viewer.php)
-                    if (isset($tsInfo["client_created"]) && $tsInfo["client_created"] > 0) {
-                        $createdTs = (int)$tsInfo["client_created"];
-                        $firstConnected = date('jS F, Y', $createdTs);
-                    }
-                    
-                    // Get client_lastconnected timestamp (same as viewer.php)
-                    if (isset($tsInfo["client_lastconnected"]) && $tsInfo["client_lastconnected"] > 0) {
-                        $lastconnectedTs = (int)$tsInfo["client_lastconnected"];
-                        $lastOnline = date('jS F, Y, g:ia', $lastconnectedTs);
+                $onlineClient = CacheManager::i()->getClient($cldbid);
+                if ($onlineClient !== null) {
+                    // User is online, try to get live data
+                    try {
+                        if (\Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->checkTSConnection()) {
+                            $tsInfo = \Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+                            
+                            if (isset($tsInfo["client_created"])) {
+                                $createdTs = (int)$tsInfo["client_created"];
+                            }
+                            if (isset($tsInfo["client_lastconnected"])) {
+                                $lastconnectedTs = (int)$tsInfo["client_lastconnected"];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        error_log("Failed to get TS info for cldbid {$cldbid}: " . $e->getMessage());
                     }
                 }
             } catch (\Exception $e) {
-                // Fallback to database if TS query fails
+                error_log("Failed to check online status for cldbid {$cldbid}: " . $e->getMessage());
+            }
+            
+            // Second try: Query TS server for offline users
+            if (!$createdTs || !$lastconnectedTs) {
+                try {
+                    if (\Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->checkTSConnection()) {
+                        $tsInfo = \Wruczek\TSWebsite\Utils\TeamSpeakUtils::i()->getTSNodeServer()->clientDbInfo($cldbid);
+                        
+                        if (!$createdTs && isset($tsInfo["client_created"])) {
+                            $createdTs = (int)$tsInfo["client_created"];
+                        }
+                        if (!$lastconnectedTs && isset($tsInfo["client_lastconnected"])) {
+                            $lastconnectedTs = (int)$tsInfo["client_lastconnected"];
+                        }
+                    }
+                } catch (\Exception $e) {
+                    error_log("Failed to query TS server for cldbid {$cldbid}: " . $e->getMessage());
+                }
+            }
+            
+            // Third try: Fallback to profiles table
+            if (!$createdTs || !$lastconnectedTs) {
                 try {
                     $profile = $db->get("profiles", ["created_ts", "lastconnected_ts"], ["cldbid" => $cldbid]);
                     if ($profile) {
-                        if (!empty($profile['created_ts']) && $profile['created_ts'] > 0) {
-                            $firstConnected = date('jS F, Y', (int)$profile['created_ts']);
+                        if (!$createdTs && !empty($profile['created_ts'])) {
+                            $createdTs = (int)$profile['created_ts'];
                         }
-                        if (!empty($profile['lastconnected_ts']) && $profile['lastconnected_ts'] > 0) {
-                            $lastOnline = date('jS F, Y, g:ia', (int)$profile['lastconnected_ts']);
+                        if (!$lastconnectedTs && !empty($profile['lastconnected_ts'])) {
+                            $lastconnectedTs = (int)$profile['lastconnected_ts'];
                         }
                     }
-                } catch (\Exception $e2) {
-                    // Use defaults
+                } catch (\Exception $e) {
+                    error_log("Failed to get profile data for cldbid {$cldbid}: " . $e->getMessage());
+                }
+            }
+            
+            // Format the dates if we have them
+            if ($createdTs && $createdTs > 0) {
+                $firstConnected = date('jS F, Y', $createdTs);
+            }
+            if ($lastconnectedTs && $lastconnectedTs > 0) {
+                $lastOnline = date('jS F, Y, g:ia', $lastconnectedTs);
+            }
+            
+            // Save to profiles table for future use (like profile.php does)
+            if ($createdTs || $lastconnectedTs) {
+                try {
+                    $updateData = [];
+                    if ($createdTs) $updateData['created_ts'] = $createdTs;
+                    if ($lastconnectedTs) $updateData['lastconnected_ts'] = $lastconnectedTs;
+                    
+                    if (!empty($updateData) && $db->has("profiles", ["cldbid" => $cldbid])) {
+                        $db->update("profiles", $updateData, ["cldbid" => $cldbid]);
+                    } else if (!empty($updateData)) {
+                        // Create profile entry
+                        $updateData['cldbid'] = $cldbid;
+                        $updateData['nickname'] = $nickname;
+                        $db->insert("profiles", $updateData);
+                    }
+                } catch (\Exception $e) {
+                    error_log("Failed to save profile data for cldbid {$cldbid}: " . $e->getMessage());
                 }
             }
             
