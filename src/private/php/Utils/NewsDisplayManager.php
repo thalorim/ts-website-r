@@ -183,16 +183,19 @@ class NewsDisplayManager {
             foreach ($newsList as $news) {
                 $title = isset($news["title"]) ? (string) $news["title"] : "Untitled";
                 $content = isset($news["content"]) ? (string) $news["content"] : "";
-                $added = isset($news["added"]) ? (int) $news["added"] : time();
-                $edited = isset($news["edited"]) ? (int) $news["edited"] : null;
                 
-                // Format date - handle Unix timestamp properly
+                // Handle different date formats - can be Unix timestamp, date string, or TIMESTAMP
+                $added = $this->parseNewsDate($news["added"] ?? null);
+                $edited = $this->parseNewsDate($news["edited"] ?? null);
+                
+                // Format date
                 if ($added > 0) {
                     $dateStr = date('F j, Y', $added);
                     if ($edited && $edited > $added) {
-                        $dateStr .= " (edited: " . date('M j', $edited) . ")";
+                        $dateStr .= " (edited: " . date('M j, Y', $edited) . ")";
                     }
                 } else {
+                    // Fallback if we still can't parse the date
                     $dateStr = "Recent";
                 }
                 
@@ -294,6 +297,41 @@ class NewsDisplayManager {
         $text = strip_tags($text);
         // Trim
         return trim($text);
+    }
+    
+    /**
+     * Parse news date - handles Unix timestamp, MySQL TIMESTAMP, or date string
+     * @param mixed $date
+     * @return int Unix timestamp or 0 if invalid
+     */
+    private function parseNewsDate($date): int {
+        if (empty($date)) {
+            return 0;
+        }
+        
+        // If it's already a Unix timestamp (integer)
+        if (is_numeric($date)) {
+            $timestamp = (int) $date;
+            // Validate it's a reasonable timestamp (after 2000 and before 2100)
+            // This filters out 0 and very small numbers
+            if ($timestamp > 946684800 && $timestamp < 4102444800) {
+                return $timestamp;
+            }
+            // If timestamp is 0 or invalid, return 0
+            return 0;
+        }
+        
+        // If it's a date string (like MySQL TIMESTAMP or DATETIME)
+        if (is_string($date)) {
+            // Try to parse as date string
+            $timestamp = strtotime($date);
+            if ($timestamp !== false && $timestamp > 946684800) {
+                return $timestamp;
+            }
+        }
+        
+        // If we can't parse it, return 0
+        return 0;
     }
     
     /**
