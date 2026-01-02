@@ -214,8 +214,8 @@ Another news content...
 
 1. **Admin Authentication**
    - Checks if user is logged in
-   - Validates admin UID matches configured admin
-   - Same security model as main admin panel
+   - Validates user CLDBID matches hardcoded value (116527 by default)
+   - Simple CLDBID-based access control
 
 2. **CSRF Protection**
    - All POST forms include CSRF tokens

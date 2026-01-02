@@ -116,7 +116,8 @@ Set up a cron job to update automatically (see full README for details):
 
 ### "Permission denied"
 - Make sure you're logged in as an admin
-- Check the admin UID in the config matches your user
+- By default, only CLDBID 116527 can access the panel
+- To use a different CLDBID, edit `src/admin/news-channel-display.php` (line ~20)
 
 ## Next Steps
 

@@ -24,7 +24,7 @@ Navigate to the admin panel at:
 https://your-website.com/admin/news-channel-display.php
 ```
 
-**Note:** Only users with admin privileges can access this page. By default, it uses the same admin UID as the main admin panel.
+**Note:** Only users with admin privileges can access this page. By default, only CLDBID 116527 can access. To change this, edit the CLDBID check in `src/admin/news-channel-display.php`.
 
 ### 3. Configuration
 

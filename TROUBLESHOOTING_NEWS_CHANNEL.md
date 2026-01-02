@@ -311,7 +311,9 @@ tail -f /var/log/nginx/error.log
 
 **Q: The admin panel shows "Forbidden"**
 - Check that you're logged in as admin
-- Check the admin UID in config matches your user
+- By default, only CLDBID 116527 can access the panel
+- To change this, edit `src/admin/news-channel-display.php` and modify the CLDBID check
+- Your CLDBID can be found in your TeamSpeak profile or the profiles table
 
 **Q: Updates work manually but not via API**
 - Make sure you set `news_channel_update_token` in config

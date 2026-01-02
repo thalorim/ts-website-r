@@ -10,10 +10,13 @@
 // ADMIN ACCESS CONFIGURATION
 // =============================================================================
 
-// Set the admin UID who can access the news channel display admin panel
-// This should match your admin user's UID
-// You can find your UID by checking the profiles table or Auth::getUid()
-$config['admin_uid'] = 'Jv/d1+pX7/q343RrIMPTTVpob+U=';
+// The news channel display admin panel uses CLDBID-based authentication
+// By default, only CLDBID 116527 can access the panel
+// To change this, edit the $userCldbid check in:
+// src/admin/news-channel-display.php (around line 17-22)
+//
+// Example: Change 116527 to your CLDBID:
+// if ($userCldbid !== YOUR_CLDBID_HERE) {
 
 // =============================================================================
 // API TOKEN CONFIGURATION (for automated updates)

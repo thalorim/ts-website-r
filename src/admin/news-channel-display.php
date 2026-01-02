@@ -16,11 +16,11 @@ if (!Auth::isLoggedIn()) {
     exit;
 }
 
-// Admin check - modify this UID to match your admin user
-// You can find your UID by looking at the Auth class or checking the profiles table
-$adminUid = Config::get("admin_uid", "Jv/d1+pX7/q343RrIMPTTVpob+U=");
-if (Auth::getUid() !== $adminUid) {
-    TemplateUtils::i()->renderErrorTemplate("403", "Forbidden", "You don't have permission to access this page. Only administrators can access the admin panel.");
+// Simple admin check - only CLDBID 116527 can access
+// You can modify this to suit your needs
+$userCldbid = Auth::getCldbid();
+if ($userCldbid !== 116527) {
+    TemplateUtils::i()->renderErrorTemplate("403", "Forbidden", "You don't have permission to access this page. Only CLDBID 116527 can access the admin panel.");
     exit;
 }
 
