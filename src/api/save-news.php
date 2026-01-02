@@ -2,6 +2,7 @@
 
 use Wruczek\TSWebsite\Auth;
 use Wruczek\TSWebsite\Utils\Utils;
+use Wruczek\TSWebsite\Utils\NewsDisplayManager;
 
 require_once __DIR__ . "/../private/php/load.php";
 
@@ -24,6 +25,16 @@ if ($title === '' || $content === '') {
 
 try {
     Utils::getNewsStore()->addNews($title, $content);
+    
+    // Automatically update news display channels
+    try {
+        $newsManager = NewsDisplayManager::i();
+        $newsManager->processAllNewsUpdates();
+    } catch (\Exception $e) {
+        // Log but don't fail the news save if channel update fails
+        error_log("Failed to update news display channels: " . $e->getMessage());
+    }
+    
     echo json_encode(["ok" => true]);
 } catch (\Throwable $e) {
     http_response_code(400);
