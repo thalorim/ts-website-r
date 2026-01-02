@@ -102,6 +102,19 @@ class StatsDisplayManager {
             $existing = $db->get("user_statistics", "*", ["cldbid" => $cldbid]);
             $today = date('Y-m-d');
             $dayOfWeek = date('w'); // 0 (Sunday) to 6 (Saturday)
+            $currentTimestamp = time();
+            
+            // Update profiles table with latest connection timestamp
+            try {
+                if ($db->has("profiles", ["cldbid" => $cldbid])) {
+                    $db->update("profiles", [
+                        "lastconnected_ts" => $currentTimestamp,
+                        "nickname" => $nickname
+                    ], ["cldbid" => $cldbid]);
+                }
+            } catch (\Exception $e) {
+                error_log("Failed to update profiles lastconnected_ts: " . $e->getMessage());
+            }
             
             if ($existing) {
                 // Parse connection dates
@@ -158,9 +171,9 @@ class StatsDisplayManager {
                 // Insert new - check if user exists in profiles table
                 $existingConnections = 0;
                 try {
-                    $profile = $db->get("profiles", "connections", ["cldbid" => $cldbid]);
-                    if ($profile && isset($profile['connections'])) {
-                        $existingConnections = (int)$profile['connections'];
+                    $profile = $db->get("profiles", "totalconnections", ["cldbid" => $cldbid]);
+                    if ($profile && isset($profile['totalconnections'])) {
+                        $existingConnections = (int)$profile['totalconnections'];
                     }
                 } catch (\Exception $e) {
                     // Table might not exist
@@ -529,7 +542,23 @@ class StatsDisplayManager {
      * @return string
      */
     private function buildDetailedUserStats(int $topCount, string $baseUrl): string {
-        $topUsers = $this->getTopByOnlineTime($topCount);
+        $db = DatabaseUtils::i()->getDb();
+        
+        // Get top users with JOIN to profiles table for actual TS dates
+        try {
+            $topUsers = $db->query(
+                "SELECT us.*, p.created_ts, p.lastconnected_ts, p.totalconnections as profile_connections
+                FROM user_statistics us
+                LEFT JOIN profiles p ON us.cldbid = p.cldbid
+                WHERE us.total_online_time > 0
+                ORDER BY us.total_online_hours DESC, us.total_online_time DESC
+                LIMIT ?",
+                [$topCount]
+            )->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Failed to fetch detailed stats: " . $e->getMessage());
+            $topUsers = [];
+        }
         
         $description = "[center][size=16][b]📊 Detailed User Statistics[/b][/size][/center]\n\n";
         
@@ -550,28 +579,33 @@ class StatsDisplayManager {
             $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
             $userLink = "[url={$profileUrl}]{$nickname}[/url]";
             
-            // Format dates
-            $firstConnected = isset($user['first_seen']) && $user['first_seen'] 
-                ? date('jS F, Y', strtotime($user['first_seen']))
-                : 'Unknown';
+            // Format dates from profiles table (actual TS data)
+            $firstConnected = 'Unknown';
+            if (!empty($user['created_ts']) && $user['created_ts'] > 0) {
+                $firstConnected = date('jS F, Y', (int)$user['created_ts']);
+            }
                 
-            $lastOnline = isset($user['last_seen']) && $user['last_seen']
-                ? date('jS F, Y, g:ia', strtotime($user['last_seen']))
-                : 'Unknown';
+            $lastOnline = 'Unknown';
+            if (!empty($user['lastconnected_ts']) && $user['lastconnected_ts'] > 0) {
+                $lastOnline = date('jS F, Y, g:ia', (int)$user['lastconnected_ts']);
+            }
             
-            // Total time in hours
-            $totalHours = isset($user['total_online_hours']) 
-                ? number_format($user['total_online_hours'], 0)
-                : number_format((int)$user['total_online_time'] / 3600, 0);
+            // Total time in hours - ensure we have the data
+            $totalHours = 0;
+            if (isset($user['total_online_hours']) && $user['total_online_hours'] > 0) {
+                $totalHours = number_format($user['total_online_hours'], 0);
+            } else if (isset($user['total_online_time']) && $user['total_online_time'] > 0) {
+                $totalHours = number_format((int)$user['total_online_time'] / 3600, 0);
+            }
             
             // Connected days
             $connectedDays = (int)($user['connected_days'] ?? 0);
             
-            // Calculate percentage
+            // Calculate percentage using actual first connection date
             $percentageDays = 0;
             $totalDays = 0;
-            if (isset($user['first_seen']) && $user['first_seen']) {
-                $firstDate = new \DateTime($user['first_seen']);
+            if (!empty($user['created_ts']) && $user['created_ts'] > 0) {
+                $firstDate = new \DateTime('@' . (int)$user['created_ts']);
                 $now = new \DateTime();
                 $totalDays = $firstDate->diff($now)->days + 1;
                 $percentageDays = $connectedDays > 0 && $totalDays > 0 
@@ -593,7 +627,7 @@ class StatsDisplayManager {
             $popularCount = 0;
             if (!empty($user['day_statistics'])) {
                 $dayStats = json_decode($user['day_statistics'], true);
-                if (is_array($dayStats)) {
+                if (is_array($dayStats) && !empty($dayStats)) {
                     $maxDay = array_search(max($dayStats), $dayStats);
                     $popularCount = max($dayStats);
                     $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

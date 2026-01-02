@@ -68,19 +68,19 @@ try {
     
     // Check if profiles table exists and has connection data
     try {
-        $profiles = $db->select("profiles", ["cldbid", "connections", "nickname"], ["connections[>]" => 0]);
+        $profiles = $db->select("profiles", ["cldbid", "totalconnections", "nickname"], ["totalconnections[>]" => 0]);
         foreach ($profiles as $profile) {
             $cldbid = (int)$profile['cldbid'];
             
             // Check if user already in stats
             $existing = $db->get("user_statistics", "cldbid", ["cldbid" => $cldbid]);
             
-            if (!$existing && isset($profile['connections']) && $profile['connections'] > 0) {
+            if (!$existing && isset($profile['totalconnections']) && $profile['totalconnections'] > 0) {
                 // User not in stats yet, but has connections in profiles
                 $db->insert("user_statistics", [
                     "cldbid" => $cldbid,
                     "last_nickname" => $profile['nickname'] ?? 'Unknown',
-                    "total_connections" => (int)$profile['connections'],
+                    "total_connections" => (int)$profile['totalconnections'],
                     "total_online_time" => 0,
                     "first_seen" => date('Y-m-d H:i:s'),
                     "last_seen" => date('Y-m-d H:i:s')

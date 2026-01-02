@@ -61,15 +61,15 @@ Click the **"Update Now"** button next to your configuration to see current data
 
 ## What Gets Tracked
 
-| Metric | Description | Example |
-|--------|-------------|---------|
-| First Connected | Date of first connection | 9th July, 2011 |
-| Last Online | Most recent connection | 30th Dec, 2025, 9:54pm |
-| Total Time | Hours spent online | 25,151 hrs |
-| Connected Days | Unique days connected | 3,385 days |
-| Percentage Days | % of days since first seen | 63.95% (3,385/5,293) |
-| Consecutive Days | Longest daily streak | 104 (dates) |
-| Popular Day | Most common day of week | Sunday (549) |
+| Metric | Description | Source | Example |
+|--------|-------------|--------|---------|
+| First Connected | Date of first TS connection | TeamSpeak Server | 10th Feb, 2024 |
+| Last Online | Most recent connection | Bot (real-time) | 2nd Jan, 2026, 9:25pm |
+| Total Time | Hours spent online | Bot tracking | 1,234 hrs |
+| Connected Days | Unique days connected | Bot tracking | 245 days |
+| Percentage Days | % of days since first seen | Calculated | 36.89% (245/664) |
+| Consecutive Days | Longest daily streak | Bot tracking | 45 (dates) |
+| Popular Day | Most common day of week | Bot tracking | Saturday (67) |
 
 ## Auto-Update Schedule
 
@@ -162,7 +162,7 @@ journalctl -u ts-stats-bot -f
 ## Common Questions
 
 **Q: Does it track connections before I installed this feature?**  
-A: No, tracking starts from when the bot first runs. Previous connection counts from the `profiles` table are imported, but detailed stats (streaks, days) start fresh.
+A: Partially. The "first connected" and "last online" dates come from TeamSpeak server data (your actual TS history). However, detailed tracking (connected days, streaks, day-of-week stats) only starts from when the bot first runs.
 
 **Q: How far back does it track connection dates?**  
 A: Last 400 connection dates are stored. This is enough for accurate streak calculations while keeping database size reasonable.
