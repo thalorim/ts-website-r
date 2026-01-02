@@ -9,6 +9,14 @@
     <div class="card-body">
         <p>Admin panel for database configuration and site management.</p>
 
+        <div class="alert alert-info">
+            <h5><i class="fas fa-toolbox"></i> Quick Access</h5>
+            <p class="mb-2">Additional admin tools:</p>
+            <a href="/admin/news-channel-display.php" class="btn btn-info btn-sm mr-2">
+                <i class="fas fa-newspaper"></i> News Channel Display
+            </a>
+        </div>
+
         <form id="form-config" method="post" action="api/save-config.php" class="mb-4">
             {$csrfField}
             <h5>Assigner Config (JSON)</h5>
