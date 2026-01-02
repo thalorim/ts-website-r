@@ -1,0 +1,209 @@
+================================================================================
+  TEAMSPEAK STATUS DISPLAY - INSTALLATION (NO SCRIPT NEEDED)
+================================================================================
+
+Follow these steps from ANY directory on your server:
+
+================================================================================
+STEP 1: CREATE DATABASE TABLE
+================================================================================
+
+Run this command (replace YOUR_USERNAME and YOUR_DATABASE):
+
+mysql -u YOUR_USERNAME -p YOUR_DATABASE << 'EOF'
+CREATE TABLE IF NOT EXISTS `ts_channel_status_display` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `cldbid` INT(11) NOT NULL,
+  `channel_id` INT(11) NOT NULL,
+  `server_group_id` INT(11) DEFAULT NULL,
+  `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_cldbid_channel` (`cldbid`, `channel_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+EOF
+
+IMPORTANT: If your database uses a prefix (like ts_), change the table name:
+  ts_channel_status_display → replace ts_ with your actual prefix
+  or remove ts_ if you don't use a prefix
+
+To find your prefix, check your existing tables:
+  mysql -u YOUR_USERNAME -p -e "SHOW TABLES" YOUR_DATABASE
+
+================================================================================
+STEP 2: VERIFY FILES EXIST
+================================================================================
+
+Find your TS-website directory:
+
+  find /var/www -name "load.php" -path "*/private/php/*" 2>/dev/null
+
+Once found, navigate there and check files:
+
+  cd /path/to/your/ts-website
+  ls src/private/php/Utils/StatusDisplayManager.php
+  ls src/private/php/status-display-bot.php
+  ls src/admin/status-display.php
+
+If files exist, continue. If not, you need to upload them first.
+
+================================================================================
+STEP 3: SET PERMISSIONS
+================================================================================
+
+From your TS-website directory:
+
+  chmod +x src/private/php/status-display-bot.php
+
+================================================================================
+STEP 4: ADD CONFIGURATION VIA WEB
+================================================================================
+
+1. Open browser: http://web.reape.rs/admin/status-display.php
+2. Log in as admin
+3. Click "Add New Configuration"
+4. Enter:
+   - Client Database ID: 116527 (your user's cldbid)
+   - Channel ID: 251746 (your channel ID)
+   - Server Group: 9 (optional, for icon display)
+5. Click "Add Configuration"
+
+OR add via database directly:
+
+mysql -u YOUR_USERNAME -p YOUR_DATABASE << 'EOF'
+INSERT INTO ts_channel_status_display (cldbid, channel_id, server_group_id, enabled)
+VALUES (116527, 251746, 9, 1);
+EOF
+
+================================================================================
+STEP 5: TEST THE BOT
+================================================================================
+
+From your TS-website directory, run:
+
+  php src/private/php/status-display-bot.php --once
+
+Expected output:
+  TeamSpeak Status Display Bot started
+  Mode: Once
+  ---
+  [timestamp] Running status update...
+  [timestamp] Update complete: Total: 1, Updated: 1, ...
+
+================================================================================
+STEP 6: START THE BOT (PRODUCTION)
+================================================================================
+
+Choose ONE of these methods:
+
+METHOD A: Background Process (Simple)
+--------------------------------------
+  nohup php src/private/php/status-display-bot.php --daemon --interval=30 > /var/log/ts-status-bot.log 2>&1 &
+
+  Check it's running:
+    ps aux | grep status-display-bot
+
+  Stop it:
+    pkill -f status-display-bot
+
+METHOD B: Systemd Service (Recommended)
+----------------------------------------
+  Create service file:
+    sudo nano /etc/systemd/system/ts-status-display.service
+
+  Paste this (CHANGE /var/www/web.reape.rs to YOUR path):
+
+    [Unit]
+    Description=TeamSpeak Status Display Bot
+    After=network.target mysql.service
+
+    [Service]
+    Type=simple
+    User=www-data
+    WorkingDirectory=/var/www/web.reape.rs
+    ExecStart=/usr/bin/php /var/www/web.reape.rs/src/private/php/status-display-bot.php --daemon --interval=30
+    Restart=always
+    RestartSec=10
+    StandardOutput=append:/var/log/ts-status-bot.log
+    StandardError=append:/var/log/ts-status-bot.log
+
+    [Install]
+    WantedBy=multi-user.target
+
+  Start service:
+    sudo systemctl daemon-reload
+    sudo systemctl enable ts-status-display
+    sudo systemctl start ts-status-display
+    sudo systemctl status ts-status-display
+
+  View logs:
+    sudo journalctl -u ts-status-display -f
+
+METHOD C: Cron Job
+------------------
+  Add to crontab:
+    crontab -e
+
+  Add this line (CHANGE path to YOUR path):
+    * * * * * php /var/www/web.reape.rs/src/private/php/status-display-bot.php --once >> /var/log/ts-status-bot.log 2>&1
+
+================================================================================
+STEP 7: VERIFY IT'S WORKING
+================================================================================
+
+1. Open TeamSpeak 3 client
+2. Navigate to the channel you configured (channel ID 251746 in example)
+3. Check the channel description - it should show status
+4. Have the user connect/disconnect to see it change
+5. Check logs: tail -f /var/log/ts-status-bot.log
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Problem: "Cannot connect to TeamSpeak server"
+Solution: Check src/private/config.local.php has correct query credentials
+
+Problem: "Table doesn't exist"
+Solution: Run Step 1 again to create the database table
+
+Problem: "Permission denied"
+Solution: Run chmod +x on the bot script (Step 3)
+
+Problem: Channel not updating
+Solution: Verify query account has b_channel_modify_description permission
+
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+Start bot:
+  php src/private/php/status-display-bot.php --daemon --interval=30
+
+Stop bot:
+  pkill -f status-display-bot
+
+Check if running:
+  ps aux | grep status-display-bot
+
+View logs:
+  tail -f /var/log/ts-status-bot.log
+
+Test once:
+  php src/private/php/status-display-bot.php --once
+
+================================================================================
+DONE!
+================================================================================
+
+Your status display is now active. Check the configured channel in TeamSpeak!
+
+For more help, see the documentation files:
+- MANUAL_INSTALL.md - Detailed manual installation
+- STATUS_DISPLAY_FEATURE.md - Complete documentation
+- INSTALLATION_HELP.md - Help finding your directory
+
+Telegram support: https://t.me/tswebsite
+
+================================================================================

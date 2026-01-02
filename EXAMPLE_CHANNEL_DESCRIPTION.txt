@@ -1,0 +1,188 @@
+================================================================================
+  EXAMPLE CHANNEL DESCRIPTION OUTPUT
+================================================================================
+
+This is what will be displayed in your TeamSpeak channel after the bot updates it:
+
+================================================================================
+BBCode Format (What's Sent to TeamSpeak):
+================================================================================
+
+[center]
+[img]http://web.reape.rs/img/avatars/116527_1703955432.png[/img]
+
+[size=14][b]YourUsername[/b][/size]
+
+[color=#00ff00][size=12][b]✓ ONLINE[/b][/size][/color]
+
+[url=http://web.reape.rs/profile.php?cldbid=116527]View Profile[/url]
+
+[img]icon_123[/img] Rank 1
+
+[size=10][b]Social Media:[/b][/size]
+[url=https://instagram.com/user]📷 Instagram[/url] [url=https://twitter.com/user]🐦 Twitter[/url] [url=https://steamcommunity.com/id/user]🎮 Steam[/url] 
+
+[hr]
+[size=10]This is my profile bio and description...[/size]
+[/center]
+
+================================================================================
+Visual Representation (How It Looks in TeamSpeak):
+================================================================================
+
+                    ┌─────────────────────────┐
+                    │                         │
+                    │     [AVATAR IMAGE]      │
+                    │      (128x128)          │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │      YourUsername       │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │      ✓ ONLINE          │
+                    │     (in green)          │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │    View Profile         │
+                    │   (clickable link)      │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │  [Icon] Rank 1          │
+                    │  (server group icon)    │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │   Social Media:         │
+                    │  📷 Instagram           │
+                    │  🐦 Twitter             │
+                    │  🎮 Steam               │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │  This is my profile     │
+                    │  bio and description... │
+                    │                         │
+                    └─────────────────────────┘
+
+================================================================================
+When User is OFFLINE:
+================================================================================
+
+                    ┌─────────────────────────┐
+                    │                         │
+                    │     [AVATAR IMAGE]      │
+                    │      (128x128)          │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │      YourUsername       │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │      ✗ OFFLINE         │
+                    │      (in red)           │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │    View Profile         │
+                    │   (clickable link)      │
+                    │                         │
+                    └─────────────────────────┘
+
+================================================================================
+Real Example with Actual User:
+================================================================================
+
+If user 116527 named "ProGamer" is online with Instagram and Twitter linked:
+
+                    ┌─────────────────────────┐
+                    │                         │
+                    │   [ProGamer Avatar]     │
+                    │    (their uploaded      │
+                    │      profile pic)       │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │      ProGamer           │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │      ✓ ONLINE          │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │    View Profile         │
+                    │   (clickable link)      │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │  [★] Diamond Rank       │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │   Social Media:         │
+                    │  📷 @ProGamer_YT        │
+                    │  🐦 @ProGamerTwitch     │
+                    │                         │
+                    ├─────────────────────────┤
+                    │                         │
+                    │  Professional gamer and │
+                    │  streamer. Playing CS2  │
+                    │  competitively since... │
+                    │                         │
+                    └─────────────────────────┘
+
+================================================================================
+Features Included:
+================================================================================
+
+✓ User's avatar image (from profile or default icon)
+✓ Username in large bold text
+✓ Online/Offline status with color coding
+  - Green (✓) when ONLINE
+  - Red (✗) when OFFLINE
+✓ Clickable profile link
+✓ Server group icon and name
+✓ Social media links with emojis
+✓ Profile bio/description (truncated to 200 chars)
+✓ Centered alignment
+✓ BBCode formatting
+
+================================================================================
+How to Test:
+================================================================================
+
+1. Run the bot:
+   cd /var/www/web.reape.rs
+   php src/private/php/status-display-bot.php --once
+
+2. Open TeamSpeak client
+
+3. Navigate to channel 251746 (or your configured channel)
+
+4. Right-click channel → Channel Info → View Description
+
+5. You should see the formatted status display!
+
+================================================================================
+Customization:
+================================================================================
+
+To customize the appearance, edit:
+  src/private/php/Utils/StatusDisplayManager.php
+  
+Look for the buildChannelDescription() method around line 150
+
+You can modify:
+- BBCode formatting
+- Font sizes
+- Colors
+- Layout
+- What information is displayed
+- Order of elements
+
+================================================================================
