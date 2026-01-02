@@ -186,23 +186,30 @@ class NewsDisplayManager {
                 $added = isset($news["added"]) ? (int) $news["added"] : time();
                 $edited = isset($news["edited"]) ? (int) $news["edited"] : null;
                 
-                // Format date
-                $dateStr = date('F j, Y', $added);
-                if ($edited && $edited > $added) {
-                    $dateStr .= " (edited: " . date('M j', $edited) . ")";
+                // Format date - handle Unix timestamp properly
+                if ($added > 0) {
+                    $dateStr = date('F j, Y', $added);
+                    if ($edited && $edited > $added) {
+                        $dateStr .= " (edited: " . date('M j', $edited) . ")";
+                    }
+                } else {
+                    $dateStr = "Recent";
                 }
                 
-                // Truncate content if too long (keep first 300 characters)
-                $contentPreview = $content;
-                if (strlen($content) > 300) {
-                    $contentPreview = substr($content, 0, 297) . "...";
+                // Convert HTML to BBCode format for TeamSpeak
+                $contentBBCode = $this->htmlToBBCode($content);
+                
+                // Truncate content if too long (keep first 500 characters after conversion)
+                $contentPreview = $contentBBCode;
+                if (strlen($contentBBCode) > 500) {
+                    $contentPreview = substr($contentBBCode, 0, 497) . "...";
                 }
                 
                 // Build news item
                 $description .= "[hr]\n";
-                $description .= "[size=14][b]" . htmlspecialchars($title) . "[/b][/size]\n";
+                $description .= "[size=14][b]" . $this->escapeBBCode($title) . "[/b][/size]\n";
                 $description .= "[size=9][color=#888888]{$dateStr}[/color][/size]\n\n";
-                $description .= "[size=10]" . htmlspecialchars($contentPreview) . "[/size]\n\n";
+                $description .= "[size=10]" . $contentPreview . "[/size]\n\n";
             }
             
             $description .= "[hr]\n";
@@ -217,6 +224,76 @@ class NewsDisplayManager {
         $description .= "[right][size=8]Last updated: {$timestamp}[/size][/right]";
         
         return $description;
+    }
+    
+    /**
+     * Convert HTML to BBCode format for TeamSpeak
+     * @param string $html
+     * @return string
+     */
+    private function htmlToBBCode(string $html): string {
+        // Basic HTML to BBCode conversions
+        $conversions = [
+            // Bold
+            '/<b>(.*?)<\/b>/is' => '[b]$1[/b]',
+            '/<strong>(.*?)<\/strong>/is' => '[b]$1[/b]',
+            
+            // Italic
+            '/<i>(.*?)<\/i>/is' => '[i]$1[/i]',
+            '/<em>(.*?)<\/em>/is' => '[i]$1[/i]',
+            
+            // Underline
+            '/<u>(.*?)<\/u>/is' => '[u]$1[/u]',
+            
+            // Line breaks
+            '/<br\s*\/?>/i' => "\n",
+            
+            // Links - handle with style attributes
+            '/<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/is' => '[url=$1]$2[/url]',
+            
+            // Paragraphs
+            '/<p[^>]*>(.*?)<\/p>/is' => "$1\n\n",
+            
+            // Headers
+            '/<h[1-6][^>]*>(.*?)<\/h[1-6]>/is' => '[b]$1[/b]',
+            
+            // Divs and spans (just extract content)
+            '/<div[^>]*>(.*?)<\/div>/is' => "$1\n",
+            '/<span[^>]*>(.*?)<\/span>/is' => '$1',
+        ];
+        
+        // Apply conversions
+        foreach ($conversions as $pattern => $replacement) {
+            $html = preg_replace($pattern, $replacement, $html);
+        }
+        
+        // Decode HTML entities
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        // Remove any remaining HTML tags
+        $html = strip_tags($html);
+        
+        // Clean up multiple newlines
+        $html = preg_replace('/\n{3,}/', "\n\n", $html);
+        
+        // Trim whitespace
+        $html = trim($html);
+        
+        return $html;
+    }
+    
+    /**
+     * Escape text for safe BBCode output
+     * @param string $text
+     * @return string
+     */
+    private function escapeBBCode(string $text): string {
+        // Decode HTML entities first
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Remove HTML tags
+        $text = strip_tags($text);
+        // Trim
+        return trim($text);
     }
     
     /**
