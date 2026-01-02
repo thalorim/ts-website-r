@@ -100,17 +100,62 @@ class StatsDisplayManager {
         
         try {
             $existing = $db->get("user_statistics", "*", ["cldbid" => $cldbid]);
+            $today = date('Y-m-d');
+            $dayOfWeek = date('w'); // 0 (Sunday) to 6 (Saturday)
             
             if ($existing) {
-                // Update existing
-                $db->update("user_statistics", [
-                    "total_connections" => $existing['total_connections'] + 1,
-                    "last_seen" => date('Y-m-d H:i:s'),
-                    "last_nickname" => $nickname,
-                    "cluid" => $cluid
-                ], ["cldbid" => $cldbid]);
+                // Parse connection dates
+                $connectionDates = !empty($existing['connection_dates']) 
+                    ? json_decode($existing['connection_dates'], true) 
+                    : [];
+                
+                // Parse day statistics
+                $dayStats = !empty($existing['day_statistics']) 
+                    ? json_decode($existing['day_statistics'], true) 
+                    : array_fill(0, 7, 0);
+                
+                // Check if this is first connection today
+                if (!in_array($today, $connectionDates)) {
+                    $connectionDates[] = $today;
+                    $connectedDays = count($connectionDates);
+                    
+                    // Keep only last 400 days to prevent huge JSON
+                    if (count($connectionDates) > 400) {
+                        $connectionDates = array_slice($connectionDates, -400);
+                    }
+                    
+                    // Update day of week statistics
+                    $dayStats[$dayOfWeek] = ($dayStats[$dayOfWeek] ?? 0) + 1;
+                    
+                    // Calculate streaks
+                    $streakData = $this->calculateStreaks($connectionDates);
+                    
+                    $updateData = [
+                        "total_connections" => $existing['total_connections'] + 1,
+                        "last_seen" => date('Y-m-d H:i:s'),
+                        "last_nickname" => $nickname,
+                        "cluid" => $cluid,
+                        "connected_days" => $connectedDays,
+                        "connection_dates" => json_encode($connectionDates),
+                        "current_streak" => $streakData['current'],
+                        "longest_streak" => $streakData['longest'],
+                        "longest_streak_start" => $streakData['longest_start'],
+                        "longest_streak_end" => $streakData['longest_end'],
+                        "day_statistics" => json_encode($dayStats)
+                    ];
+                } else {
+                    // Same day connection
+                    $updateData = [
+                        "total_connections" => $existing['total_connections'] + 1,
+                        "last_seen" => date('Y-m-d H:i:s'),
+                        "last_nickname" => $nickname,
+                        "cluid" => $cluid
+                    ];
+                }
+                
+                $db->update("user_statistics", $updateData, ["cldbid" => $cldbid]);
             } else {
-                // Insert new - check if user exists in profiles table to get existing connection count
+                // Insert new - check if user exists in profiles table
                 $existingConnections = 0;
                 try {
                     $profile = $db->get("profiles", "connections", ["cldbid" => $cldbid]);
@@ -118,10 +163,13 @@ class StatsDisplayManager {
                         $existingConnections = (int)$profile['connections'];
                     }
                 } catch (\Exception $e) {
-                    // Table might not exist or no data
+                    // Table might not exist
                 }
                 
-                // Start with existing connections + 1 for this connection
+                // Initialize day statistics
+                $dayStats = array_fill(0, 7, 0);
+                $dayStats[$dayOfWeek] = 1;
+                
                 $db->insert("user_statistics", [
                     "cldbid" => $cldbid,
                     "cluid" => $cluid,
@@ -129,7 +177,14 @@ class StatsDisplayManager {
                     "total_connections" => $existingConnections + 1,
                     "total_online_time" => 0,
                     "first_seen" => date('Y-m-d H:i:s'),
-                    "last_seen" => date('Y-m-d H:i:s')
+                    "last_seen" => date('Y-m-d H:i:s'),
+                    "connected_days" => 1,
+                    "connection_dates" => json_encode([$today]),
+                    "current_streak" => 1,
+                    "longest_streak" => 1,
+                    "longest_streak_start" => $today,
+                    "longest_streak_end" => $today,
+                    "day_statistics" => json_encode($dayStats)
                 ]);
             }
             return true;
@@ -137,6 +192,83 @@ class StatsDisplayManager {
             error_log("Failed to record connection: " . $e->getMessage());
             return false;
         }
+    }
+    
+    /**
+     * Calculate streak statistics from connection dates
+     * @param array $dates Array of Y-m-d date strings
+     * @return array
+     */
+    private function calculateStreaks(array $dates): array {
+        if (empty($dates)) {
+            return [
+                'current' => 0,
+                'longest' => 0,
+                'longest_start' => null,
+                'longest_end' => null
+            ];
+        }
+        
+        sort($dates);
+        $today = date('Y-m-d');
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        
+        $currentStreak = 0;
+        $longestStreak = 0;
+        $longestStart = null;
+        $longestEnd = null;
+        
+        $tempStreak = 1;
+        $tempStart = $dates[0];
+        
+        for ($i = 1; $i < count($dates); $i++) {
+            $prevDate = new \DateTime($dates[$i - 1]);
+            $currDate = new \DateTime($dates[$i]);
+            $diff = $prevDate->diff($currDate)->days;
+            
+            if ($diff === 1) {
+                // Consecutive day
+                $tempStreak++;
+            } else {
+                // Streak broken, check if it was the longest
+                if ($tempStreak > $longestStreak) {
+                    $longestStreak = $tempStreak;
+                    $longestStart = $tempStart;
+                    $longestEnd = $dates[$i - 1];
+                }
+                $tempStreak = 1;
+                $tempStart = $dates[$i];
+            }
+        }
+        
+        // Check final streak
+        if ($tempStreak > $longestStreak) {
+            $longestStreak = $tempStreak;
+            $longestStart = $tempStart;
+            $longestEnd = $dates[count($dates) - 1];
+        }
+        
+        // Calculate current streak
+        $lastDate = $dates[count($dates) - 1];
+        if ($lastDate === $today || $lastDate === $yesterday) {
+            $currentStreak = 1;
+            for ($i = count($dates) - 2; $i >= 0; $i--) {
+                $prevDate = new \DateTime($dates[$i]);
+                $currDate = new \DateTime($dates[$i + 1]);
+                if ($prevDate->diff($currDate)->days === 1) {
+                    $currentStreak++;
+                } else {
+                    break;
+                }
+            }
+        }
+        
+        return [
+            'current' => $currentStreak,
+            'longest' => $longestStreak,
+            'longest_start' => $longestStart,
+            'longest_end' => $longestEnd
+        ];
     }
 
     /**
@@ -373,6 +505,9 @@ class StatsDisplayManager {
             case 'server_stats':
                 $description = $this->buildServerStats($baseUrl);
                 break;
+            case 'detailed_stats':
+                $description = $this->buildDetailedUserStats($topCount, $baseUrl);
+                break;
             case 'combined':
             default:
                 $description = $this->buildCombinedStats($topCount, $baseUrl);
@@ -383,6 +518,112 @@ class StatsDisplayManager {
         $timestamp = date('Y-m-d H:i:s');
         $description .= "\n[hr]\n";
         $description .= "[right][size=8]Last updated: {$timestamp}[/size][/right]";
+        
+        return $description;
+    }
+    
+    /**
+     * Build detailed user statistics display
+     * @param int $topCount
+     * @param string $baseUrl
+     * @return string
+     */
+    private function buildDetailedUserStats(int $topCount, string $baseUrl): string {
+        $topUsers = $this->getTopByOnlineTime($topCount);
+        
+        $description = "[center][size=16][b]📊 Detailed User Statistics[/b][/size][/center]\n\n";
+        
+        if (empty($topUsers)) {
+            $description .= "[center][i]No statistics available yet.[/i][/center]\n";
+            return $description;
+        }
+        
+        $rank = 1;
+        foreach ($topUsers as $user) {
+            $cldbid = (int)$user['cldbid'];
+            $nickname = $this->escapeBBCode($user['last_nickname'] ?? 'Unknown');
+            
+            // Get medal
+            $medal = $this->getRankMedal($rank);
+            
+            // Profile link
+            $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
+            $userLink = "[url={$profileUrl}]{$nickname}[/url]";
+            
+            // Format dates
+            $firstConnected = isset($user['first_seen']) && $user['first_seen'] 
+                ? date('jS F, Y', strtotime($user['first_seen']))
+                : 'Unknown';
+                
+            $lastOnline = isset($user['last_seen']) && $user['last_seen']
+                ? date('jS F, Y, g:ia', strtotime($user['last_seen']))
+                : 'Unknown';
+            
+            // Total time in hours
+            $totalHours = isset($user['total_online_hours']) 
+                ? number_format($user['total_online_hours'], 0)
+                : number_format((int)$user['total_online_time'] / 3600, 0);
+            
+            // Connected days
+            $connectedDays = (int)($user['connected_days'] ?? 0);
+            
+            // Calculate percentage
+            $percentageDays = 0;
+            $totalDays = 0;
+            if (isset($user['first_seen']) && $user['first_seen']) {
+                $firstDate = new \DateTime($user['first_seen']);
+                $now = new \DateTime();
+                $totalDays = $firstDate->diff($now)->days + 1;
+                $percentageDays = $connectedDays > 0 && $totalDays > 0 
+                    ? round(($connectedDays / $totalDays) * 100, 2) 
+                    : 0;
+            }
+            
+            // Most consecutive days
+            $longestStreak = (int)($user['longest_streak'] ?? 0);
+            $streakStart = isset($user['longest_streak_start']) && $user['longest_streak_start']
+                ? date('jS F, Y', strtotime($user['longest_streak_start']))
+                : '';
+            $streakEnd = isset($user['longest_streak_end']) && $user['longest_streak_end']
+                ? date('jS F, Y', strtotime($user['longest_streak_end']))
+                : '';
+            
+            // Most popular day
+            $popularDay = 'Unknown';
+            $popularCount = 0;
+            if (!empty($user['day_statistics'])) {
+                $dayStats = json_decode($user['day_statistics'], true);
+                if (is_array($dayStats)) {
+                    $maxDay = array_search(max($dayStats), $dayStats);
+                    $popularCount = max($dayStats);
+                    $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    $popularDay = $days[$maxDay] ?? 'Unknown';
+                }
+            }
+            
+            // Build entry
+            $description .= "[size=12]{$medal} [b]#{$rank} {$userLink}[/b][/size]\n\n";
+            $description .= "[size=10][b]first connected:[/b] {$firstConnected}[/size]\n";
+            $description .= "[size=10][b]last online:[/b] {$lastOnline}[/size]\n";
+            $description .= "[size=10][b]total time:[/b] {$totalHours} hrs[/size]\n";
+            $description .= "[size=10][b]connected days:[/b] {$connectedDays} days[/size]\n";
+            
+            if ($totalDays > 0) {
+                $description .= "[size=10][b]percentage days:[/b] {$percentageDays}% ({$connectedDays}/{$totalDays})[/size]\n";
+            }
+            
+            if ($longestStreak > 0 && $streakStart && $streakEnd) {
+                $description .= "[size=10][b]most consecutive days:[/b] {$longestStreak} ({$streakStart} to {$streakEnd})[/size]\n";
+            }
+            
+            if ($popularCount > 0) {
+                $description .= "[size=10][b]most popular day:[/b] {$popularDay} ({$popularCount})[/size]\n";
+            }
+            
+            $description .= "\n[hr]\n\n";
+            
+            $rank++;
+        }
         
         return $description;
     }
@@ -714,7 +955,14 @@ class StatsDisplayManager {
                 'country_code' => "ADD COLUMN `country_code` VARCHAR(2) DEFAULT NULL COMMENT 'Country code'",
                 'peak_clients_seen' => "ADD COLUMN `peak_clients_seen` INT(11) NOT NULL DEFAULT '0' COMMENT 'Max concurrent clients when user was online'",
                 'messages_sent' => "ADD COLUMN `messages_sent` INT(11) NOT NULL DEFAULT '0' COMMENT 'Total messages sent (future feature)'",
-                'channels_visited' => "ADD COLUMN `channels_visited` TEXT DEFAULT NULL COMMENT 'JSON array of visited channel IDs'"
+                'channels_visited' => "ADD COLUMN `channels_visited` TEXT DEFAULT NULL COMMENT 'JSON array of visited channel IDs'",
+                'connected_days' => "ADD COLUMN `connected_days` INT(11) NOT NULL DEFAULT '0' COMMENT 'Total unique days user connected'",
+                'connection_dates' => "ADD COLUMN `connection_dates` TEXT DEFAULT NULL COMMENT 'JSON array of connection dates (Y-m-d) for tracking'",
+                'current_streak' => "ADD COLUMN `current_streak` INT(11) NOT NULL DEFAULT '0' COMMENT 'Current consecutive days streak'",
+                'longest_streak' => "ADD COLUMN `longest_streak` INT(11) NOT NULL DEFAULT '0' COMMENT 'Longest consecutive days streak'",
+                'longest_streak_start' => "ADD COLUMN `longest_streak_start` DATE DEFAULT NULL COMMENT 'Start date of longest streak'",
+                'longest_streak_end' => "ADD COLUMN `longest_streak_end` DATE DEFAULT NULL COMMENT 'End date of longest streak'",
+                'day_statistics' => "ADD COLUMN `day_statistics` TEXT DEFAULT NULL COMMENT 'JSON: connections per day of week'"
             ];
             
             foreach ($columnsToAdd as $columnName => $sql) {
@@ -763,6 +1011,13 @@ class StatsDisplayManager {
                     `peak_clients_seen` INT(11) NOT NULL DEFAULT '0' COMMENT 'Max concurrent clients when user was online',
                     `messages_sent` INT(11) NOT NULL DEFAULT '0' COMMENT 'Total messages sent (future feature)',
                     `channels_visited` TEXT DEFAULT NULL COMMENT 'JSON array of visited channel IDs',
+                    `connected_days` INT(11) NOT NULL DEFAULT '0' COMMENT 'Total unique days user connected',
+                    `connection_dates` TEXT DEFAULT NULL COMMENT 'JSON array of connection dates for tracking',
+                    `current_streak` INT(11) NOT NULL DEFAULT '0' COMMENT 'Current consecutive days streak',
+                    `longest_streak` INT(11) NOT NULL DEFAULT '0' COMMENT 'Longest consecutive days streak',
+                    `longest_streak_start` DATE DEFAULT NULL COMMENT 'Start date of longest streak',
+                    `longest_streak_end` DATE DEFAULT NULL COMMENT 'End date of longest streak',
+                    `day_statistics` TEXT DEFAULT NULL COMMENT 'JSON: connections per day of week',
                     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     PRIMARY KEY (`cldbid`),

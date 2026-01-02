@@ -259,6 +259,7 @@ $serverStats = $manager->getServerStats();
                 <li><strong>Connections:</strong> Full leaderboard of most connections</li>
                 <li><strong>Online Time:</strong> Full leaderboard of most online time</li>
                 <li><strong>Server Stats:</strong> Overall server statistics only</li>
+                <li><strong>Detailed Stats:</strong> Shows first/last connected, total hours, connected days, percentage, streaks, most popular day</li>
             </ul>
         </div>
 
@@ -304,13 +305,14 @@ $serverStats = $manager->getServerStats();
                             $lastUpdated = $config['last_updated'] ?? 'Never';
                             $enabled = (bool) ($config['enabled'] ?? true);
                             
-                            $displayTypeLabels = [
-                                'combined' => '<span class="badge badge-primary">Combined</span>',
-                                'connections' => '<span class="badge badge-info">Connections</span>',
-                                'online_time' => '<span class="badge badge-warning">Online Time</span>',
-                                'server_stats' => '<span class="badge badge-success">Server Stats</span>'
-                            ];
-                            $displayLabel = $displayTypeLabels[$displayType] ?? $displayType;
+            $displayTypeLabels = [
+                'combined' => '<span class="badge badge-primary">Combined</span>',
+                'connections' => '<span class="badge badge-info">Connections</span>',
+                'online_time' => '<span class="badge badge-warning">Online Time</span>',
+                'server_stats' => '<span class="badge badge-success">Server Stats</span>',
+                'detailed_stats' => '<span class="badge badge-dark">Detailed Stats</span>'
+            ];
+            $displayLabel = $displayTypeLabels[$displayType] ?? $displayType;
                         ?>
                         <tr>
                             <td><?= $configId ?></td>
@@ -373,6 +375,7 @@ $serverStats = $manager->getServerStats();
                                                     <option value="connections" <?= $displayType === 'connections' ? 'selected' : '' ?>>Connections Leaderboard</option>
                                                     <option value="online_time" <?= $displayType === 'online_time' ? 'selected' : '' ?>>Online Time Leaderboard</option>
                                                     <option value="server_stats" <?= $displayType === 'server_stats' ? 'selected' : '' ?>>Server Statistics</option>
+                                                    <option value="detailed_stats" <?= $displayType === 'detailed_stats' ? 'selected' : '' ?>>Detailed User Stats</option>
                                                 </select>
                                             </div>
                                             
@@ -441,6 +444,7 @@ $serverStats = $manager->getServerStats();
                                 <option value="connections">Connections Leaderboard</option>
                                 <option value="online_time">Online Time Leaderboard</option>
                                 <option value="server_stats">Server Statistics</option>
+                                <option value="detailed_stats">Detailed User Stats (first/last seen, streaks, etc.)</option>
                             </select>
                             <small class="form-text text-muted">What to display in the channel</small>
                         </div>
