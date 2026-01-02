@@ -50,15 +50,17 @@ class NewsDisplayManager {
      * Add a new news display configuration
      * @param int $channelId
      * @param int $newsLimit How many news items to display
+     * @param string|null $selectedNewsIds Comma-separated news IDs to display (null = show latest)
      * @return bool
      */
-    public function addConfiguration(int $channelId, int $newsLimit = 5): bool {
+    public function addConfiguration(int $channelId, int $newsLimit = 5, ?string $selectedNewsIds = null): bool {
         $db = DatabaseUtils::i()->getDb();
         
         try {
             $db->insert("channel_news_display", [
                 "channel_id" => $channelId,
                 "news_limit" => $newsLimit,
+                "selected_news_ids" => $selectedNewsIds,
                 "enabled" => 1
             ]);
             return true;
@@ -71,15 +73,21 @@ class NewsDisplayManager {
      * Update a news display configuration
      * @param int $id
      * @param int $newsLimit
+     * @param string|null $selectedNewsIds Comma-separated news IDs (null = show latest)
      * @return bool
      */
-    public function updateConfiguration(int $id, int $newsLimit): bool {
+    public function updateConfiguration(int $id, int $newsLimit, ?string $selectedNewsIds = null): bool {
         $db = DatabaseUtils::i()->getDb();
         
         try {
-            $db->update("channel_news_display", [
-                "news_limit" => $newsLimit
-            ], ["id" => $id]);
+            $data = ["news_limit" => $newsLimit];
+            
+            // Only update selected_news_ids if provided (not null)
+            if ($selectedNewsIds !== null) {
+                $data["selected_news_ids"] = $selectedNewsIds;
+            }
+            
+            $db->update("channel_news_display", $data, ["id" => $id]);
             return true;
         } catch (\Exception $e) {
             return false;
@@ -106,9 +114,10 @@ class NewsDisplayManager {
      * Update channel description with news data
      * @param int $channelId
      * @param int $newsLimit
+     * @param string|null $selectedNewsIds Comma-separated news IDs (null = show latest)
      * @return bool
      */
-    public function updateChannelDescription(int $channelId, int $newsLimit = 5): bool {
+    public function updateChannelDescription(int $channelId, int $newsLimit = 5, ?string $selectedNewsIds = null): bool {
         try {
             if (!TeamSpeakUtils::i()->checkTSConnection()) {
                 return false;
@@ -118,10 +127,29 @@ class NewsDisplayManager {
             
             // Get news from database
             $db = DatabaseUtils::i()->getDb();
-            $newsList = $db->select("news", "*", [
-                "ORDER" => ["added" => "DESC"],
-                "LIMIT" => $newsLimit
-            ]);
+            
+            // If specific news IDs are selected, get those; otherwise get latest
+            if (!empty($selectedNewsIds)) {
+                // Parse comma-separated IDs
+                $newsIds = array_map('intval', explode(',', $selectedNewsIds));
+                $newsIds = array_filter($newsIds); // Remove zeros
+                
+                if (!empty($newsIds)) {
+                    // Get specific news items by ID
+                    $newsList = $db->select("news", "*", [
+                        "newsid" => $newsIds,
+                        "ORDER" => ["added" => "DESC"]
+                    ]);
+                } else {
+                    $newsList = [];
+                }
+            } else {
+                // Get latest news (default behavior)
+                $newsList = $db->select("news", "*", [
+                    "ORDER" => ["added" => "DESC"],
+                    "LIMIT" => $newsLimit
+                ]);
+            }
             
             if (empty($newsList)) {
                 $newsList = [];
@@ -395,8 +423,9 @@ class NewsDisplayManager {
             foreach ($configs as $config) {
                 $channelId = (int) $config['channel_id'];
                 $newsLimit = isset($config['news_limit']) ? (int) $config['news_limit'] : 5;
+                $selectedNewsIds = isset($config['selected_news_ids']) ? $config['selected_news_ids'] : null;
                 
-                $result = $this->updateChannelDescription($channelId, $newsLimit);
+                $result = $this->updateChannelDescription($channelId, $newsLimit, $selectedNewsIds);
                 
                 if ($result) {
                     $stats['updated']++;
@@ -412,7 +441,7 @@ class NewsDisplayManager {
     }
 
     /**
-     * Ensure the news display table exists
+     * Ensure the news display table exists and has all required columns
      * @return bool
      */
     public function ensureTableExists(): bool {
@@ -432,6 +461,7 @@ class NewsDisplayManager {
                     `id` INT(11) NOT NULL AUTO_INCREMENT,
                     `channel_id` INT(11) NOT NULL COMMENT 'Channel ID to update description',
                     `news_limit` INT(11) NOT NULL DEFAULT '5' COMMENT 'Number of news items to display',
+                    `selected_news_ids` TEXT NULL DEFAULT NULL COMMENT 'Comma-separated news IDs to display (NULL = show latest)',
                     `enabled` TINYINT(1) NOT NULL DEFAULT '1' COMMENT 'Whether this configuration is active',
                     `last_updated` TIMESTAMP NULL DEFAULT NULL COMMENT 'Last time the channel was updated',
                     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -442,7 +472,13 @@ class NewsDisplayManager {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
                 $db->query($sql);
-                return true;
+            } else {
+                // Table exists, check if selected_news_ids column exists
+                $columns = $db->query("SHOW COLUMNS FROM `{$tableName}` LIKE 'selected_news_ids'");
+                if (!$columns || !$columns->fetch()) {
+                    // Add the column if it doesn't exist
+                    $db->query("ALTER TABLE `{$tableName}` ADD COLUMN `selected_news_ids` TEXT NULL DEFAULT NULL COMMENT 'Comma-separated news IDs to display (NULL = show latest)' AFTER `news_limit`");
+                }
             }
 
             return true;

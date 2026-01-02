@@ -42,6 +42,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             case "add":
                 $channelId = (int) ($_POST["channel_id"] ?? 0);
                 $newsLimit = (int) ($_POST["news_limit"] ?? 5);
+                $selectedNewsIds = isset($_POST["selected_news"]) && is_array($_POST["selected_news"]) 
+                    ? implode(',', array_map('intval', $_POST["selected_news"])) 
+                    : null;
                 
                 if ($channelId <= 0) {
                     throw new \Exception("Invalid channel ID");
@@ -51,9 +54,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     throw new \Exception("News limit must be between 1 and 20");
                 }
                 
-                if ($manager->addConfiguration($channelId, $newsLimit)) {
+                if ($manager->addConfiguration($channelId, $newsLimit, $selectedNewsIds)) {
                     // Immediately update the channel with news
-                    $manager->updateChannelDescription($channelId, $newsLimit);
+                    $manager->updateChannelDescription($channelId, $newsLimit, $selectedNewsIds);
                     $message = "Configuration added successfully and channel updated with news";
                 } else {
                     throw new \Exception("Failed to add configuration (channel may already be configured)");
@@ -79,6 +82,42 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 }
                 break;
                 
+            case "update_selected_news":
+                $id = (int) ($_POST["id"] ?? 0);
+                $selectedNewsIds = isset($_POST["selected_news"]) && is_array($_POST["selected_news"]) 
+                    ? implode(',', array_map('intval', $_POST["selected_news"])) 
+                    : '';
+                
+                if ($id <= 0) {
+                    throw new \Exception("Invalid configuration ID");
+                }
+                
+                // Get current config
+                $configs = $manager->getConfigurations();
+                $config = null;
+                foreach ($configs as $c) {
+                    if ((int)$c['id'] === $id) {
+                        $config = $c;
+                        break;
+                    }
+                }
+                
+                if (!$config) {
+                    throw new \Exception("Configuration not found");
+                }
+                
+                $newsLimit = (int)($config['news_limit'] ?? 5);
+                $channelId = (int)($config['channel_id'] ?? 0);
+                
+                if ($manager->updateConfiguration($id, $newsLimit, $selectedNewsIds)) {
+                    // Immediately update the channel
+                    $manager->updateChannelDescription($channelId, $newsLimit, $selectedNewsIds);
+                    $message = "Selected news updated and channel refreshed";
+                } else {
+                    throw new \Exception("Failed to update selected news");
+                }
+                break;
+                
             case "delete":
                 $id = (int) ($_POST["id"] ?? 0);
                 
@@ -97,12 +136,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $id = (int) ($_POST["id"] ?? 0);
                 $channelId = (int) ($_POST["channel_id"] ?? 0);
                 $newsLimit = (int) ($_POST["news_limit"] ?? 5);
+                $selectedNewsIds = $_POST["selected_news_ids"] ?? null;
                 
                 if ($id <= 0 || $channelId <= 0) {
                     throw new \Exception("Invalid configuration or channel ID");
                 }
                 
-                if ($manager->updateChannelDescription($channelId, $newsLimit)) {
+                if ($manager->updateChannelDescription($channelId, $newsLimit, $selectedNewsIds)) {
                     $message = "Channel description updated successfully";
                 } else {
                     throw new \Exception("Failed to update channel description");
@@ -136,11 +176,15 @@ try {
     // Ignore
 }
 
-// Get news count from database
+// Get news count and list from database
 $db = DatabaseUtils::i()->getDb();
 $newsCount = 0;
+$allNews = [];
 try {
     $newsCount = $db->count("news");
+    $allNews = $db->select("news", ["newsid", "title", "added"], [
+        "ORDER" => ["added" => "DESC"]
+    ]);
 } catch (\Exception $e) {
     // Table may not exist yet
 }
@@ -274,6 +318,7 @@ try {
                     <th>ID</th>
                     <th>Channel ID</th>
                     <th>Channel Name</th>
+                    <th>Display Mode</th>
                     <th>News Limit</th>
                     <th>Last Updated</th>
                     <th>Status</th>
@@ -283,7 +328,7 @@ try {
             <tbody>
                 <?php if (empty($configurations)): ?>
                     <tr>
-                        <td colspan="7" class="text-center text-muted">No configurations found. Add one to get started!</td>
+                        <td colspan="8" class="text-center text-muted">No configurations found. Add one to get started!</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($configurations as $config): ?>
@@ -292,13 +337,35 @@ try {
                             $channelId = (int) $config['channel_id'];
                             $channelName = $channels[$channelId] ?? "Unknown (ID: {$channelId})";
                             $newsLimit = (int) ($config['news_limit'] ?? 5);
+                            $selectedNewsIds = isset($config['selected_news_ids']) && !empty($config['selected_news_ids']) 
+                                ? $config['selected_news_ids'] 
+                                : null;
+                            $selectedNewsArray = $selectedNewsIds ? explode(',', $selectedNewsIds) : [];
                             $lastUpdated = isset($config['last_updated']) && $config['last_updated'] ? $config['last_updated'] : 'Never';
                             $enabled = (bool) ($config['enabled'] ?? true);
+                            
+                            // Determine display mode
+                            if (!empty($selectedNewsIds)) {
+                                $displayMode = '<span class="badge badge-info">Specific News</span>';
+                                $displayModeText = count($selectedNewsArray) . ' news selected';
+                            } else {
+                                $displayMode = '<span class="badge badge-secondary">Latest News</span>';
+                                $displayModeText = 'Show latest';
+                            }
                         ?>
                         <tr>
                             <td><?= $configId ?></td>
                             <td><?= $channelId ?></td>
                             <td><?= htmlspecialchars($channelName) ?></td>
+                            <td>
+                                <?= $displayMode ?>
+                                <button type="button" class="btn btn-sm btn-outline-primary ml-1" 
+                                        data-toggle="modal" 
+                                        data-target="#selectNewsModal<?= $configId ?>"
+                                        title="Select news to display">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
                             <td>
                                 <form method="POST" style="display: inline-flex; align-items: center;">
                                     <input type="hidden" name="action" value="update">
@@ -324,6 +391,7 @@ try {
                                     <input type="hidden" name="id" value="<?= $configId ?>">
                                     <input type="hidden" name="channel_id" value="<?= $channelId ?>">
                                     <input type="hidden" name="news_limit" value="<?= $newsLimit ?>">
+                                    <input type="hidden" name="selected_news_ids" value="<?= htmlspecialchars($selectedNewsIds ?? '') ?>">
                                     <input type="hidden" name="csrf-token" value="<?= htmlspecialchars(CsrfUtils::getToken()) ?>">
                                     <button type="submit" class="btn btn-success btn-sm" title="Update channel now">
                                         <i class="fas fa-sync"></i>
@@ -339,6 +407,70 @@ try {
                                 </form>
                             </td>
                         </tr>
+                        
+                        <!-- Select News Modal for this configuration -->
+                        <div class="modal fade" id="selectNewsModal<?= $configId ?>" tabindex="-1" role="dialog">
+                            <div class="modal-dialog modal-lg" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Select News to Display</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <form method="POST">
+                                        <div class="modal-body">
+                                            <input type="hidden" name="action" value="update_selected_news">
+                                            <input type="hidden" name="id" value="<?= $configId ?>">
+                                            <input type="hidden" name="csrf-token" value="<?= htmlspecialchars(CsrfUtils::getToken()) ?>">
+                                            
+                                            <p class="text-muted">
+                                                <i class="fas fa-info-circle"></i> 
+                                                <strong>Leave all unchecked to show latest news automatically.</strong><br>
+                                                Or select specific news items to display (ignore News Limit if specific news selected).
+                                            </p>
+                                            
+                                            <div class="form-group">
+                                                <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                                                    <?php if (empty($allNews)): ?>
+                                                        <p class="text-muted">No news items found in database.</p>
+                                                    <?php else: ?>
+                                                        <?php foreach ($allNews as $newsItem): ?>
+                                                            <?php
+                                                                $newsId = (int)$newsItem['newsid'];
+                                                                $newsTitle = htmlspecialchars($newsItem['title']);
+                                                                $newsDate = isset($newsItem['added']) && $newsItem['added'] > 0 
+                                                                    ? date('M j, Y', (int)$newsItem['added']) 
+                                                                    : 'Unknown date';
+                                                                $isChecked = in_array($newsId, $selectedNewsArray) ? 'checked' : '';
+                                                            ?>
+                                                            <div class="custom-control custom-checkbox mb-2">
+                                                                <input type="checkbox" 
+                                                                       class="custom-control-input" 
+                                                                       id="news_<?= $configId ?>_<?= $newsId ?>" 
+                                                                       name="selected_news[]" 
+                                                                       value="<?= $newsId ?>"
+                                                                       <?= $isChecked ?>>
+                                                                <label class="custom-control-label" for="news_<?= $configId ?>_<?= $newsId ?>">
+                                                                    <strong><?= $newsTitle ?></strong> 
+                                                                    <small class="text-muted">(ID: <?= $newsId ?>, <?= $newsDate ?>)</small>
+                                                                </label>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save"></i> Save & Update Channel
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </tbody>
@@ -361,7 +493,7 @@ try {
 
     <!-- Add Configuration Modal -->
     <div class="modal fade" id="addConfigModal" tabindex="-1" role="dialog" aria-labelledby="addConfigModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="addConfigModalLabel">Add News Channel Display Configuration</h5>
@@ -388,7 +520,41 @@ try {
                         <div class="form-group">
                             <label for="news_limit">Number of News Items *</label>
                             <input type="number" class="form-control" id="news_limit" name="news_limit" value="5" min="1" max="20" required>
-                            <small class="form-text text-muted">How many news items to display (1-20)</small>
+                            <small class="form-text text-muted">How many news items to display (1-20) - only used if no specific news selected below</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Select Specific News (Optional)</label>
+                            <p class="text-muted small">
+                                <i class="fas fa-info-circle"></i> 
+                                Leave unchecked to automatically show latest news. Or check specific news items to display only those.
+                            </p>
+                            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                                <?php if (empty($allNews)): ?>
+                                    <p class="text-muted">No news items found in database.</p>
+                                <?php else: ?>
+                                    <?php foreach ($allNews as $newsItem): ?>
+                                        <?php
+                                            $newsId = (int)$newsItem['newsid'];
+                                            $newsTitle = htmlspecialchars($newsItem['title']);
+                                            $newsDate = isset($newsItem['added']) && $newsItem['added'] > 0 
+                                                ? date('M j, Y', (int)$newsItem['added']) 
+                                                : 'Unknown date';
+                                        ?>
+                                        <div class="custom-control custom-checkbox mb-2">
+                                            <input type="checkbox" 
+                                                   class="custom-control-input" 
+                                                   id="add_news_<?= $newsId ?>" 
+                                                   name="selected_news[]" 
+                                                   value="<?= $newsId ?>">
+                                            <label class="custom-control-label" for="add_news_<?= $newsId ?>">
+                                                <strong><?= $newsTitle ?></strong> 
+                                                <small class="text-muted">(ID: <?= $newsId ?>, <?= $newsDate ?>)</small>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">

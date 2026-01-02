@@ -31,7 +31,8 @@ try {
         }
         
         $newsLimit = (int) ($config['news_limit'] ?? 5);
-        $result = $manager->updateChannelDescription($channelId, $newsLimit);
+        $selectedNewsIds = isset($config['selected_news_ids']) ? $config['selected_news_ids'] : null;
+        $result = $manager->updateChannelDescription($channelId, $newsLimit, $selectedNewsIds);
         
         if ($result) {
             echo json_encode([
