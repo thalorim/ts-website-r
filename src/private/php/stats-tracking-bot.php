@@ -56,9 +56,51 @@ echo "=================================================\n\n";
 $manager = StatsDisplayManager::i();
 $manager->ensureTablesExist();
 
-// Track online users (cldbid => timestamp when seen)
+// Track online users (cldbid => array with start time and nickname)
 $onlineUsers = [];
 $lastCheck = time();
+
+// Import existing connections on first run
+echo "[" . date('Y-m-d H:i:s') . "] Importing existing connections from database...\n";
+try {
+    $db = \Wruczek\TSWebsite\Utils\DatabaseUtils::i()->getDb();
+    $imported = 0;
+    
+    // Check if profiles table exists and has connection data
+    try {
+        $profiles = $db->select("profiles", ["cldbid", "connections", "nickname"], ["connections[>]" => 0]);
+        foreach ($profiles as $profile) {
+            $cldbid = (int)$profile['cldbid'];
+            
+            // Check if user already in stats
+            $existing = $db->get("user_statistics", "cldbid", ["cldbid" => $cldbid]);
+            
+            if (!$existing && isset($profile['connections']) && $profile['connections'] > 0) {
+                // User not in stats yet, but has connections in profiles
+                $db->insert("user_statistics", [
+                    "cldbid" => $cldbid,
+                    "last_nickname" => $profile['nickname'] ?? 'Unknown',
+                    "total_connections" => (int)$profile['connections'],
+                    "total_online_time" => 0,
+                    "first_seen" => date('Y-m-d H:i:s'),
+                    "last_seen" => date('Y-m-d H:i:s')
+                ]);
+                $imported++;
+            }
+        }
+    } catch (\Exception $e) {
+        // Profiles table might not exist
+    }
+    
+    if ($imported > 0) {
+        echo "  Imported {$imported} users with existing connection data\n";
+    } else {
+        echo "  No existing connections to import\n";
+    }
+} catch (\Exception $e) {
+    echo "  Error importing: " . $e->getMessage() . "\n";
+}
+echo "\n";
 
 /**
  * Process user tracking
@@ -77,10 +119,12 @@ function processUserTracking() {
         $currentOnline = [];
         $newConnections = 0;
         $timeUpdates = 0;
+        $totalOnline = count($clients);
         
         foreach ($clients as $client) {
             // Skip query clients
             if (isset($client['client_type']) && $client['client_type'] == 1) {
+                $totalOnline--;
                 continue;
             }
             
@@ -90,34 +134,58 @@ function processUserTracking() {
             
             $currentOnline[$cldbid] = true;
             
+            // Collect additional data
+            $additionalData = [];
+            
+            // Get IP address if available
+            if (isset($client['connection_client_ip'])) {
+                $additionalData['last_ip'] = (string) $client['connection_client_ip'];
+            }
+            
+            // Get country if available
+            if (isset($client['client_country'])) {
+                $additionalData['country_code'] = (string) $client['client_country'];
+            }
+            
+            // Track peak online count
+            $additionalData['peak_clients_seen'] = $totalOnline;
+            
             // Check if this is a new connection
             if (!isset($onlineUsers[$cldbid])) {
                 // New user connected
                 $manager->recordConnection($cldbid, $nickname, $cluid);
-                $onlineUsers[$cldbid] = $currentTime;
+                $manager->startSession($cldbid);
+                $onlineUsers[$cldbid] = [
+                    'start' => $currentTime,
+                    'nickname' => $nickname
+                ];
                 $newConnections++;
                 echo "  [NEW] {$nickname} (cldbid: {$cldbid}) connected\n";
             } else {
                 // User was already online, add time
-                $manager->addOnlineTime($cldbid, $timeDiff);
-                $onlineUsers[$cldbid] = $currentTime;
+                $manager->addOnlineTime($cldbid, $timeDiff, $additionalData);
+                $onlineUsers[$cldbid]['nickname'] = $nickname;
                 $timeUpdates++;
             }
         }
         
         // Remove disconnected users
         $disconnected = 0;
-        foreach ($onlineUsers as $cldbid => $timestamp) {
+        foreach ($onlineUsers as $cldbid => $userData) {
             if (!isset($currentOnline[$cldbid])) {
+                // Calculate session length
+                $sessionLength = $currentTime - $userData['start'];
+                $manager->endSession($cldbid);
+                
                 unset($onlineUsers[$cldbid]);
                 $disconnected++;
-                echo "  [LEFT] User {$cldbid} disconnected\n";
+                $sessionTime = floor($sessionLength / 60);
+                echo "  [LEFT] {$userData['nickname']} (cldbid: {$cldbid}) disconnected after {$sessionTime}m\n";
             }
         }
         
-        echo "  Summary: " . count($onlineUsers) . " online, ";
-        echo "{$newConnections} new connections, {$disconnected} left\n";
-        echo "  Tracking data updated for {$timeUpdates} users\n";
+        echo "  Summary: " . count($onlineUsers) . " online ({$totalOnline} total clients), ";
+        echo "{$newConnections} new, {$disconnected} left, {$timeUpdates} updated\n";
         
         $lastCheck = $currentTime;
         

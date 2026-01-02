@@ -110,12 +110,23 @@ class StatsDisplayManager {
                     "cluid" => $cluid
                 ], ["cldbid" => $cldbid]);
             } else {
-                // Insert new
+                // Insert new - check if user exists in profiles table to get existing connection count
+                $existingConnections = 0;
+                try {
+                    $profile = $db->get("profiles", "connections", ["cldbid" => $cldbid]);
+                    if ($profile && isset($profile['connections'])) {
+                        $existingConnections = (int)$profile['connections'];
+                    }
+                } catch (\Exception $e) {
+                    // Table might not exist or no data
+                }
+                
+                // Start with existing connections + 1 for this connection
                 $db->insert("user_statistics", [
                     "cldbid" => $cldbid,
                     "cluid" => $cluid,
                     "last_nickname" => $nickname,
-                    "total_connections" => 1,
+                    "total_connections" => $existingConnections + 1,
                     "total_online_time" => 0,
                     "first_seen" => date('Y-m-d H:i:s'),
                     "last_seen" => date('Y-m-d H:i:s')
@@ -132,25 +143,89 @@ class StatsDisplayManager {
      * Update online time for user
      * @param int $cldbid
      * @param int $seconds
+     * @param array $additionalData Optional additional data to update
      * @return bool
      */
-    public function addOnlineTime(int $cldbid, int $seconds): bool {
+    public function addOnlineTime(int $cldbid, int $seconds, array $additionalData = []): bool {
         $db = DatabaseUtils::i()->getDb();
         
         try {
-            $existing = $db->get("user_statistics", ["total_online_time"], ["cldbid" => $cldbid]);
+            $existing = $db->get("user_statistics", "*", ["cldbid" => $cldbid]);
             
             if ($existing) {
                 $newTime = $existing['total_online_time'] + $seconds;
-                $db->update("user_statistics", [
+                $newHours = round($newTime / 3600, 2);
+                
+                // Calculate average session time
+                $totalConnections = (int)$existing['total_connections'];
+                $avgSessionTime = $totalConnections > 0 ? floor($newTime / $totalConnections) : 0;
+                
+                $updateData = [
                     "total_online_time" => $newTime,
+                    "total_online_hours" => $newHours,
+                    "average_session_time" => $avgSessionTime,
                     "last_seen" => date('Y-m-d H:i:s')
-                ], ["cldbid" => $cldbid]);
+                ];
+                
+                // Add any additional tracking data
+                foreach ($additionalData as $key => $value) {
+                    $updateData[$key] = $value;
+                }
+                
+                $db->update("user_statistics", $updateData, ["cldbid" => $cldbid]);
                 return true;
             }
             return false;
         } catch (\Exception $e) {
             error_log("Failed to add online time: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Start user session (track session start time)
+     * @param int $cldbid
+     * @return bool
+     */
+    public function startSession(int $cldbid): bool {
+        $db = DatabaseUtils::i()->getDb();
+        
+        try {
+            $db->update("user_statistics", [
+                "current_session_start" => date('Y-m-d H:i:s')
+            ], ["cldbid" => $cldbid]);
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+    
+    /**
+     * End user session and update longest session if needed
+     * @param int $cldbid
+     * @return bool
+     */
+    public function endSession(int $cldbid): bool {
+        $db = DatabaseUtils::i()->getDb();
+        
+        try {
+            $user = $db->get("user_statistics", ["current_session_start", "longest_session"], ["cldbid" => $cldbid]);
+            
+            if ($user && $user['current_session_start']) {
+                $sessionStart = strtotime($user['current_session_start']);
+                $sessionLength = time() - $sessionStart;
+                
+                $updateData = ["current_session_start" => null];
+                
+                // Update longest session if this one is longer
+                if ($sessionLength > (int)$user['longest_session']) {
+                    $updateData['longest_session'] = $sessionLength;
+                }
+                
+                $db->update("user_statistics", $updateData, ["cldbid" => $cldbid]);
+            }
+            return true;
+        } catch (\Exception $e) {
             return false;
         }
     }
@@ -328,15 +403,12 @@ class StatsDisplayManager {
             return $description;
         }
         
-        // Build table
-        $description .= "[table]\n";
-        $description .= "[tr][th]Rank[/th][th]User[/th][th]Connections[/th][th]Last Seen[/th][/tr]\n";
-        
         $rank = 1;
         foreach ($topUsers as $user) {
             $cldbid = (int)$user['cldbid'];
             $nickname = $this->escapeBBCode($user['last_nickname'] ?? 'Unknown');
             $connections = number_format((int)$user['total_connections']);
+            $onlineTime = $this->formatTime((int)$user['total_online_time']);
             $lastSeen = $this->formatDate($user['last_seen']);
             
             // Get medal emoji
@@ -346,11 +418,12 @@ class StatsDisplayManager {
             $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
             $userLink = "[url={$profileUrl}]{$nickname}[/url]";
             
-            $description .= "[tr][td]{$medal} #{$rank}[/td][td]{$userLink}[/td][td]{$connections}[/td][td]{$lastSeen}[/td][/tr]\n";
+            // Build entry
+            $description .= "[size=11]{$medal} [b]#{$rank}[/b] {$userLink}[/size]\n";
+            $description .= "[size=10]   🔄 [b]{$connections}[/b] connections | ⏱️ {$onlineTime} | 👁️ {$lastSeen}[/size]\n\n";
+            
             $rank++;
         }
-        
-        $description .= "[/table]\n\n";
         
         return $description;
     }
@@ -371,15 +444,12 @@ class StatsDisplayManager {
             return $description;
         }
         
-        // Build table
-        $description .= "[table]\n";
-        $description .= "[tr][th]Rank[/th][th]User[/th][th]Online Time[/th][th]Last Seen[/th][/tr]\n";
-        
         $rank = 1;
         foreach ($topUsers as $user) {
             $cldbid = (int)$user['cldbid'];
             $nickname = $this->escapeBBCode($user['last_nickname'] ?? 'Unknown');
             $onlineTime = $this->formatTime((int)$user['total_online_time']);
+            $connections = number_format((int)$user['total_connections']);
             $lastSeen = $this->formatDate($user['last_seen']);
             
             // Get medal emoji
@@ -389,11 +459,12 @@ class StatsDisplayManager {
             $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
             $userLink = "[url={$profileUrl}]{$nickname}[/url]";
             
-            $description .= "[tr][td]{$medal} #{$rank}[/td][td]{$userLink}[/td][td]{$onlineTime}[/td][td]{$lastSeen}[/td][/tr]\n";
+            // Build entry
+            $description .= "[size=11]{$medal} [b]#{$rank}[/b] {$userLink}[/size]\n";
+            $description .= "[size=10]   ⏱️ [b]{$onlineTime}[/b] online | 🔄 {$connections} connections | 👁️ {$lastSeen}[/size]\n\n";
+            
             $rank++;
         }
-        
-        $description .= "[/table]\n\n";
         
         return $description;
     }
@@ -411,15 +482,12 @@ class StatsDisplayManager {
         $totalTime = $this->formatTime((int)$stats['total_online_time']);
         $avgTime = $this->formatTime((int)$stats['avg_online_time']);
         
-        $description .= "[table]\n";
-        $description .= "[tr][th]Statistic[/th][th]Value[/th][/tr]\n";
-        $description .= "[tr][td]👥 Total Unique Users[/td][td][b]" . number_format($stats['total_users']) . "[/b][/td][/tr]\n";
-        $description .= "[tr][td]🟢 Currently Online[/td][td][b]" . number_format($stats['current_online']) . "[/b][/td][/tr]\n";
-        $description .= "[tr][td]🔄 Total Connections[/td][td][b]" . number_format($stats['total_connections']) . "[/b][/td][/tr]\n";
-        $description .= "[tr][td]⏱️ Total Online Time[/td][td][b]{$totalTime}[/b][/td][/tr]\n";
-        $description .= "[tr][td]📈 Avg Connections/User[/td][td][b]" . number_format($stats['avg_connections'], 1) . "[/b][/td][/tr]\n";
-        $description .= "[tr][td]⏰ Avg Time/User[/td][td][b]{$avgTime}[/b][/td][/tr]\n";
-        $description .= "[/table]\n\n";
+        $description .= "[size=12]👥 [b]Total Unique Users:[/b] " . number_format($stats['total_users']) . "[/size]\n";
+        $description .= "[size=12]🟢 [b]Currently Online:[/b] " . number_format($stats['current_online']) . "[/size]\n";
+        $description .= "[size=12]🔄 [b]Total Connections:[/b] " . number_format($stats['total_connections']) . "[/size]\n";
+        $description .= "[size=12]⏱️ [b]Total Online Time:[/b] {$totalTime}[/size]\n";
+        $description .= "[size=12]📈 [b]Avg Connections/User:[/b] " . number_format($stats['avg_connections'], 1) . "[/size]\n";
+        $description .= "[size=12]⏰ [b]Avg Time/User:[/b] {$avgTime}[/size]\n\n";
         
         return $description;
     }
@@ -435,65 +503,60 @@ class StatsDisplayManager {
         
         // Server stats
         $stats = $this->getServerStats();
-        $description .= "[center][size=14][b]Server Overview[/b][/size][/center]\n";
-        $description .= "[center]";
-        $description .= "👥 Users: [b]" . number_format($stats['total_users']) . "[/b] | ";
-        $description .= "🟢 Online: [b]" . number_format($stats['current_online']) . "[/b] | ";
-        $description .= "🔄 Connections: [b]" . number_format($stats['total_connections']) . "[/b]";
-        $description .= "[/center]\n\n";
+        $totalTime = $this->formatTime((int)$stats['total_online_time']);
+        
+        $description .= "[center][size=13][b]━━━━━━━━━ Server Overview ━━━━━━━━━[/b][/size][/center]\n";
+        $description .= "[center]👥 [b]" . number_format($stats['total_users']) . "[/b] users | ";
+        $description .= "🟢 [b]" . number_format($stats['current_online']) . "[/b] online | ";
+        $description .= "🔄 [b]" . number_format($stats['total_connections']) . "[/b] connections[/center]\n";
+        $description .= "[center]⏱️ [b]{$totalTime}[/b] total time tracked[/center]\n\n";
         
         $description .= "[hr]\n\n";
         
         // Top Connections
         $topConnections = $this->getTopByConnections($topCount);
-        $description .= "[center][size=14][b]🏆 Top by Connections[/b][/size][/center]\n";
+        $description .= "[center][size=14][b]🏆 Top by Connections[/b][/size][/center]\n\n";
         
         if (!empty($topConnections)) {
-            $description .= "[table]\n";
-            $description .= "[tr][th]Rank[/th][th]User[/th][th]Connections[/th][/tr]\n";
-            
             $rank = 1;
             foreach (array_slice($topConnections, 0, 5) as $user) {
                 $cldbid = (int)$user['cldbid'];
                 $nickname = $this->escapeBBCode($user['last_nickname'] ?? 'Unknown');
                 $connections = number_format((int)$user['total_connections']);
-                $medal = $this->getRankMedal($rank);
-                
-                $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
-                $userLink = "[url={$profileUrl}]{$nickname}[/url]";
-                
-                $description .= "[tr][td]{$medal} #{$rank}[/td][td]{$userLink}[/td][td]{$connections}[/td][/tr]\n";
-                $rank++;
-            }
-            
-            $description .= "[/table]\n\n";
-        }
-        
-        $description .= "[hr]\n\n";
-        
-        // Top Online Time
-        $topTime = $this->getTopByOnlineTime($topCount);
-        $description .= "[center][size=14][b]⏱️ Top by Online Time[/b][/size][/center]\n";
-        
-        if (!empty($topTime)) {
-            $description .= "[table]\n";
-            $description .= "[tr][th]Rank[/th][th]User[/th][th]Time[/th][/tr]\n";
-            
-            $rank = 1;
-            foreach (array_slice($topTime, 0, 5) as $user) {
-                $cldbid = (int)$user['cldbid'];
-                $nickname = $this->escapeBBCode($user['last_nickname'] ?? 'Unknown');
                 $onlineTime = $this->formatTime((int)$user['total_online_time']);
                 $medal = $this->getRankMedal($rank);
                 
                 $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
                 $userLink = "[url={$profileUrl}]{$nickname}[/url]";
                 
-                $description .= "[tr][td]{$medal} #{$rank}[/td][td]{$userLink}[/td][td]{$onlineTime}[/td][/tr]\n";
+                $description .= "[size=11]{$medal} [b]#{$rank}[/b] {$userLink} • [b]{$connections}[/b] connections • {$onlineTime}[/size]\n";
                 $rank++;
             }
-            
-            $description .= "[/table]\n\n";
+            $description .= "\n";
+        }
+        
+        $description .= "[hr]\n\n";
+        
+        // Top Online Time
+        $topTime = $this->getTopByOnlineTime($topCount);
+        $description .= "[center][size=14][b]⏱️ Top by Online Time[/b][/size][/center]\n\n";
+        
+        if (!empty($topTime)) {
+            $rank = 1;
+            foreach (array_slice($topTime, 0, 5) as $user) {
+                $cldbid = (int)$user['cldbid'];
+                $nickname = $this->escapeBBCode($user['last_nickname'] ?? 'Unknown');
+                $onlineTime = $this->formatTime((int)$user['total_online_time']);
+                $connections = number_format((int)$user['total_connections']);
+                $medal = $this->getRankMedal($rank);
+                
+                $profileUrl = "{$baseUrl}/profile.php?cldbid={$cldbid}";
+                $userLink = "[url={$profileUrl}]{$nickname}[/url]";
+                
+                $description .= "[size=11]{$medal} [b]#{$rank}[/b] {$userLink} • [b]{$onlineTime}[/b] • {$connections} connections[/size]\n";
+                $rank++;
+            }
+            $description .= "\n";
         }
         
         return $description;
@@ -629,6 +692,45 @@ class StatsDisplayManager {
     }
 
     /**
+     * Add missing columns to existing table
+     * @param object $db
+     * @param string $tableName
+     */
+    private function addMissingColumns($db, string $tableName): void {
+        try {
+            $columns = $db->query("SHOW COLUMNS FROM `{$tableName}`");
+            $existingColumns = [];
+            while ($col = $columns->fetch(\PDO::FETCH_ASSOC)) {
+                $existingColumns[] = $col['Field'];
+            }
+            
+            // Add missing columns
+            $columnsToAdd = [
+                'total_online_hours' => "ADD COLUMN `total_online_hours` DECIMAL(10,2) NOT NULL DEFAULT '0.00' COMMENT 'Total online time in hours'",
+                'average_session_time' => "ADD COLUMN `average_session_time` INT(11) NOT NULL DEFAULT '0' COMMENT 'Average session length in seconds'",
+                'longest_session' => "ADD COLUMN `longest_session` INT(11) NOT NULL DEFAULT '0' COMMENT 'Longest session in seconds'",
+                'current_session_start' => "ADD COLUMN `current_session_start` TIMESTAMP NULL DEFAULT NULL COMMENT 'When current session started'",
+                'last_ip' => "ADD COLUMN `last_ip` VARCHAR(45) DEFAULT NULL COMMENT 'Last known IP address'",
+                'country_code' => "ADD COLUMN `country_code` VARCHAR(2) DEFAULT NULL COMMENT 'Country code'",
+                'peak_clients_seen' => "ADD COLUMN `peak_clients_seen` INT(11) NOT NULL DEFAULT '0' COMMENT 'Max concurrent clients when user was online'",
+                'messages_sent' => "ADD COLUMN `messages_sent` INT(11) NOT NULL DEFAULT '0' COMMENT 'Total messages sent (future feature)'",
+                'channels_visited' => "ADD COLUMN `channels_visited` TEXT DEFAULT NULL COMMENT 'JSON array of visited channel IDs'"
+            ];
+            
+            foreach ($columnsToAdd as $columnName => $sql) {
+                if (!in_array($columnName, $existingColumns)) {
+                    $db->query("ALTER TABLE `{$tableName}` {$sql}");
+                }
+            }
+            
+            // Update total_online_hours from total_online_time for existing records
+            $db->query("UPDATE `{$tableName}` SET `total_online_hours` = ROUND(`total_online_time` / 3600, 2) WHERE `total_online_hours` = 0 AND `total_online_time` > 0");
+        } catch (\Exception $e) {
+            error_log("Error adding missing columns: " . $e->getMessage());
+        }
+    }
+    
+    /**
      * Ensure tables exist
      * @return bool
      */
@@ -641,23 +743,39 @@ class StatsDisplayManager {
             // Create user_statistics table
             $statsTable = $prefix . "user_statistics";
             $stmt = $db->query("SHOW TABLES LIKE '" . addslashes($statsTable) . "'");
-            if (!$stmt || !$stmt->fetchColumn()) {
+            $tableExists = $stmt && $stmt->fetchColumn();
+            
+            if (!$tableExists) {
                 $sql = "CREATE TABLE IF NOT EXISTS `{$statsTable}` (
                     `cldbid` INT(11) NOT NULL,
                     `cluid` VARCHAR(64) DEFAULT NULL,
                     `last_nickname` VARCHAR(128) DEFAULT NULL,
-                    `total_connections` INT(11) NOT NULL DEFAULT '0',
+                    `total_connections` INT(11) NOT NULL DEFAULT '0' COMMENT 'Total number of connections',
                     `total_online_time` BIGINT(20) NOT NULL DEFAULT '0' COMMENT 'Total online time in seconds',
-                    `first_seen` TIMESTAMP NULL DEFAULT NULL,
-                    `last_seen` TIMESTAMP NULL DEFAULT NULL,
+                    `total_online_hours` DECIMAL(10,2) NOT NULL DEFAULT '0.00' COMMENT 'Total online time in hours',
+                    `average_session_time` INT(11) NOT NULL DEFAULT '0' COMMENT 'Average session length in seconds',
+                    `longest_session` INT(11) NOT NULL DEFAULT '0' COMMENT 'Longest session in seconds',
+                    `current_session_start` TIMESTAMP NULL DEFAULT NULL COMMENT 'When current session started',
+                    `last_ip` VARCHAR(45) DEFAULT NULL COMMENT 'Last known IP address',
+                    `country_code` VARCHAR(2) DEFAULT NULL COMMENT 'Country code',
+                    `first_seen` TIMESTAMP NULL DEFAULT NULL COMMENT 'First time user connected',
+                    `last_seen` TIMESTAMP NULL DEFAULT NULL COMMENT 'Last time user was seen',
+                    `peak_clients_seen` INT(11) NOT NULL DEFAULT '0' COMMENT 'Max concurrent clients when user was online',
+                    `messages_sent` INT(11) NOT NULL DEFAULT '0' COMMENT 'Total messages sent (future feature)',
+                    `channels_visited` TEXT DEFAULT NULL COMMENT 'JSON array of visited channel IDs',
                     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     PRIMARY KEY (`cldbid`),
                     KEY `idx_connections` (`total_connections`),
                     KEY `idx_online_time` (`total_online_time`),
-                    KEY `idx_last_seen` (`last_seen`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                    KEY `idx_online_hours` (`total_online_hours`),
+                    KEY `idx_last_seen` (`last_seen`),
+                    KEY `idx_country` (`country_code`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Comprehensive user statistics and activity tracking'";
                 $db->query($sql);
+            } else {
+                // Add new columns if they don't exist (for existing installations)
+                $this->addMissingColumns($db, $statsTable);
             }
             
             // Create channel_stats_display table
