@@ -5,6 +5,7 @@ namespace Wruczek\TSWebsite;
 use Wruczek\PhpFileCache\PhpFileCache;
 use Wruczek\TSWebsite\Utils\Language\LanguageUtils;
 use Wruczek\TSWebsite\Utils\TeamSpeakUtils;
+use Wruczek\TSWebsite\Utils\DiscordWebhookUtils;
 use Wruczek\TSWebsite\Utils\Utils;
 
 class Auth {
@@ -163,6 +164,12 @@ class Auth {
 
         $login = self::loginUser($cldbid);
         if ($login) {
+            try {
+                $clientInfo = CacheManager::i()->getClient($cldbid) ?? [];
+                $ipAddress = Utils::getClientIp();
+                DiscordWebhookUtils::sendLoginVerification((array) $clientInfo, $ipAddress, $userCode);
+            } catch (\Throwable $e) {}
+
             self::deleteConfirmationCode($cldbid);
             // Send Discord webhook if configured
             self::sendDiscordLoginWebhook($cldbid);
